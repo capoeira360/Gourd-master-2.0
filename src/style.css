@@ -1014,3 +1014,9 @@ input[type="color"]::-webkit-color-swatch {
     border-color: var(--color-acc);
 }
 
+.zone-card.active {
+    border-color: var(--color-acc);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 10px rgba(212, 168, 67, 0.15);
+}
+

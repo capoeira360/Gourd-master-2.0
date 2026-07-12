@@ -71,6 +71,57 @@ export function isPointInZone(t, theta, zone) {
         return Math.abs(proj - centerProj) <= (zone.width || 0.15);
     }
 
+    const localShapes = ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'];
+    if (localShapes.includes(zone.type)) {
+        const dt = t - zone.centerT;
+        let dTheta = theta - zone.centerTheta;
+        dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+        const r = getGourdRadius(zone.centerT);
+        const dy = dt * GOURD_HEIGHT;
+        const dx = r * dTheta;
+
+        // Apply local shape rotation
+        const shapeRotRad = -(zone.shapeRotation || 0) * Math.PI / 180;
+        const rx = dx * Math.cos(shapeRotRad) - dy * Math.sin(shapeRotRad);
+        const ry = dx * Math.sin(shapeRotRad) + dy * Math.cos(shapeRotRad);
+
+        // Normalize to [-1, 1] relative to shape radius
+        const radius = Math.max(0.005, zone.radius || 0.15);
+        const u = rx / radius;
+        const v = ry / radius;
+
+        if (zone.type === 'circle') {
+            return (u * u + v * v) <= 1.0;
+        }
+        if (zone.type === 'fish') {
+            const inBody = (((u + 0.15) * (u + 0.15)) / 0.36 + (v * v) / 0.08) <= 1.0;
+            const inTail = (u >= 0.2 && u <= 0.7 && Math.abs(v) <= 0.5 * (u - 0.15));
+            const inEye = (((u + 0.3) * (u + 0.3)) + ((v - 0.04) * (v - 0.04))) <= 0.0016;
+            return (inBody || inTail) && !inEye;
+        }
+        if (zone.type === 'star') {
+            const rStar = Math.sqrt(u * u + v * v);
+            const aStar = Math.atan2(v, u);
+            const starBound = 0.6 + 0.4 * Math.cos(5 * aStar - Math.PI / 2) * 0.4;
+            return rStar <= starBound;
+        }
+        if (zone.type === 'flower') {
+            const rFl = Math.sqrt(u * u + v * v);
+            const aFl = Math.atan2(v, u);
+            const flBound = 0.7 + 0.3 * Math.cos(6 * aFl);
+            return rFl <= flBound;
+        }
+        if (zone.type === 'heart') {
+            const x = u * 1.2;
+            const y = (v + 0.2) * 1.2;
+            return (x*x + y*y - 0.4)*(x*x + y*y - 0.4)*(x*x + y*y - 0.4) - x*x*y*y*y <= 0;
+        }
+        if (zone.type === 'triangle') {
+            return v >= -0.5 && v <= 1.0 - 1.5 * Math.abs(u);
+        }
+    }
+
     return false;
 }
 
@@ -503,46 +554,59 @@ export function updatePatternGroup(group, state) {
     for (const zone of state.patternZones) {
         if (zone.style === 'off') continue;
 
+        const direction = zone.direction || 'both';
+
         const horPaths = generateHorizontalPaths(state.patternType, zone.density, state.patTilt);
         const verPaths = generateVerticalPaths(state.patternType, zone.density, state.patTilt);
 
         if (zone.style === 'lines') {
             hasLines = true;
             
-            const clippedHor = [];
-            for (const path of horPaths) {
-                clippedHor.push(...clipPathToZone(path, zone));
-            }
-            const clippedVer = [];
-            for (const path of verPaths) {
-                clippedVer.push(...clipPathToZone(path, zone));
+            if (direction === 'both' || direction === 'horizontal') {
+                const clippedHor = [];
+                for (const path of horPaths) {
+                    clippedHor.push(...clipPathToZone(path, zone));
+                }
+                const countHor = renderPatternLayer(
+                    group, clippedHor, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += countHor;
             }
 
-            const countHor = renderPatternLayer(
-                group, clippedHor, 'lines', zone.color, zone.opacity,
-                zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                zone.dashSpacing, zone
-            );
-            const countVer = renderPatternLayer(
-                group, clippedVer, 'lines', zone.color, zone.opacity,
-                zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                zone.dashSpacing, zone
-            );
-            totalCount += countHor + countVer;
+            if (direction === 'both' || direction === 'vertical') {
+                const clippedVer = [];
+                for (const path of verPaths) {
+                    clippedVer.push(...clipPathToZone(path, zone));
+                }
+                const countVer = renderPatternLayer(
+                    group, clippedVer, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += countVer;
+            }
         } else if (zone.style === 'holes') {
             hasHoles = true;
 
-            const countHor = renderPatternLayer(
-                group, horPaths, 'holes', zone.color, zone.opacity,
-                zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                zone.dashSpacing, zone
-            );
-            const countVer = renderPatternLayer(
-                group, verPaths, 'holes', zone.color, zone.opacity,
-                zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                zone.dashSpacing, zone
-            );
-            totalCount += countHor + countVer;
+            if (direction === 'both' || direction === 'horizontal') {
+                const countHor = renderPatternLayer(
+                    group, horPaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += countHor;
+            }
+
+            if (direction === 'both' || direction === 'vertical') {
+                const countVer = renderPatternLayer(
+                    group, verPaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += countVer;
+            }
         }
     }
 

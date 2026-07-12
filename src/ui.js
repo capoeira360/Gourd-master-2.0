@@ -97,6 +97,13 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
                     ${sliderRow('Patch Radius', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius, 'cm')}
                 `;
+            } else if (['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+                boundsSliders = `
+                    ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
+                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
+                    ${sliderRow('Shape Size', `pat-zone-radius-${zone.id}`, 0.02, 0.6, 0.01, zone.radius, 'cm')}
+                    ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
+                `;
             }
 
             let styleControls = '';
@@ -132,7 +139,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             }
 
             return `
-                <div class="zone-card" id="zone-card-${zone.id}">
+                <div class="zone-card ${zone.id === state.activeZoneId ? 'active' : ''}" id="zone-card-${zone.id}">
                     <div class="zone-card-header">
                         <input type="text" class="zone-name-input" data-zone-id="${zone.id}" value="${zone.name}">
                         <div class="zone-card-actions">
@@ -149,6 +156,21 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
                             <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
                             <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
+                            <option value="circle" ${zone.type === 'circle' ? 'selected' : ''}>Circle Frame</option>
+                            <option value="fish" ${zone.type === 'fish' ? 'selected' : ''}>Fish Silhouette</option>
+                            <option value="star" ${zone.type === 'star' ? 'selected' : ''}>5-Point Star</option>
+                            <option value="flower" ${zone.type === 'flower' ? 'selected' : ''}>Flower Rosette</option>
+                            <option value="heart" ${zone.type === 'heart' ? 'selected' : ''}>Heart Shape</option>
+                            <option value="triangle" ${zone.type === 'triangle' ? 'selected' : ''}>Triangle Shape</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-row" style="margin-bottom: 8px;">
+                        <label class="control-label" style="width: 35%;">Orientation</label>
+                        <select class="zone-direction-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                            <option value="both" ${zone.direction === 'both' ? 'selected' : ''}>Both Directions</option>
+                            <option value="horizontal" ${zone.direction === 'horizontal' ? 'selected' : ''}>${state.patternType === 'diamond' ? 'Clockwise' : 'Horizontal'} Only</option>
+                            <option value="vertical" ${zone.direction === 'vertical' ? 'selected' : ''}>${state.patternType === 'diamond' ? 'Counter-CW' : 'Vertical'} Only</option>
                         </select>
                     </div>
                     
@@ -396,6 +418,19 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    document.querySelectorAll('.zone-direction-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.direction = select.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+            }
+        });
+    });
+
     document.querySelectorAll('.option-btn[data-pat-zone-style]').forEach(btn => {
         btn.addEventListener('click', () => {
             const zoneId = btn.dataset.zoneId;
@@ -431,6 +466,7 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             const zoneId = picker.dataset.zoneId;
             const zone = state.patternZones.find(z => z.id === zoneId);
             if (zone) {
+                state.activeZoneId = zoneId;
                 zone.color = picker.value;
                 const labelText = picker.nextElementSibling;
                 if (labelText) labelText.textContent = zone.color.toUpperCase();
@@ -439,6 +475,19 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
         picker.addEventListener('change', () => {
             pushUndoState(gourdMesh);
+        });
+    });
+
+    // 3.1. Zone card direct click selection handler
+    document.querySelectorAll('.zone-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('input, select, button')) return;
+            const zoneId = card.id.replace('zone-card-', '');
+            if (state.activeZoneId !== zoneId) {
+                pushUndoState(gourdMesh);
+                state.activeZoneId = zoneId;
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
         });
     });
     
@@ -567,6 +616,7 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
         const parts = id.split('-');
         const param = parts[2];
         const zoneId = parts.slice(3).join('-');
+        state.activeZoneId = zoneId; // Set active selection when input sliders update
         const zone = state.patternZones.find(z => z.id === zoneId);
         if (zone) {
             if (param === 'density') {
@@ -732,7 +782,7 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
 }
 
 // Sets the active tool state and manages styling indicators
-const toolToTab = { select: null, measure: 'measure', pattern: 'pattern', transform: 'transform', carve: 'carve', camera: null };
+const toolToTab = { select: null, measure: 'measure', pattern: 'pattern', position: 'pattern', transform: 'transform', carve: 'carve', camera: null };
 
 export function selectTool(tool, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, controls) {
     state.currentTool = tool;
@@ -769,6 +819,10 @@ export function selectTool(tool, gourdMesh, carveGroup, measureGroup, patternGro
         showToast('Carve Mode active — Left click and drag on gourd to carve', 'warn');
         gourdMesh.material.emissive.set(0x2a1a08);
         gourdMesh.material.emissiveIntensity = 0.25;
+    } else if (tool === 'position') {
+        showToast('Position Mode active — Left click and drag on gourd to place active shape', 'warn');
+        gourdMesh.material.emissive.set(0x0a1020);
+        gourdMesh.material.emissiveIntensity = 0.15;
     } else {
         gourdMesh.material.emissive.set(0x000000);
         gourdMesh.material.emissiveIntensity = 0;

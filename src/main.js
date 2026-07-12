@@ -11,6 +11,7 @@ import { renderPropertiesPanel, registerGlobalUIEvents, showToast } from './ui.j
 let scene, camera, renderer, controls;
 let gourdMesh, patternGroup, measureGroup, carveGroup;
 let gridHelper, rimLight;
+let isPositionDragging = false;
 
 let cameraTargetPos = null;
 const cameraPresets = {
@@ -150,6 +151,15 @@ function init() {
             handleCarvePointerDown(e, canvas, camera, gourdMesh, carveGroup, state, controls, () => {
                 pushUndoState(gourdMesh);
             });
+        } else if (state.currentTool === 'position') {
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObject(gourdMesh);
+            if (hits.length > 0) {
+                isPositionDragging = true;
+                controls.enabled = false;
+                pushUndoState(gourdMesh);
+                updatePositionDrag(hits[0]);
+            }
         }
     });
 
@@ -161,6 +171,12 @@ function init() {
         
         if (state.currentTool === 'carve') {
             handleCarvePointerMove(e, canvas, camera, gourdMesh, carveGroup, state);
+        } else if (state.currentTool === 'position' && isPositionDragging) {
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObject(gourdMesh);
+            if (hits.length > 0) {
+                updatePositionDrag(hits[0]);
+            }
         }
     });
 
@@ -170,10 +186,42 @@ function init() {
                 // Re-render properties panel to update carved paths counts
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             });
+        } else if (state.currentTool === 'position' && isPositionDragging) {
+            isPositionDragging = false;
+            controls.enabled = true;
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
         }
     };
     canvas.addEventListener('pointerup', onCarveEnd);
     canvas.addEventListener('pointerleave', onCarveEnd);
+
+    // Dynamic direct slider synchronizer during dragging
+    function updatePositionDrag(hit) {
+        const activeZone = state.patternZones.find(z => z.id === state.activeZoneId);
+        if (activeZone) {
+            const uv = hit.uv;
+            const t = uv.y;
+            const theta = uv.x * 2.0 * Math.PI - Math.PI;
+
+            activeZone.centerT = t;
+            activeZone.centerTheta = theta;
+
+            updatePatternGroup(patternGroup, state);
+            if (onUpdatePattern) onUpdatePattern();
+
+            // Fast DOM values sync
+            const tInputRange = document.getElementById(`pat-zone-centerT-${activeZone.id}`);
+            const tInputNumber = tInputRange ? tInputRange.closest('.control-row-slider').querySelector('input[type="number"]') : null;
+            if (tInputRange) tInputRange.value = t.toFixed(2);
+            if (tInputNumber) tInputNumber.value = t.toFixed(2);
+
+            const thetaDeg = Math.round(theta * 180 / Math.PI);
+            const thetaInputRange = document.getElementById(`pat-zone-centerTheta-${activeZone.id}`);
+            const thetaInputNumber = thetaInputRange ? thetaInputRange.closest('.control-row-slider').querySelector('input[type="number"]') : null;
+            if (thetaInputRange) thetaInputRange.value = thetaDeg;
+            if (thetaInputNumber) thetaInputNumber.value = thetaDeg;
+        }
+    }
 
     // Handle general interaction to reset idle timers
     canvas.addEventListener('wheel', () => { idleTime = 0; });

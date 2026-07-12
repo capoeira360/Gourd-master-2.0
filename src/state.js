@@ -36,9 +36,12 @@ export const state = {
             centerTheta: 0.0,
             radius: 0.3,
             slantAngle: 15,
-            width: 0.15
+            width: 0.15,
+            shapeRotation: 0,
+            direction: 'both'
         }
     ],
+    activeZoneId: 'zone-base',
     
     // Decoupled stats tracking
     patternCount: 0,
@@ -75,7 +78,8 @@ export function pushUndoState(gourdMesh) {
         patternZones: JSON.parse(JSON.stringify(state.patternZones)),
         patternType: state.patternType,
         patRotation: state.patRotation,
-        patTilt: state.patTilt
+        patTilt: state.patTilt,
+        activeZoneId: state.activeZoneId
     };
     
     state.undoStack.push(snapshot);
@@ -97,7 +101,8 @@ export function performUndo(gourdMesh, onRestore) {
         patternZones: JSON.parse(JSON.stringify(state.patternZones)),
         patternType: state.patternType,
         patRotation: state.patRotation,
-        patTilt: state.patTilt
+        patTilt: state.patTilt,
+        activeZoneId: state.activeZoneId
     };
     state.redoStack.push(snapshotToRedo);
     
@@ -110,6 +115,7 @@ export function performUndo(gourdMesh, onRestore) {
     state.patternType = prevState.patternType;
     state.patRotation = prevState.patRotation;
     state.patTilt = prevState.patTilt;
+    state.activeZoneId = prevState.activeZoneId;
     
     if (onRestore) onRestore();
     return true;
@@ -127,7 +133,8 @@ export function performRedo(gourdMesh, onRestore) {
         patternZones: JSON.parse(JSON.stringify(state.patternZones)),
         patternType: state.patternType,
         patRotation: state.patRotation,
-        patTilt: state.patTilt
+        patTilt: state.patTilt,
+        activeZoneId: state.activeZoneId
     };
     state.undoStack.push(snapshotToUndo);
     
@@ -140,6 +147,7 @@ export function performRedo(gourdMesh, onRestore) {
     state.patternType = nextState.patternType;
     state.patRotation = nextState.patRotation;
     state.patTilt = nextState.patTilt;
+    state.activeZoneId = nextState.activeZoneId;
     
     if (onRestore) onRestore();
     return true;
@@ -170,7 +178,9 @@ export function addPatternZone() {
         centerTheta: 0.0,
         radius: 0.3,
         slantAngle: 15,
-        width: 0.15
+        width: 0.15,
+        shapeRotation: 0,
+        direction: 'both'
     };
     state.patternZones.push(newZone);
     return newZone;
