@@ -96,9 +96,24 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         <label class="control-label" style="width: 35%;">Orientation</label>
                         <select class="zone-direction-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
                             <option value="both" ${zone.direction === 'both' ? 'selected' : ''}>Both Directions</option>
-                            <option value="horizontal" ${zone.direction === 'horizontal' ? 'selected' : ''}>${state.patternType === 'diamond' ? 'Clockwise' : 'Horizontal'} Only</option>
-                            <option value="vertical" ${zone.direction === 'vertical' ? 'selected' : ''}>${state.patternType === 'diamond' ? 'Counter-CW' : 'Vertical'} Only</option>
+                            <option value="horizontal" ${zone.direction === 'horizontal' ? 'selected' : ''}>${zone.patternType === 'diamond' ? 'Clockwise' : 'Horizontal'} Only</option>
+                            <option value="vertical" ${zone.direction === 'vertical' ? 'selected' : ''}>${zone.patternType === 'diamond' ? 'Counter-CW' : 'Vertical'} Only</option>
                         </select>
+                    </div>
+                `;
+            }
+
+            let patternTypeSelector = '';
+            if (!isLocalShape || zone.fillType !== 'concentric') {
+                patternTypeSelector = `
+                    <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: flex-start;">
+                        <label class="control-label" style="margin-bottom: 6px;">Pattern Layout</label>
+                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0;">
+                            <button class="option-btn ${zone.patternType === 'grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="grid" style="padding: 4px; font-size: 10px;">Grid</button>
+                            <button class="option-btn ${zone.patternType === 'diamond' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="diamond" style="padding: 4px; font-size: 10px;">Diamond</button>
+                            <button class="option-btn ${zone.patternType === 'zigzag' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="zigzag" style="padding: 4px; font-size: 10px;">Zigzag</button>
+                            <button class="option-btn ${zone.patternType === 'spiral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="spiral" style="padding: 4px; font-size: 10px;">Spiral</button>
+                        </div>
                     </div>
                 `;
             }
@@ -193,6 +208,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         
                         ${fillTypeSelect}
                         ${orientationSelect}
+                        ${patternTypeSelector}
                         ${boundsSliders}
                         
                         <div class="btn-grid-options" style="grid-template-cols: repeat(3, 1fr); margin-top: 10px; margin-bottom: 8px;">
@@ -231,14 +247,6 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
         }).join('');
 
         return `
-            <div class="panel-section-title">Pattern Design</div>
-            <div class="btn-grid-options">
-                <button class="option-btn ${state.patternType === 'grid' ? 'active' : ''}" data-pat="grid">Grid</button>
-                <button class="option-btn ${state.patternType === 'diamond' ? 'active' : ''}" data-pat="diamond">Diamond</button>
-                <button class="option-btn ${state.patternType === 'zigzag' ? 'active' : ''}" data-pat="zigzag">Zigzag</button>
-                <button class="option-btn ${state.patternType === 'spiral' ? 'active' : ''}" data-pat="spiral">Spiral</button>
-            </div>
-            
             <div class="panel-section-title">Pattern Alignment</div>
             ${sliderRow('Rotation (Y)', 'pat-rotation', 0, 360, 1, state.patRotation, '°')}
             ${sliderRow('Slant (Tilt)', 'pat-tilt', 0, 45, 1, state.patTilt, '°')}
@@ -391,20 +399,19 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
     
-    // 2. Pattern Options (Grid and Style Buttons)
-    document.querySelectorAll('.option-btn[data-pat]').forEach(btn => {
+    // 2. Pattern Options (Per-Layer Pattern Layout Toggle Buttons)
+    document.querySelectorAll('.option-btn[data-pat-type]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.option-btn[data-pat]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            pushUndoState(gourdMesh);
-            state.patternType = btn.dataset.pat;
-            
-            updatePatternGroup(patternGroup, state);
-            if (onUpdatePattern) onUpdatePattern();
-            
-            // Re-render properties panel to update section titles (e.g. Clockwise vs Horizontal)
-            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            const zoneId = btn.dataset.zoneId;
+            const patType = btn.dataset.patType;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.patternType = patType;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
         });
     });
     

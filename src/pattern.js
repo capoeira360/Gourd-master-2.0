@@ -710,8 +710,9 @@ export function updatePatternGroup(group, state) {
 
         const direction = zone.direction || 'both';
 
-        const horPaths = generateHorizontalPaths(state.patternType, zone.density, state.patTilt);
-        const verPaths = generateVerticalPaths(state.patternType, zone.density, state.patTilt);
+        const patLayout = zone.patternType || 'grid';
+        const horPaths = generateHorizontalPaths(patLayout, zone.density, state.patTilt);
+        const verPaths = generateVerticalPaths(patLayout, zone.density, state.patTilt);
 
         if (zone.style === 'lines') {
             hasLines = true;

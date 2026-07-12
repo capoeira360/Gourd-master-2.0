@@ -41,7 +41,8 @@ export const state = {
             direction: 'both',
             fillType: 'grid',
             visible: true,
-            isCustomNamed: false
+            isCustomNamed: false,
+            patternType: 'grid'
         }
     ],
     activeZoneId: 'zone-base',
@@ -80,7 +81,6 @@ export function pushUndoState(gourdMesh) {
         scl: gourdMesh.scale.clone(),
         carvedPaths: JSON.parse(JSON.stringify(state.carvedPaths)),
         patternZones: JSON.parse(JSON.stringify(state.patternZones)),
-        patternType: state.patternType,
         patRotation: state.patRotation,
         patTilt: state.patTilt,
         activeZoneId: state.activeZoneId,
@@ -105,7 +105,6 @@ export function performUndo(gourdMesh, onRestore) {
         scl: gourdMesh.scale.clone(),
         carvedPaths: JSON.parse(JSON.stringify(state.carvedPaths)),
         patternZones: JSON.parse(JSON.stringify(state.patternZones)),
-        patternType: state.patternType,
         patRotation: state.patRotation,
         patTilt: state.patTilt,
         activeZoneId: state.activeZoneId,
@@ -120,7 +119,6 @@ export function performUndo(gourdMesh, onRestore) {
     gourdMesh.scale.copy(prevState.scl);
     state.carvedPaths = prevState.carvedPaths;
     state.patternZones = prevState.patternZones;
-    state.patternType = prevState.patternType;
     state.patRotation = prevState.patRotation;
     state.patTilt = prevState.patTilt;
     state.activeZoneId = prevState.activeZoneId;
@@ -156,7 +154,6 @@ export function performRedo(gourdMesh, onRestore) {
     gourdMesh.scale.copy(nextState.scl);
     state.carvedPaths = nextState.carvedPaths;
     state.patternZones = nextState.patternZones;
-    state.patternType = nextState.patternType;
     state.patRotation = nextState.patRotation;
     state.patTilt = nextState.patTilt;
     state.activeZoneId = nextState.activeZoneId;
@@ -197,7 +194,8 @@ export function addPatternZone() {
         direction: 'both',
         fillType: 'grid',
         visible: true,
-        isCustomNamed: false
+        isCustomNamed: false,
+        patternType: 'grid'
     };
     state.patternZones.push(newZone);
     return newZone;
