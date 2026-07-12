@@ -39,7 +39,9 @@ export const state = {
             width: 0.15,
             shapeRotation: 0,
             direction: 'both',
-            fillType: 'grid'
+            fillType: 'grid',
+            visible: true,
+            isCustomNamed: false
         }
     ],
     activeZoneId: 'zone-base',
@@ -193,7 +195,9 @@ export function addPatternZone() {
         width: 0.15,
         shapeRotation: 0,
         direction: 'both',
-        fillType: 'grid'
+        fillType: 'grid',
+        visible: true,
+        isCustomNamed: false
     };
     state.patternZones.push(newZone);
     return newZone;

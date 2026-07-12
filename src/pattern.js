@@ -680,7 +680,7 @@ export function updatePatternGroup(group, state) {
 
     // Render each pattern zone individually
     for (const zone of state.patternZones) {
-        if (zone.style === 'off') continue;
+        if (zone.style === 'off' || zone.visible === false) continue;
 
         if (zone.fillType === 'concentric' && ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             const concentricLoops = generateConcentricLoops(zone);

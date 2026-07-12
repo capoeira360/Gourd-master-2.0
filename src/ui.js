@@ -167,11 +167,16 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 styleControls = `<p style="color: var(--color-tx-m); font-size: 11px; margin-bottom: 8px; font-style: italic;">Layer disabled</p>`;
             }
 
+            const isHidden = zone.visible === false;
+
             return `
-                <div class="zone-card ${zone.id === state.activeZoneId ? 'active' : ''}" id="zone-card-${zone.id}">
+                <div class="zone-card ${zone.id === state.activeZoneId ? 'active' : ''}" id="zone-card-${zone.id}" style="${isHidden ? 'opacity: 0.65;' : ''}">
                     <div class="zone-card-header">
                         <input type="text" class="zone-name-input" data-zone-id="${zone.id}" value="${zone.name}">
                         <div class="zone-card-actions">
+                            <button class="zone-action-btn btn-toggle-vis" data-zone-id="${zone.id}" title="${isHidden ? 'Show Layer' : 'Hide Layer'}">
+                                <i class="fas ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                            </button>
                             <button class="zone-action-btn btn-duplicate-zone" data-zone-id="${zone.id}" title="Duplicate Layer">Copy</button>
                             <button class="zone-action-btn delete btn-delete-zone" data-zone-id="${zone.id}" title="Delete Layer">Delete</button>
                         </div>
@@ -422,6 +427,21 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    document.querySelectorAll('.btn-toggle-vis').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const zoneId = btn.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.visible = (zone.visible !== false) ? false : true;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
     document.querySelectorAll('.zone-name-input').forEach(input => {
         input.addEventListener('change', () => {
             const zoneId = input.dataset.zoneId;
@@ -429,9 +449,24 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (zone) {
                 pushUndoState(gourdMesh);
                 zone.name = input.value;
+                zone.isCustomNamed = true;
             }
         });
     });
+
+    const shapeFriendlyNames = {
+        'full': 'Full Gourd',
+        'hor-band': 'Height Band',
+        'ver-strip': 'Vertical Strip',
+        'diagonal-stripe': 'Diagonal Stripe',
+        'circular-patch': 'Circular Patch',
+        'circle': 'Circle Frame',
+        'fish': 'Fish Silhouette',
+        'star': '5-Point Star',
+        'flower': 'Flower Rosette',
+        'heart': 'Heart Shape',
+        'triangle': 'Triangle Shape'
+    };
 
     document.querySelectorAll('.zone-shape-select').forEach(select => {
         select.addEventListener('change', () => {
@@ -440,6 +475,10 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (zone) {
                 pushUndoState(gourdMesh);
                 zone.type = select.value;
+                if (!zone.isCustomNamed) {
+                    const idx = state.patternZones.findIndex(z => z.id === zoneId) + 1;
+                    zone.name = `${shapeFriendlyNames[zone.type]} ${idx}`;
+                }
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
