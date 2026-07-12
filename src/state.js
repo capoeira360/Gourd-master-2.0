@@ -38,7 +38,8 @@ export const state = {
             slantAngle: 15,
             width: 0.15,
             shapeRotation: 0,
-            direction: 'both'
+            direction: 'both',
+            fillType: 'grid'
         }
     ],
     activeZoneId: 'zone-base',
@@ -81,7 +82,8 @@ export function pushUndoState(gourdMesh) {
         patRotation: state.patRotation,
         patTilt: state.patTilt,
         activeZoneId: state.activeZoneId,
-        positionToolMode: state.positionToolMode
+        positionToolMode: state.positionToolMode,
+        fillType: state.fillType
     };
     
     state.undoStack.push(snapshot);
@@ -105,7 +107,8 @@ export function performUndo(gourdMesh, onRestore) {
         patRotation: state.patRotation,
         patTilt: state.patTilt,
         activeZoneId: state.activeZoneId,
-        positionToolMode: state.positionToolMode
+        positionToolMode: state.positionToolMode,
+        fillType: state.fillType
     };
     state.redoStack.push(snapshotToRedo);
     
@@ -120,6 +123,7 @@ export function performUndo(gourdMesh, onRestore) {
     state.patTilt = prevState.patTilt;
     state.activeZoneId = prevState.activeZoneId;
     state.positionToolMode = prevState.positionToolMode;
+    state.fillType = prevState.fillType;
     
     if (onRestore) onRestore();
     return true;
@@ -139,7 +143,8 @@ export function performRedo(gourdMesh, onRestore) {
         patRotation: state.patRotation,
         patTilt: state.patTilt,
         activeZoneId: state.activeZoneId,
-        positionToolMode: state.positionToolMode
+        positionToolMode: state.positionToolMode,
+        fillType: state.fillType
     };
     state.undoStack.push(snapshotToUndo);
     
@@ -154,6 +159,7 @@ export function performRedo(gourdMesh, onRestore) {
     state.patTilt = nextState.patTilt;
     state.activeZoneId = nextState.activeZoneId;
     state.positionToolMode = nextState.positionToolMode;
+    state.fillType = nextState.fillType;
     
     if (onRestore) onRestore();
     return true;
@@ -186,7 +192,8 @@ export function addPatternZone() {
         slantAngle: 15,
         width: 0.15,
         shapeRotation: 0,
-        direction: 'both'
+        direction: 'both',
+        fillType: 'grid'
     };
     state.patternZones.push(newZone);
     return newZone;

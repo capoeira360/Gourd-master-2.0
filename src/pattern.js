@@ -526,6 +526,134 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
     }
 }
 
+// Generates nested concentric outlines scaling inwards for local shape masks
+function generateConcentricLoops(zone) {
+    const localShapes = ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'];
+    if (!localShapes.includes(zone.type)) return [];
+
+    const N = 100;
+    const basePts = [];
+
+    if (zone.type === 'circle') {
+        for (let i = 0; i <= N; i++) {
+            const psi = (i / N) * Math.PI * 2;
+            basePts.push({ u: Math.cos(psi), v: Math.sin(psi) });
+        }
+    } else if (zone.type === 'star') {
+        const starVerts = [];
+        for (let i = 0; i < 10; i++) {
+            const angle = i * Math.PI / 5 - Math.PI / 2;
+            const r = (i % 2 === 0) ? 1.0 : 0.4;
+            starVerts.push({ u: r * Math.cos(angle), v: r * Math.sin(angle) });
+        }
+        starVerts.push(starVerts[0]);
+        
+        for (let i = 0; i <= N; i++) {
+            const alpha = i / N;
+            const totalLength = 10 * alpha;
+            const idx = Math.min(9, Math.floor(totalLength));
+            const segAlpha = totalLength - idx;
+            const pA = starVerts[idx];
+            const pB = starVerts[idx + 1];
+            basePts.push({
+                u: pA.u + segAlpha * (pB.u - pA.u),
+                v: pA.v + segAlpha * (pB.v - pA.v)
+            });
+        }
+    } else if (zone.type === 'triangle') {
+        const triVerts = [
+            { u: 0, v: 1.0 },
+            { u: -0.866, v: -0.5 },
+            { u: 0.866, v: -0.5 },
+            { u: 0, v: 1.0 }
+        ];
+        for (let i = 0; i <= N; i++) {
+            const alpha = i / N;
+            const totalLength = 3 * alpha;
+            const idx = Math.min(2, Math.floor(totalLength));
+            const segAlpha = totalLength - idx;
+            const pA = triVerts[idx];
+            const pB = triVerts[idx + 1];
+            basePts.push({
+                u: pA.u + segAlpha * (pB.u - pA.u),
+                v: pA.v + segAlpha * (pB.v - pA.v)
+            });
+        }
+    } else if (zone.type === 'heart') {
+        for (let i = 0; i <= N; i++) {
+            const psi = (i / N) * Math.PI * 2;
+            const u = 0.85 * Math.pow(Math.sin(psi), 3);
+            const v = 0.05 + 0.06 * (13 * Math.cos(psi) - 5 * Math.cos(2*psi) - 2 * Math.cos(3*psi) - Math.cos(4*psi));
+            basePts.push({ u, v });
+        }
+    } else if (zone.type === 'flower') {
+        for (let i = 0; i <= N; i++) {
+            const psi = (i / N) * Math.PI * 2;
+            const r = 0.7 + 0.3 * Math.cos(6 * psi);
+            basePts.push({ u: r * Math.cos(psi), v: r * Math.sin(psi) });
+        }
+    } else if (zone.type === 'fish') {
+        const fishVerts = [
+            { u: -0.7, v: 0.0 },
+            { u: -0.5, v: 0.12 },
+            { u: -0.2, v: 0.22 },
+            { u: 0.1,  v: 0.18 },
+            { u: 0.35, v: 0.08 },
+            { u: 0.7,  v: 0.45 },
+            { u: 0.6,  v: 0.0 },
+            { u: 0.7,  v: -0.45 },
+            { u: 0.35, v: -0.08 },
+            { u: 0.1,  v: -0.18 },
+            { u: -0.2, v: -0.22 },
+            { u: -0.5, v: -0.12 },
+            { u: -0.7, v: 0.0 }
+        ];
+        for (let i = 0; i <= N; i++) {
+            const alpha = i / N;
+            const totalLength = 12 * alpha;
+            const idx = Math.min(11, Math.floor(totalLength));
+            const segAlpha = totalLength - idx;
+            const pA = fishVerts[idx];
+            const pB = fishVerts[idx + 1];
+            basePts.push({
+                u: pA.u + segAlpha * (pB.u - pA.u),
+                v: pA.v + segAlpha * (pB.v - pA.v)
+            });
+        }
+    }
+
+    const spacing = 1.0 / zone.density;
+    const R = Math.max(0.005, zone.radius || 0.15);
+
+    const loops = [];
+    let currentRadius = R;
+
+    while (currentRadius > 0.002) {
+        const scale = currentRadius / R;
+        const loopPath = [];
+
+        for (const pt of basePts) {
+            const rx = pt.u * R * scale;
+            const ry = pt.v * R * scale;
+
+            const phi = -(zone.shapeRotation || 0) * Math.PI / 180;
+            const dx = rx * Math.cos(phi) - ry * Math.sin(phi);
+            const dy = rx * Math.sin(phi) + ry * Math.cos(phi);
+
+            const t = zone.centerT + dy / GOURD_HEIGHT;
+            const r = getGourdRadius(t);
+            const theta = zone.centerTheta + dx / r;
+
+            loopPath.push({ t, theta });
+        }
+
+        loops.push(loopPath);
+        currentRadius -= spacing;
+    }
+
+    return loops;
+}
+
 // Rebuilds pattern inside a parent THREE.Group (handles lines and instanced holes)
 export function updatePatternGroup(group, state) {
     // Clear old children
@@ -553,6 +681,32 @@ export function updatePatternGroup(group, state) {
     // Render each pattern zone individually
     for (const zone of state.patternZones) {
         if (zone.style === 'off') continue;
+
+        if (zone.fillType === 'concentric' && ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+            const concentricLoops = generateConcentricLoops(zone);
+            const validLoops = concentricLoops.map(loop => {
+                return loop.filter(pt => pt.t >= 0 && pt.t <= 1);
+            }).filter(loop => loop.length >= 2);
+
+            if (zone.style === 'lines') {
+                hasLines = true;
+                const count = renderPatternLayer(
+                    group, validLoops, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            } else if (zone.style === 'holes') {
+                hasHoles = true;
+                const count = renderPatternLayer(
+                    group, validLoops, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            continue;
+        }
 
         const direction = zone.direction || 'both';
 

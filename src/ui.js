@@ -74,6 +74,35 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const holeDistProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - zone.holeDistance) / 0.298)));
             const holeCountProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeCount - 1) / 799)));
 
+            const isLocalShape = ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type);
+            
+            let fillTypeSelect = '';
+            if (isLocalShape) {
+                fillTypeSelect = `
+                    <div class="control-row" style="margin-bottom: 8px;">
+                        <label class="control-label" style="width: 35%;">Fill Type</label>
+                        <select class="zone-fill-type-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                            <option value="grid" ${zone.fillType === 'grid' ? 'selected' : ''}>Grid / Crosshatch</option>
+                            <option value="concentric" ${zone.fillType === 'concentric' ? 'selected' : ''}>Concentric Outlines</option>
+                        </select>
+                    </div>
+                `;
+            }
+            
+            let orientationSelect = '';
+            if (!isLocalShape || zone.fillType !== 'concentric') {
+                orientationSelect = `
+                    <div class="control-row" style="margin-bottom: 8px;">
+                        <label class="control-label" style="width: 35%;">Orientation</label>
+                        <select class="zone-direction-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                            <option value="both" ${zone.direction === 'both' ? 'selected' : ''}>Both Directions</option>
+                            <option value="horizontal" ${zone.direction === 'horizontal' ? 'selected' : ''}>${state.patternType === 'diamond' ? 'Clockwise' : 'Horizontal'} Only</option>
+                            <option value="vertical" ${zone.direction === 'vertical' ? 'selected' : ''}>${state.patternType === 'diamond' ? 'Counter-CW' : 'Vertical'} Only</option>
+                        </select>
+                    </div>
+                `;
+            }
+
             let boundsSliders = '';
             if (zone.type === 'hor-band') {
                 boundsSliders = `
@@ -165,14 +194,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         </select>
                     </div>
                     
-                    <div class="control-row" style="margin-bottom: 8px;">
-                        <label class="control-label" style="width: 35%;">Orientation</label>
-                        <select class="zone-direction-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
-                            <option value="both" ${zone.direction === 'both' ? 'selected' : ''}>Both Directions</option>
-                            <option value="horizontal" ${zone.direction === 'horizontal' ? 'selected' : ''}>${state.patternType === 'diamond' ? 'Clockwise' : 'Horizontal'} Only</option>
-                            <option value="vertical" ${zone.direction === 'vertical' ? 'selected' : ''}>${state.patternType === 'diamond' ? 'Counter-CW' : 'Vertical'} Only</option>
-                        </select>
-                    </div>
+                    ${fillTypeSelect}
+                    ${orientationSelect}
                     
                     ${boundsSliders}
                     
@@ -417,6 +440,20 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (zone) {
                 pushUndoState(gourdMesh);
                 zone.type = select.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-fill-type-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.fillType = select.value;
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
