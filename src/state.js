@@ -46,6 +46,7 @@ export const state = {
     // Decoupled stats tracking
     patternCount: 0,
     patternCountType: 'Lines',
+    positionToolMode: 'shape', // 'shape' (moves mask shape) or 'camera' (rotates view)
     
     // Material parameters
     materialColor: '#C4956A',
@@ -79,7 +80,8 @@ export function pushUndoState(gourdMesh) {
         patternType: state.patternType,
         patRotation: state.patRotation,
         patTilt: state.patTilt,
-        activeZoneId: state.activeZoneId
+        activeZoneId: state.activeZoneId,
+        positionToolMode: state.positionToolMode
     };
     
     state.undoStack.push(snapshot);
@@ -102,7 +104,8 @@ export function performUndo(gourdMesh, onRestore) {
         patternType: state.patternType,
         patRotation: state.patRotation,
         patTilt: state.patTilt,
-        activeZoneId: state.activeZoneId
+        activeZoneId: state.activeZoneId,
+        positionToolMode: state.positionToolMode
     };
     state.redoStack.push(snapshotToRedo);
     
@@ -116,6 +119,7 @@ export function performUndo(gourdMesh, onRestore) {
     state.patRotation = prevState.patRotation;
     state.patTilt = prevState.patTilt;
     state.activeZoneId = prevState.activeZoneId;
+    state.positionToolMode = prevState.positionToolMode;
     
     if (onRestore) onRestore();
     return true;
@@ -134,7 +138,8 @@ export function performRedo(gourdMesh, onRestore) {
         patternType: state.patternType,
         patRotation: state.patRotation,
         patTilt: state.patTilt,
-        activeZoneId: state.activeZoneId
+        activeZoneId: state.activeZoneId,
+        positionToolMode: state.positionToolMode
     };
     state.undoStack.push(snapshotToUndo);
     
@@ -148,6 +153,7 @@ export function performRedo(gourdMesh, onRestore) {
     state.patRotation = nextState.patRotation;
     state.patTilt = nextState.patTilt;
     state.activeZoneId = nextState.activeZoneId;
+    state.positionToolMode = nextState.positionToolMode;
     
     if (onRestore) onRestore();
     return true;

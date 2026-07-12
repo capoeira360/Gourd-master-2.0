@@ -202,6 +202,12 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             ${sliderRow('Rotation (Y)', 'pat-rotation', 0, 360, 1, state.patRotation, '°')}
             ${sliderRow('Slant (Tilt)', 'pat-tilt', 0, 45, 1, state.patTilt, '°')}
             
+            <div class="panel-section-title">Move Mask Behavior</div>
+            <div class="btn-grid-options" style="grid-template-columns: 1fr 1fr; margin-bottom: 12px;">
+                <button class="option-btn ${state.positionToolMode === 'shape' ? 'active' : ''}" data-pos-mode="shape">Move Shape</button>
+                <button class="option-btn ${state.positionToolMode === 'camera' ? 'active' : ''}" data-pos-mode="camera">Rotate View</button>
+            </div>
+            
             <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px; margin-bottom: 12px;">
                 <span>Pattern Layers</span>
                 <button id="btn-add-zone" class="zone-action-btn" style="border-color: var(--color-acc); color: var(--color-acc); background: rgba(212, 168, 67, 0.05); padding: 4px 10px;">+ Add Layer</button>
@@ -491,6 +497,14 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
     
+    document.querySelectorAll('.option-btn[data-pos-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            state.positionToolMode = btn.dataset.posMode;
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    });
+
     // 4. Pattern display toggle
     const patVis = document.getElementById('pat-visible');
     if (patVis) {

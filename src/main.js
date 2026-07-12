@@ -144,7 +144,7 @@ function init() {
     resizeObserver.observe(viewport);
     onResize();
 
-    // 11. Carving interaction event listeners
+    // 11. Carving and positioning interaction event listeners (using capture phase to preempt controls)
     canvas.addEventListener('pointerdown', (e) => {
         idleTime = 0;
         if (state.currentTool === 'carve') {
@@ -152,16 +152,23 @@ function init() {
                 pushUndoState(gourdMesh);
             });
         } else if (state.currentTool === 'position') {
-            raycaster.setFromCamera(mouse, camera);
-            const hits = raycaster.intersectObject(gourdMesh);
-            if (hits.length > 0) {
-                isPositionDragging = true;
-                controls.enabled = false;
-                pushUndoState(gourdMesh);
-                updatePositionDrag(hits[0]);
+            if (state.positionToolMode === 'shape') {
+                raycaster.setFromCamera(mouse, camera);
+                const hits = raycaster.intersectObject(gourdMesh);
+                if (hits.length > 0) {
+                    isPositionDragging = true;
+                    controls.enabled = false;
+                    pushUndoState(gourdMesh);
+                    updatePositionDrag(hits[0]);
+                    e.stopPropagation(); // Stop OrbitControls from capturing this event!
+                } else {
+                    controls.enabled = true;
+                }
+            } else {
+                controls.enabled = true;
             }
         }
-    });
+    }, true);
 
     canvas.addEventListener('pointermove', (e) => {
         // Track mouse for hover rays
@@ -177,10 +184,11 @@ function init() {
             if (hits.length > 0) {
                 updatePositionDrag(hits[0]);
             }
+            e.stopPropagation(); // Stop event bubbling during shape dragging
         }
-    });
+    }, true);
 
-    const onCarveEnd = () => {
+    const onCarveEnd = (e) => {
         if (state.currentTool === 'carve') {
             handleCarvePointerUp(state, carveGroup, controls, () => {
                 // Re-render properties panel to update carved paths counts
@@ -190,10 +198,11 @@ function init() {
             isPositionDragging = false;
             controls.enabled = true;
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            e?.stopPropagation();
         }
     };
-    canvas.addEventListener('pointerup', onCarveEnd);
-    canvas.addEventListener('pointerleave', onCarveEnd);
+    canvas.addEventListener('pointerup', onCarveEnd, true);
+    canvas.addEventListener('pointerleave', onCarveEnd, true);
 
     // Dynamic direct slider synchronizer during dragging
     function updatePositionDrag(hit) {
