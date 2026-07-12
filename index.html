@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kibuyu Design Studio</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="loader-ring"></div>
+        <p class="loader-text">KIBUYU DESIGN STUDIO</p>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- View Dropdown Menu -->
+    <div id="view-dropdown" class="dropdown-menu">
+        <div class="dropdown-item" data-view-action="camera-front">Front View <span>1</span></div>
+        <div class="dropdown-item" data-view-action="camera-side">Side View <span>2</span></div>
+        <div class="dropdown-item" data-view-action="camera-top">Top View <span>3</span></div>
+        <div class="dropdown-item" data-view-action="camera-persp">Perspective View <span>4</span></div>
+        <div style="height: 1px; background: var(--color-bdr); margin: 4px 0;"></div>
+        <div class="dropdown-item checked" data-view-action="toggle-grid">Show Grid <i class="fas fa-check"></i></div>
+        <div class="dropdown-item checked" data-view-action="toggle-patterns">Show Patterns <i class="fas fa-check"></i></div>
+    </div>
+
+    <div class="app-container">
+        <!-- ===== TOP MENU BAR ===== -->
+        <header class="app-header">
+            <!-- Brand Logo -->
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fas fa-seedling"></i>
+                </div>
+                <span class="brand-name">Kibuyu Studio</span>
+            </div>
+            
+            <!-- Desktop Navigation Menu -->
+            <nav class="menu-nav desktop-only">
+                <button class="menu-btn" onclick="window.showToast('Use the Export button to download your work.', 'warn')">File</button>
+                <button class="menu-btn" onclick="window.showToast('Use Undo/Redo (Ctrl+Z / Ctrl+Shift+Z) to reverse changes.', 'warn')">Edit</button>
+                <button class="menu-btn" id="menu-view-btn">View <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
+                <button class="menu-btn" onclick="window.showToast('Select editing tools from the left toolbar.', 'warn')">Tools</button>
+                <button class="menu-btn" onclick="window.showToast('Kibuyu Design Studio — Artisan Gourd Customizer v2.0', 'success')">Help</button>
+            </nav>
+            
+            <div class="header-spacer"></div>
+            
+            <!-- Header Actions (Undo, Redo, Export) -->
+            <div class="header-actions">
+                <button id="btn-undo" class="action-icon-btn" title="Undo (Ctrl+Z)">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button id="btn-redo" class="action-icon-btn" title="Redo (Ctrl+Shift+Z)">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <div class="divider-v"></div>
+                <button id="btn-export" class="btn-primary" title="Export Design to PNG">
+                    <i class="fas fa-download"></i>
+                    <span class="desktop-only">Export PNG</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ===== MAIN APP LAYOUT ===== -->
+        <div class="app-main">
+            <!-- Left Toolbar (Desktop Only) -->
+            <aside class="sidebar-left desktop-only">
+                <button class="tool-btn active" data-tool="select" title="Select Tool (V)">
+                    <i class="fas fa-mouse-pointer"></i>
+                </button>
+                <button class="tool-btn" data-tool="measure" title="Measure Dimensions (M)">
+                    <i class="fas fa-ruler-combined"></i>
+                </button>
+                <button class="tool-btn" data-tool="pattern" title="Surface Pattern Guide (P)">
+                    <i class="fas fa-shapes"></i>
+                </button>
+                <button class="tool-btn" data-tool="transform" title="Scale and Coordinates (T)">
+                    <i class="fas fa-arrows-alt"></i>
+                </button>
+                <button class="tool-btn" data-tool="carve" title="Freehand Carving Pen (C)">
+                    <i class="fas fa-pen-nib"></i>
+                </button>
+                <button class="tool-btn" data-tool="camera" title="Camera Presets (K)">
+                    <i class="fas fa-video"></i>
+                </button>
+            </aside>
+
+            <!-- 3D Viewport Area -->
+            <main id="viewport" class="viewport-container">
+                <canvas id="viewport-canvas"></canvas>
+                <div class="viewport-vignette"></div>
+
+                <!-- Viewport Preset Options HUD -->
+                <div class="viewport-overlay-left">
+                    <button class="vp-preset-btn" data-view="front">Front</button>
+                    <button class="vp-preset-btn" data-view="side">Side</button>
+                    <button class="vp-preset-btn" data-view="top">Top</button>
+                    <button class="vp-preset-btn active" data-view="persp">Persp</button>
+                </div>
+
+                <!-- Gourd Geometry Info Badge HUD -->
+                <div class="viewport-overlay-right desktop-only">
+                    <div class="info-badge">
+                        <div class="info-badge-title">Tanzanian Bottle Gourd</div>
+                        <div class="info-badge-sub">Lagenaria siceraria</div>
+                        <div class="info-badge-row">
+                            <span>H: <span class="info-badge-val" id="badge-h">3.00</span> cm</span>
+                            <span>W: <span class="info-badge-val" id="badge-w">1.80</span> cm</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Properties Panel (Desktop Only) -->
+            <aside class="sidebar-right desktop-only">
+                <!-- Properties Panel Tabs -->
+                <div class="panel-tabs">
+                    <button class="panel-tab" data-tab="transform">Transform</button>
+                    <button class="panel-tab active" data-tab="pattern">Pattern</button>
+                    <button class="panel-tab" data-tab="material">Material</button>
+                    <button class="panel-tab" data-tab="measure">Measure</button>
+                    <button class="panel-tab" data-tab="carve">Carve</button>
+                </div>
+                <!-- Properties Panel Body -->
+                <div id="panel-content" class="panel-body">
+                    <!-- Form controls will be dynamically injected here -->
+                </div>
+            </aside>
+        </div>
+
+        <!-- ===== BOTTOM STATUS BAR ===== -->
+        <footer class="app-footer">
+            <div class="footer-stat">
+                <i class="fas fa-cube"></i> Verts: <span id="stat-verts">0</span>
+            </div>
+            <div class="footer-stat">
+                Faces: <span id="stat-faces">0</span>
+            </div>
+            <div class="footer-stat">
+                <span id="stat-lines-label">Lines</span>: <span id="stat-lines">0</span>
+            </div>
+            <div class="footer-spacer"></div>
+            <div class="footer-stat">
+                Zoom: <span id="stat-zoom">100</span>%
+            </div>
+            <div class="footer-stat desktop-only">
+                FPS: <span id="stat-fps">60</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ===== MOBILE BOTTOM NAVIGATION ===== -->
+    <nav class="mobile-bottom-nav mobile-only">
+        <button class="mobile-nav-btn active" data-tool="select">
+            <i class="fas fa-mouse-pointer"></i>
+            <span>Select</span>
+        </button>
+        <button class="mobile-nav-btn" data-tool="measure">
+            <i class="fas fa-ruler-combined"></i>
+            <span>Measure</span>
+        </button>
+        <button class="mobile-nav-btn" data-tool="pattern">
+            <i class="fas fa-shapes"></i>
+            <span>Pattern</span>
+        </button>
+        <button class="mobile-nav-btn" data-tool="transform">
+            <i class="fas fa-arrows-alt"></i>
+            <span>Transform</span>
+        </button>
+        <button class="mobile-nav-btn" data-tool="carve">
+            <i class="fas fa-pen-nib"></i>
+            <span>Carve</span>
+        </button>
+        <button class="mobile-nav-btn" data-tool="camera">
+            <i class="fas fa-video"></i>
+            <span>Camera</span>
+        </button>
+    </nav>
+
+    <!-- ===== MOBILE PANEL DRAWER/SHEET ===== -->
+    <div id="mobile-sheet" class="mobile-sheet mobile-only">
+        <div id="sheet-handle" class="mobile-sheet-handle"></div>
+        <div id="mobile-sheet-content" class="panel-body" style="padding-top: 4px; padding-bottom: 24px;">
+            <!-- Form controls will be dynamically injected here on mobile size -->
+        </div>
+    </div>
+
+    <!-- Entry module javascript linking -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
