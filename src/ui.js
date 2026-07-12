@@ -167,12 +167,56 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 styleControls = `<p style="color: var(--color-tx-m); font-size: 11px; margin-bottom: 8px; font-style: italic;">Layer disabled</p>`;
             }
 
+            const isActive = zone.id === state.activeZoneId;
             const isHidden = zone.visible === false;
 
+            let cardBody = '';
+            if (isActive) {
+                cardBody = `
+                    <div class="zone-card-body">
+                        <div class="control-row" style="margin-bottom: 8px;">
+                            <label class="control-label" style="width: 35%;">Layer Shape</label>
+                            <select class="zone-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                                <option value="full" ${zone.type === 'full' ? 'selected' : ''}>Full Gourd</option>
+                                <option value="hor-band" ${zone.type === 'hor-band' ? 'selected' : ''}>Horizontal Band</option>
+                                <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
+                                <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
+                                <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
+                                <option value="circle" ${zone.type === 'circle' ? 'selected' : ''}>Circle Frame</option>
+                                <option value="fish" ${zone.type === 'fish' ? 'selected' : ''}>Fish Silhouette</option>
+                                <option value="star" ${zone.type === 'star' ? 'selected' : ''}>5-Point Star</option>
+                                <option value="flower" ${zone.type === 'flower' ? 'selected' : ''}>Flower Rosette</option>
+                                <option value="heart" ${zone.type === 'heart' ? 'selected' : ''}>Heart Shape</option>
+                                <option value="triangle" ${zone.type === 'triangle' ? 'selected' : ''}>Triangle Shape</option>
+                            </select>
+                        </div>
+                        
+                        ${fillTypeSelect}
+                        ${orientationSelect}
+                        ${boundsSliders}
+                        
+                        <div class="btn-grid-options" style="grid-template-cols: repeat(3, 1fr); margin-top: 10px; margin-bottom: 8px;">
+                            <button class="option-btn ${zone.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="lines">Lines</button>
+                            <button class="option-btn ${zone.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="holes">Holes</button>
+                            <button class="option-btn ${zone.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="off">Off</button>
+                        </div>
+                        
+                        ${styleControls}
+                        
+                        ${zone.style !== 'off' ? sliderRow('Opacity', `pat-zone-opacity-${zone.id}`, 0.1, 1, 0.05, zone.opacity) : ''}
+                    </div>
+                `;
+            }
+
             return `
-                <div class="zone-card ${zone.id === state.activeZoneId ? 'active' : ''}" id="zone-card-${zone.id}" style="${isHidden ? 'opacity: 0.65;' : ''}">
-                    <div class="zone-card-header">
-                        <input type="text" class="zone-name-input" data-zone-id="${zone.id}" value="${zone.name}">
+                <div class="zone-card ${isActive ? 'active' : ''}" id="zone-card-${zone.id}" style="${isHidden ? 'opacity: 0.65;' : ''}">
+                    <div class="zone-card-header" style="cursor: pointer;">
+                        <div class="zone-card-header-main" style="display: flex; align-items: center; flex: 1;">
+                            <span style="margin-right: 8px; font-size: 10px; color: var(--color-tx-m); display: flex; align-items: center;">
+                                <i class="fas ${isActive ? 'fa-chevron-down' : 'fa-chevron-right'}"></i>
+                            </span>
+                            <input type="text" class="zone-name-input" data-zone-id="${zone.id}" value="${zone.name}" style="font-weight: ${isActive ? '600' : 'normal'};">
+                        </div>
                         <div class="zone-card-actions">
                             <button class="zone-action-btn btn-toggle-vis" data-zone-id="${zone.id}" title="${isHidden ? 'Show Layer' : 'Hide Layer'}">
                                 <i class="fas ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
@@ -181,38 +225,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="zone-action-btn delete btn-delete-zone" data-zone-id="${zone.id}" title="Delete Layer">Delete</button>
                         </div>
                     </div>
-                    
-                    <div class="control-row" style="margin-bottom: 8px;">
-                        <label class="control-label" style="width: 35%;">Layer Shape</label>
-                        <select class="zone-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
-                            <option value="full" ${zone.type === 'full' ? 'selected' : ''}>Full Gourd</option>
-                            <option value="hor-band" ${zone.type === 'hor-band' ? 'selected' : ''}>Horizontal Band</option>
-                            <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
-                            <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
-                            <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
-                            <option value="circle" ${zone.type === 'circle' ? 'selected' : ''}>Circle Frame</option>
-                            <option value="fish" ${zone.type === 'fish' ? 'selected' : ''}>Fish Silhouette</option>
-                            <option value="star" ${zone.type === 'star' ? 'selected' : ''}>5-Point Star</option>
-                            <option value="flower" ${zone.type === 'flower' ? 'selected' : ''}>Flower Rosette</option>
-                            <option value="heart" ${zone.type === 'heart' ? 'selected' : ''}>Heart Shape</option>
-                            <option value="triangle" ${zone.type === 'triangle' ? 'selected' : ''}>Triangle Shape</option>
-                        </select>
-                    </div>
-                    
-                    ${fillTypeSelect}
-                    ${orientationSelect}
-                    
-                    ${boundsSliders}
-                    
-                    <div class="btn-grid-options" style="grid-template-cols: repeat(3, 1fr); margin-top: 10px; margin-bottom: 8px;">
-                        <button class="option-btn ${zone.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="lines">Lines</button>
-                        <button class="option-btn ${zone.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="holes">Holes</button>
-                        <button class="option-btn ${zone.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="off">Off</button>
-                    </div>
-                    
-                    ${styleControls}
-                    
-                    ${zone.style !== 'off' ? sliderRow('Opacity', `pat-zone-opacity-${zone.id}`, 0.1, 1, 0.05, zone.opacity) : ''}
+                    ${cardBody}
                 </div>
             `;
         }).join('');
@@ -560,10 +573,9 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
-    // 3.1. Zone card direct click selection handler
     document.querySelectorAll('.zone-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            if (e.target.closest('input, select, button')) return;
+            if (e.target.closest('select, button, .zone-action-btn')) return;
             const zoneId = card.id.replace('zone-card-', '');
             if (state.activeZoneId !== zoneId) {
                 pushUndoState(gourdMesh);

@@ -172,7 +172,7 @@ export function addPatternZone() {
     const id = 'zone-' + Math.random().toString(36).substr(2, 9);
     const newZone = {
         id: id,
-        name: 'Layer ' + (state.patternZones.length + 1),
+        name: 'Full Gourd ' + (state.patternZones.length + 1),
         type: 'full',
         style: 'holes',
         color: '#D4A843',
