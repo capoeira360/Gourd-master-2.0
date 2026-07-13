@@ -30,19 +30,24 @@ export function gourdRadius(t) {
     const p = 1.0 / Math.max(0.1, bulbRound); // exponent factor
 
     if (hasNeck) {
+        const neckPos = state.gourdNeckPosition !== undefined ? state.gourdNeckPosition : 0.55;
+        const neckRound = state.gourdNeckRoundness !== undefined ? state.gourdNeckRoundness : 1.0;
+        const neckP = 1.0 / Math.max(0.1, neckRound);
+        const tCollar = neckPos + (1.0 - neckPos) * 0.5;
+
         // Standard double-bulb bottle gourd profile
         if (t < bulbPos) {
             const alpha = t / bulbPos;
             r_cm = rBase + (rBulb - rBase) * Math.pow(Math.sin(alpha * Math.PI / 2), p);
-        } else if (t < 0.55) {
-            const alpha = (t - bulbPos) / (0.55 - bulbPos);
+        } else if (t < neckPos) {
+            const alpha = (t - bulbPos) / (neckPos - bulbPos);
             r_cm = rNeck + (rBulb - rNeck) * Math.pow(Math.cos(alpha * Math.PI / 2), p);
-        } else if (t < 0.8) {
-            const alpha = (t - 0.55) / 0.25;
-            r_cm = THREE.MathUtils.lerp(rNeck, rRim * 1.2, smoothstep(0, 1, alpha));
+        } else if (t < tCollar) {
+            const alpha = (t - neckPos) / (tCollar - neckPos);
+            r_cm = rNeck + (rRim * 1.2 - rNeck) * Math.pow(Math.sin(alpha * Math.PI / 2), neckP);
         } else {
-            const alpha = (t - 0.8) / 0.2;
-            r_cm = THREE.MathUtils.lerp(rRim * 1.2, rRim, smoothstep(0, 1, alpha));
+            const alpha = (t - tCollar) / (1.0 - tCollar);
+            r_cm = rRim * 1.2 + (rRim - rRim * 1.2) * Math.sin(alpha * Math.PI / 2);
         }
     } else {
         // Neckless pear/spherical/balloon gourd profile

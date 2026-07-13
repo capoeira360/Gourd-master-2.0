@@ -90,6 +90,12 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             ${sliderRow('Bulb Height', 'gourd-bulbPosition', 0.1, 0.4, 0.01, state.gourdBulbPosition || 0.25)}
             ${sliderRow('Bulb Roundness', 'gourd-bulbRoundness', 0.5, 4.0, 0.05, state.gourdBulbRoundness || 1.0)}
 
+            ${hasNeck ? `
+                <div class="panel-section-title">Neck Curvature</div>
+                ${sliderRow('Neck Height', 'gourd-neckPosition', 0.4, 0.75, 0.01, state.gourdNeckPosition || 0.55)}
+                ${sliderRow('Neck Roundness', 'gourd-neckRoundness', 0.5, 3.0, 0.05, state.gourdNeckRoundness || 1.0)}
+            ` : ''}
+
             <div class="panel-section-title">Uneven Shape (Bending)</div>
             ${sliderRow('Lateral Bend (X)', 'gourd-bendX', -5.0, 5.0, 0.1, state.gourdBendX || 0.0, 'cm')}
             ${sliderRow('Lateral Bend (Z)', 'gourd-bendZ', -5.0, 5.0, 0.1, state.gourdBendZ || 0.0, 'cm')}
@@ -897,6 +903,12 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
             updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
         } else if (param === 'bulbRoundness') {
             state.gourdBulbRoundness = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'neckPosition') {
+            state.gourdNeckPosition = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'neckRoundness') {
+            state.gourdNeckRoundness = valFloat;
             updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
         } else if (param === 'bendX') {
             state.gourdBendX = valFloat;

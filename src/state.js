@@ -58,6 +58,8 @@ export const state = {
     gourdRimRadius: 2.7,
     gourdBulbPosition: 0.25,
     gourdBulbRoundness: 1.0,
+    gourdNeckPosition: 0.55,
+    gourdNeckRoundness: 1.0,
     gourdHasNeck: true,
     gourdBendX: 0.0,
     gourdBendZ: 0.0,
@@ -116,6 +118,8 @@ export function pushUndoState(gourdMesh) {
         gourdRimRadius: state.gourdRimRadius,
         gourdBulbPosition: state.gourdBulbPosition,
         gourdBulbRoundness: state.gourdBulbRoundness,
+        gourdNeckPosition: state.gourdNeckPosition,
+        gourdNeckRoundness: state.gourdNeckRoundness,
         gourdHasNeck: state.gourdHasNeck,
         gourdBendX: state.gourdBendX,
         gourdBendZ: state.gourdBendZ
@@ -153,6 +157,8 @@ export function performUndo(gourdMesh, onRestore) {
         gourdRimRadius: state.gourdRimRadius,
         gourdBulbPosition: state.gourdBulbPosition,
         gourdBulbRoundness: state.gourdBulbRoundness,
+        gourdNeckPosition: state.gourdNeckPosition,
+        gourdNeckRoundness: state.gourdNeckRoundness,
         gourdHasNeck: state.gourdHasNeck,
         gourdBendX: state.gourdBendX,
         gourdBendZ: state.gourdBendZ
@@ -180,6 +186,8 @@ export function performUndo(gourdMesh, onRestore) {
     state.gourdRimRadius = prevState.gourdRimRadius;
     state.gourdBulbPosition = prevState.gourdBulbPosition;
     state.gourdBulbRoundness = prevState.gourdBulbRoundness;
+    state.gourdNeckPosition = prevState.gourdNeckPosition;
+    state.gourdNeckRoundness = prevState.gourdNeckRoundness;
     state.gourdHasNeck = prevState.gourdHasNeck;
     state.gourdBendX = prevState.gourdBendX;
     state.gourdBendZ = prevState.gourdBendZ;
@@ -214,6 +222,8 @@ export function performRedo(gourdMesh, onRestore) {
         gourdRimRadius: state.gourdRimRadius,
         gourdBulbPosition: state.gourdBulbPosition,
         gourdBulbRoundness: state.gourdBulbRoundness,
+        gourdNeckPosition: state.gourdNeckPosition,
+        gourdNeckRoundness: state.gourdNeckRoundness,
         gourdHasNeck: state.gourdHasNeck,
         gourdBendX: state.gourdBendX,
         gourdBendZ: state.gourdBendZ
@@ -241,6 +251,8 @@ export function performRedo(gourdMesh, onRestore) {
     state.gourdRimRadius = nextState.gourdRimRadius;
     state.gourdBulbPosition = nextState.gourdBulbPosition;
     state.gourdBulbRoundness = nextState.gourdBulbRoundness;
+    state.gourdNeckPosition = nextState.gourdNeckPosition;
+    state.gourdNeckRoundness = nextState.gourdNeckRoundness;
     state.gourdHasNeck = nextState.gourdHasNeck;
     state.gourdBendX = nextState.gourdBendX;
     state.gourdBendZ = nextState.gourdBendZ;
