@@ -50,6 +50,18 @@ export const state = {
     ],
     activeZoneId: 'zone-base',
     
+    // Gourd physical dimension modeling & scanner photo overlay guide
+    gourdHeight: 30.0,
+    gourdBaseRadius: 3.5,
+    gourdBulbRadius: 9.0,
+    gourdNeckRadius: 3.8,
+    gourdRimRadius: 2.7,
+    gourdPhotoGuide: null,
+    gourdPhotoOpacity: 0.4,
+    gourdPhotoScale: 1.0,
+    gourdPhotoX: 0,
+    gourdPhotoY: 0,
+    
     // Decoupled stats tracking
     patternCount: 0,
     patternCountType: 'Lines',
@@ -91,7 +103,12 @@ export function pushUndoState(gourdMesh) {
         fillType: state.fillType,
         holeShape: state.holeShape,
         holeWobbleFreq: state.holeWobbleFreq,
-        holeWobbleAmp: state.holeWobbleAmp
+        holeWobbleAmp: state.holeWobbleAmp,
+        gourdHeight: state.gourdHeight,
+        gourdBaseRadius: state.gourdBaseRadius,
+        gourdBulbRadius: state.gourdBulbRadius,
+        gourdNeckRadius: state.gourdNeckRadius,
+        gourdRimRadius: state.gourdRimRadius
     };
     
     state.undoStack.push(snapshot);
@@ -118,7 +135,12 @@ export function performUndo(gourdMesh, onRestore) {
         fillType: state.fillType,
         holeShape: state.holeShape,
         holeWobbleFreq: state.holeWobbleFreq,
-        holeWobbleAmp: state.holeWobbleAmp
+        holeWobbleAmp: state.holeWobbleAmp,
+        gourdHeight: state.gourdHeight,
+        gourdBaseRadius: state.gourdBaseRadius,
+        gourdBulbRadius: state.gourdBulbRadius,
+        gourdNeckRadius: state.gourdNeckRadius,
+        gourdRimRadius: state.gourdRimRadius
     };
     state.redoStack.push(snapshotToRedo);
     
@@ -136,6 +158,11 @@ export function performUndo(gourdMesh, onRestore) {
     state.holeShape = prevState.holeShape;
     state.holeWobbleFreq = prevState.holeWobbleFreq;
     state.holeWobbleAmp = prevState.holeWobbleAmp;
+    state.gourdHeight = prevState.gourdHeight;
+    state.gourdBaseRadius = prevState.gourdBaseRadius;
+    state.gourdBulbRadius = prevState.gourdBulbRadius;
+    state.gourdNeckRadius = prevState.gourdNeckRadius;
+    state.gourdRimRadius = prevState.gourdRimRadius;
     
     if (onRestore) onRestore();
     return true;
@@ -159,7 +186,12 @@ export function performRedo(gourdMesh, onRestore) {
         fillType: state.fillType,
         holeShape: state.holeShape,
         holeWobbleFreq: state.holeWobbleFreq,
-        holeWobbleAmp: state.holeWobbleAmp
+        holeWobbleAmp: state.holeWobbleAmp,
+        gourdHeight: state.gourdHeight,
+        gourdBaseRadius: state.gourdBaseRadius,
+        gourdBulbRadius: state.gourdBulbRadius,
+        gourdNeckRadius: state.gourdNeckRadius,
+        gourdRimRadius: state.gourdRimRadius
     };
     state.undoStack.push(snapshotToUndo);
     
@@ -177,6 +209,11 @@ export function performRedo(gourdMesh, onRestore) {
     state.holeShape = nextState.holeShape;
     state.holeWobbleFreq = nextState.holeWobbleFreq;
     state.holeWobbleAmp = nextState.holeWobbleAmp;
+    state.gourdHeight = nextState.gourdHeight;
+    state.gourdBaseRadius = nextState.gourdBaseRadius;
+    state.gourdBulbRadius = nextState.gourdBulbRadius;
+    state.gourdNeckRadius = nextState.gourdNeckRadius;
+    state.gourdRimRadius = nextState.gourdRimRadius;
     
     if (onRestore) onRestore();
     return true;

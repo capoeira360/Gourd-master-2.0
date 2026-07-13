@@ -5,7 +5,7 @@ import { createGourdGeometry, GOURD_HEIGHT } from './gourd.js';
 import { updatePatternGroup, animatePatternPulse } from './pattern.js';
 import { calculateMeasurements, updateMeasureLines } from './measure.js';
 import { handleCarvePointerDown, handleCarvePointerMove, handleCarvePointerUp, updateCarveGroup } from './carve.js';
-import { renderPropertiesPanel, registerGlobalUIEvents, showToast } from './ui.js';
+import { renderPropertiesPanel, registerGlobalUIEvents, showToast, updatePhotoGuideOverlay } from './ui.js';
 
 // Global variables
 let scene, camera, renderer, controls;
@@ -132,6 +132,7 @@ function init() {
 
     // 9. Initial properties panel rendering and global events registration
     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+    updatePhotoGuideOverlay();
     
     registerGlobalUIEvents(
         gourdMesh, carveGroup, measureGroup, patternGroup,

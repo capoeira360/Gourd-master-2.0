@@ -3,6 +3,7 @@ import { calculateMeasurements, updateMeasureLines } from './measure.js';
 import { updatePatternGroup } from './pattern.js';
 import { updateCarveGroup, clearCarvings } from './carve.js';
 import * as THREE from 'three';
+import { gourdRadius, createGourdGeometry } from './gourd.js';
 
 // Toast notifications helper
 export function showToast(msg, type = 'info') {
@@ -45,24 +46,48 @@ function setMeshColor(gourdMesh, hex) {
 function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
     if (!gourdMesh) return '';
     
-    if (tab === 'transform') {
-        const rad2deg = 180 / Math.PI;
-        const rx = Math.round(((gourdMesh.rotation.x * rad2deg) % 360 + 360) % 360);
-        const ry = Math.round(((gourdMesh.rotation.y * rad2deg) % 360 + 360) % 360);
-        const rz = Math.round(((gourdMesh.rotation.z * rad2deg) % 360 + 360) % 360);
+    if (tab === 'shape') {
+        const isPhotoSet = !!state.gourdPhotoGuide;
+        const photoOpacityProx = Math.round((state.gourdPhotoOpacity || 0.4) * 100);
         
         return `
-            <div class="panel-section-title">Position</div>
-            ${sliderRow('X', 'pos-x', -3, 3, 0.01, gourdMesh.position.x, 'm')}
-            ${sliderRow('Y', 'pos-y', -3, 3, 0.01, gourdMesh.position.y, 'm')}
-            ${sliderRow('Z', 'pos-z', -3, 3, 0.01, gourdMesh.position.z, 'm')}
-            <div class="panel-section-title">Rotation</div>
-            ${sliderRow('X', 'rot-x', 0, 360, 1, rx, '°')}
-            ${sliderRow('Y', 'rot-y', 0, 360, 1, ry, '°')}
-            ${sliderRow('Z', 'rot-z', 0, 360, 1, rz, '°')}
-            <div class="panel-section-title">Uniform Scale</div>
-            ${sliderRow('Scale', 'scale-u', 0.2, 3.0, 0.01, gourdMesh.scale.x, 'x')}
-            <button id="btn-reset-transform" class="btn-secondary">Reset Transform</button>
+            <div class="panel-section-title">Photo Guide Scanner</div>
+            <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: stretch; gap: 8px;">
+                <label class="btn-primary" style="display: block; text-align: center; cursor: pointer; padding: 6px 12px; margin-bottom: 0; font-size: 11px;">
+                    <i class="fas fa-camera"></i> Upload Gourd Photo
+                    <input type="file" id="gourd-photo-upload" accept="image/*" style="display: none;">
+                </label>
+                ${isPhotoSet ? `
+                    <button id="btn-remove-photo-guide" class="btn-secondary" style="border-color: rgba(235, 94, 85, 0.4); color: #eb5e55; font-size: 11px; padding: 6px 12px;">
+                        <i class="fas fa-trash-alt"></i> Remove Photo Guide
+                    </button>
+                ` : ''}
+            </div>
+            
+            ${isPhotoSet ? `
+                ${sliderRow('Photo Opacity', 'gourd-photoOpacity', 0, 100, 1, photoOpacityProx, '%')}
+                ${sliderRow('Photo Scale', 'gourd-photoScale', 0.5, 2.5, 0.05, state.gourdPhotoScale || 1.0)}
+                ${sliderRow('Photo X Offset', 'gourd-photoX', -200, 200, 1, state.gourdPhotoX || 0, 'px')}
+                ${sliderRow('Photo Y Offset', 'gourd-photoY', -200, 200, 1, state.gourdPhotoY || 0, 'px')}
+                <p style="font-size: 10px; color: var(--color-tx-m); line-height: 1.4; margin-top: 6px; font-style: italic;">
+                    💡 Switch to the <b>Front View</b> using the viewport options to align the 3D outline with your physical gourd's photo!
+                </p>
+            ` : ''}
+            
+            <div class="panel-section-title">Physical Dimensions</div>
+            ${sliderRow('Gourd Height', 'gourd-height', 10.0, 60.0, 0.5, state.gourdHeight || 30.0, 'cm')}
+            ${sliderRow('Base Width', 'gourd-baseRadius', 1.0, 10.0, 0.1, state.gourdBaseRadius || 3.5, 'cm')}
+            ${sliderRow('Bulb Width', 'gourd-bulbRadius', 3.0, 20.0, 0.1, state.gourdBulbRadius || 9.0, 'cm')}
+            ${sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm')}
+            ${sliderRow('Rim Width', 'gourd-rimRadius', 1.0, 10.0, 0.1, state.gourdRimRadius || 2.7, 'cm')}
+            
+            <div class="panel-section-title">Artisan Blueprint Export</div>
+            <button id="btn-export-blueprint" class="btn-primary" style="width: 100%; margin-top: 5px; margin-bottom: 8px; justify-content: center;">
+                <i class="fas fa-print"></i> Generate Wrap Blueprint
+            </button>
+            <div class="info-badge-sub" style="font-size: 10px; line-height: 1.4; color: var(--color-tx-m);">
+                Generates a 1:1 scale flattened pattern wrapper template. Cut, wrap around your physical gourd, and drill/carve directly through!
+            </div>
         `;
     }
     
@@ -741,6 +766,84 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             });
         });
     }
+
+    // Photo Guide Upload Events
+    const photoUpload = document.getElementById('gourd-photo-upload');
+    if (photoUpload) {
+        photoUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    pushUndoState(gourdMesh);
+                    state.gourdPhotoGuide = event.target.result;
+                    updatePhotoGuideOverlay();
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Gourd photo overlay loaded successfully', 'success');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    const btnRemovePhoto = document.getElementById('btn-remove-photo-guide');
+    if (btnRemovePhoto) {
+        btnRemovePhoto.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            state.gourdPhotoGuide = null;
+            updatePhotoGuideOverlay();
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast('Photo overlay guide removed', 'info');
+        });
+    }
+
+    // Blueprint Generator Events
+    const btnExportBlueprint = document.getElementById('btn-export-blueprint');
+    if (btnExportBlueprint) {
+        btnExportBlueprint.addEventListener('click', () => {
+            generateAndShowBlueprint();
+        });
+    }
+
+    const btnCloseBlueprint = document.getElementById('btn-close-blueprint');
+    if (btnCloseBlueprint) {
+        btnCloseBlueprint.addEventListener('click', () => {
+            const modal = document.getElementById('blueprint-modal');
+            if (modal) modal.style.display = 'none';
+        });
+    }
+
+    // Close blueprint modal when clicking background overlay
+    const blueprintModal = document.getElementById('blueprint-modal');
+    if (blueprintModal) {
+        blueprintModal.addEventListener('click', (e) => {
+            if (e.target === blueprintModal) {
+                blueprintModal.style.display = 'none';
+            }
+        });
+    }
+
+    const btnDownloadBlueprintPng = document.getElementById('btn-download-blueprint-png');
+    if (btnDownloadBlueprintPng) {
+        btnDownloadBlueprintPng.addEventListener('click', () => {
+            const canvas = document.getElementById('blueprint-canvas');
+            if (canvas) {
+                const url = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = `kibuyu-artisan-blueprint-${Date.now()}.png`;
+                link.href = url;
+                link.click();
+                showToast('Artisan template downloaded as PNG', 'success');
+            }
+        });
+    }
+
+    const btnPrintBlueprint = document.getElementById('btn-print-blueprint');
+    if (btnPrintBlueprint) {
+        btnPrintBlueprint.addEventListener('click', () => {
+            window.print();
+        });
+    }
 }
 
 // Processes interactive form settings in real-time
@@ -748,6 +851,39 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
     if (!gourdMesh) return;
     const valFloat = parseFloat(value);
     const deg2rad = Math.PI / 180;
+
+    if (id.startsWith('gourd-')) {
+        const param = id.replace('gourd-', '');
+        if (param === 'height') {
+            state.gourdHeight = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'baseRadius') {
+            state.gourdBaseRadius = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'bulbRadius') {
+            state.gourdBulbRadius = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'neckRadius') {
+            state.gourdNeckRadius = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'rimRadius') {
+            state.gourdRimRadius = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'photoOpacity') {
+            state.gourdPhotoOpacity = valFloat / 100.0;
+            updatePhotoGuideOverlay();
+        } else if (param === 'photoScale') {
+            state.gourdPhotoScale = valFloat;
+            updatePhotoGuideOverlay();
+        } else if (param === 'photoX') {
+            state.gourdPhotoX = valFloat;
+            updatePhotoGuideOverlay();
+        } else if (param === 'photoY') {
+            state.gourdPhotoY = valFloat;
+            updatePhotoGuideOverlay();
+        }
+        return;
+    }
     
     if (id.startsWith('pat-zone-')) {
         const parts = id.split('-');
@@ -923,7 +1059,7 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
 }
 
 // Sets the active tool state and manages styling indicators
-const toolToTab = { select: null, measure: 'measure', pattern: 'pattern', position: 'pattern', transform: 'transform', carve: 'carve', camera: null };
+const toolToTab = { select: null, measure: 'measure', pattern: 'pattern', position: 'pattern', transform: 'shape', shape: 'shape', carve: 'carve', camera: null };
 
 export function selectTool(tool, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, controls) {
     state.currentTool = tool;
@@ -1014,8 +1150,9 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
             const unscaledMeas = calculateMeasurements(1.0, 1.0);
             updateMeasureLines(measureGroup, unscaledMeas);
             
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updatePhotoGuideOverlay();
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
-            if (onUpdateMeasure) onUpdateMeasure();
         });
         if (restored) {
             showToast('Undo completed', 'warn');
@@ -1032,8 +1169,9 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
             const unscaledMeas = calculateMeasurements(1.0, 1.0);
             updateMeasureLines(measureGroup, unscaledMeas);
             
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updatePhotoGuideOverlay();
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
-            if (onUpdateMeasure) onUpdateMeasure();
         });
         if (restored) {
             showToast('Redo completed', 'warn');
@@ -1113,7 +1251,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
                 selectTool('pattern', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
                 break;
             case 't': 
-                selectTool('transform', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
+                selectTool('shape', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
                 break;
             case 'c': 
                 selectTool('carve', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
@@ -1168,4 +1306,249 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         handle.addEventListener('pointermove', onMove);
         handle.addEventListener('pointerup', onUp);
     });
+}
+
+export function updatePhotoGuideOverlay() {
+    const el = document.getElementById('viewport-photo-guide');
+    if (el) {
+        if (state.gourdPhotoGuide) {
+            el.style.backgroundImage = `url(${state.gourdPhotoGuide})`;
+            el.style.opacity = state.gourdPhotoOpacity;
+            el.style.transform = `translate(${state.gourdPhotoX}px, ${state.gourdPhotoY}px) scale(${state.gourdPhotoScale})`;
+            el.style.display = 'block';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+}
+
+export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure) {
+    if (gourdMesh) {
+        gourdMesh.geometry.dispose();
+        gourdMesh.geometry = createGourdGeometry();
+        
+        // Update info badge HUD
+        const badgeH = document.getElementById('badge-h');
+        const badgeW = document.getElementById('badge-w');
+        if (badgeH) badgeH.innerText = (state.gourdHeight || 30.0).toFixed(1);
+        if (badgeW) badgeW.innerText = ((state.gourdBulbRadius || 9.0) * 2.0).toFixed(1);
+        
+        updatePatternGroup(patternGroup, state);
+        if (onUpdatePattern) onUpdatePattern();
+        if (onUpdateMeasure) onUpdateMeasure();
+    }
+}
+
+function generateAndShowBlueprint() {
+    const modal = document.getElementById('blueprint-modal');
+    const canvas = document.getElementById('blueprint-canvas');
+    if (!modal || !canvas) return;
+
+    modal.style.display = 'flex';
+
+    const H_cm = state.gourdHeight || 30.0;
+    
+    // Compute the profile arc lengths
+    const segments = 100;
+    const arcLengths = [0];
+    let accumulated = 0;
+    let prevPt = null;
+    
+    for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const r = gourdRadius(t);
+        const r_cm = r * (H_cm / 3.0);
+        const y_cm = t * H_cm;
+        const currPt = { x: r_cm, y: y_cm };
+        if (prevPt) {
+            const dx = currPt.x - prevPt.x;
+            const dy = currPt.y - prevPt.y;
+            accumulated += Math.sqrt(dx * dx + dy * dy);
+            arcLengths.push(accumulated);
+        }
+        prevPt = currPt;
+    }
+
+    const totalArcLength = accumulated;
+    
+    let maxRadius_cm = 0;
+    for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const r = gourdRadius(t);
+        const r_cm = r * (H_cm / 3.0);
+        if (r_cm > maxRadius_cm) maxRadius_cm = r_cm;
+    }
+    const maxCircumference = 2 * Math.PI * maxRadius_cm;
+
+    const scale = 20; // 20 pixels per cm (50 DPI)
+    const padding = 40;
+    
+    const canvasWidth = Math.ceil(maxCircumference * scale + padding * 2);
+    const canvasHeight = Math.ceil(totalArcLength * scale + padding * 2);
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    
+    const ctx = canvas.getContext('2d');
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    
+    // Draw fine grid pattern
+    ctx.strokeStyle = '#f0f0f5';
+    ctx.lineWidth = 1;
+    for (let x = padding; x < canvasWidth - padding; x += scale * 5) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvasHeight);
+        ctx.stroke();
+    }
+    for (let y = padding; y < canvasHeight - padding; y += scale * 5) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvasWidth, y);
+        ctx.stroke();
+    }
+    
+    const centerX = canvasWidth / 2;
+    
+    function mapToCanvas(t, theta) {
+        const idx = t * segments;
+        const idxFloor = Math.floor(idx);
+        const f = idx - idxFloor;
+        let arc_cm;
+        if (idxFloor >= segments) {
+            arc_cm = arcLengths[segments];
+        } else {
+            arc_cm = arcLengths[idxFloor] * (1 - f) + arcLengths[idxFloor + 1] * f;
+        }
+        
+        const r = gourdRadius(t);
+        const r_cm = r * (H_cm / 3.0);
+        
+        const y_canvas = canvasHeight - padding - arc_cm * scale;
+        const x_canvas = centerX + theta * r_cm * scale;
+        
+        return { x: x_canvas, y: y_canvas };
+    }
+    
+    // 2. Draw outline wrapper contour silhouette
+    ctx.strokeStyle = '#333344';
+    ctx.lineWidth = 2.0;
+    ctx.setLineDash([5, 5]);
+    
+    ctx.beginPath();
+    for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const pt = mapToCanvas(t, -Math.PI);
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+    }
+    for (let i = segments; i >= 0; i--) {
+        const t = 1.0;
+        const theta = -Math.PI + (i / segments) * 2 * Math.PI;
+        const pt = mapToCanvas(t, theta);
+        ctx.lineTo(pt.x, pt.y);
+    }
+    for (let i = segments; i >= 0; i--) {
+        const t = i / segments;
+        const pt = mapToCanvas(t, Math.PI);
+        ctx.lineTo(pt.x, pt.y);
+    }
+    for (let i = 0; i <= segments; i++) {
+        const t = 0.0;
+        const theta = Math.PI - (i / segments) * 2 * Math.PI;
+        const pt = mapToCanvas(t, theta);
+        ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]); 
+
+    // 3. Render projected patterns
+    for (const zone of state.patternZones) {
+        if (!zone.visible || zone.style === 'off') continue;
+        
+        ctx.strokeStyle = zone.color || '#D4A843';
+        ctx.fillStyle = zone.color || '#D4A843';
+        ctx.lineWidth = 1.5;
+        
+        let paths = [];
+        const helpers = window.appPatternHelpers || {};
+        
+        if (zone.fillType === 'concentric' && ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+            paths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
+        } else {
+            const patLayout = zone.patternType || 'grid';
+            const horPaths = helpers.generateHorizontalPaths ? helpers.generateHorizontalPaths(patLayout, zone.density, state.patTilt) : [];
+            const verPaths = helpers.generateVerticalPaths ? helpers.generateVerticalPaths(patLayout, zone.density, state.patTilt) : [];
+            
+            const direction = zone.direction || 'both';
+            if (direction === 'both' || direction === 'horizontal') {
+                for (const path of horPaths) {
+                    paths.push(...helpers.clipPathToZone(path, zone));
+                }
+            }
+            if (direction === 'both' || direction === 'vertical') {
+                for (const path of verPaths) {
+                    paths.push(...helpers.clipPathToZone(path, zone));
+                }
+            }
+        }
+        
+        if (zone.style === 'lines') {
+            for (const path of paths) {
+                if (path.length < 2) continue;
+                ctx.beginPath();
+                const start = mapToCanvas(path[0].t, path[0].theta);
+                ctx.moveTo(start.x, start.y);
+                for (let k = 1; k < path.length; k++) {
+                    const pt = mapToCanvas(path[k].t, path[k].theta);
+                    ctx.lineTo(pt.x, pt.y);
+                }
+                ctx.stroke();
+            }
+        } else if (zone.style === 'holes') {
+            for (const path of paths) {
+                if (path.length === 0) continue;
+                const holeCount = zone.distMode === 'count' ? zone.holeCount : Math.max(2, Math.round(path.length * zone.density));
+                const holeSize_px = (zone.holeSize || 0.03) * scale;
+                
+                const count = Math.max(1, Math.round(holeCount));
+                if (count === 1) {
+                    const pt = path[Math.floor(path.length / 2)];
+                    const canvasPt = mapToCanvas(pt.t, pt.theta);
+                    ctx.beginPath();
+                    ctx.arc(canvasPt.x, canvasPt.y, holeSize_px, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    for (let k = 0; k < count; k++) {
+                        const idx = Math.min(path.length - 1, Math.floor((k / (count - 1)) * (path.length - 1)));
+                        const pt = path[idx];
+                        const canvasPt = mapToCanvas(pt.t, pt.theta);
+                        ctx.beginPath();
+                        ctx.arc(canvasPt.x, canvasPt.y, holeSize_px, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+    }
+    
+    // Draw 5 x 5 cm print scale validation helper box
+    ctx.fillStyle = '#111115';
+    ctx.fillRect(padding, padding, 5 * scale, 5 * scale);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '8px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('5 cm', padding + 2.5 * scale, padding + 1.8 * scale);
+    ctx.fillText('Calibration', padding + 2.5 * scale, padding + 2.8 * scale);
+    ctx.fillText('Square', padding + 2.5 * scale, padding + 3.8 * scale);
+    
+    ctx.fillStyle = '#111115';
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('📏 5 x 5 cm calibration square', padding, padding + 6.2 * scale);
 }

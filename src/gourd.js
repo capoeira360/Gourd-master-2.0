@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { state } from './state.js';
 
 export const GOURD_HEIGHT = 3.0;
 export const PROFILE_SEGS = 80;
@@ -12,25 +13,31 @@ function smoothstep(e0, e1, x) {
 
 // Computes profile radius at height t (0 bottom, 1 top)
 export function gourdRadius(t) {
-    let r;
-    if (t < 0.04) {
-        r = smoothstep(0, 0.04, t) * 0.35;
-    } else if (t < 0.28) {
-        r = 0.35 + smoothstep(0.04, 0.28, t) * 0.55;
-    } else if (t < 0.48) {
-        r = 0.9 - smoothstep(0.28, 0.48, t) * 0.52;
-    } else if (t < 0.64) {
-        r = 0.38 + smoothstep(0.48, 0.64, t) * 0.2;
-    } else if (t < 0.82) {
-        r = 0.58 - smoothstep(0.64, 0.82, t) * 0.43;
-    } else if (t < 0.92) {
-        r = 0.15 + smoothstep(0.82, 0.92, t) * 0.08;
-    } else if (t < 0.97) {
-        r = 0.23 + smoothstep(0.92, 0.97, t) * 0.04;
+    const H = state.gourdHeight || 30.0;
+    const rBase = state.gourdBaseRadius || 3.5;
+    const rBulb = state.gourdBulbRadius || 9.0;
+    const rNeck = state.gourdNeckRadius || 3.8;
+    const rRim = state.gourdRimRadius || 2.7;
+
+    let r_cm;
+    if (t < 0.05) {
+        r_cm = THREE.MathUtils.lerp(0.1, rBase, t / 0.05);
+    } else if (t < 0.3) {
+        const alpha = (t - 0.05) / 0.25;
+        r_cm = THREE.MathUtils.lerp(rBase, rBulb, smoothstep(0, 1, alpha));
+    } else if (t < 0.55) {
+        const alpha = (t - 0.3) / 0.25;
+        r_cm = THREE.MathUtils.lerp(rBulb, rNeck, smoothstep(0, 1, alpha));
+    } else if (t < 0.8) {
+        const alpha = (t - 0.55) / 0.25;
+        r_cm = THREE.MathUtils.lerp(rNeck, rRim * 1.2, smoothstep(0, 1, alpha));
     } else {
-        r = 0.27 - smoothstep(0.97, 1.0, t) * 0.07;
+        const alpha = (t - 0.8) / 0.2;
+        r_cm = THREE.MathUtils.lerp(rRim * 1.2, rRim, smoothstep(0, 1, alpha));
     }
-    return Math.max(EPS, r);
+
+    const r_three = 3.0 * (r_cm / H);
+    return Math.max(EPS, r_three);
 }
 
 // Pre-compute profile for fast interpolation lookups
@@ -50,6 +57,11 @@ export function getGourdRadius(t) {
 
 // Builds the 3D Lathe Geometry centered at y=0
 export function createGourdGeometry() {
+    profileCache.length = 0;
+    for (let i = 0; i <= PROFILE_SEGS; i++) {
+        profileCache.push(gourdRadius(i / PROFILE_SEGS));
+    }
+
     const points = [];
     for (let i = 0; i <= PROFILE_SEGS; i++) {
         const t = i / PROFILE_SEGS;

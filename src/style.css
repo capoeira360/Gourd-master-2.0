@@ -1022,3 +1022,54 @@ input[type="color"]::-webkit-color-swatch {
     box-shadow: 0 0 10px rgba(212, 168, 67, 0.15);
 }
 
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    #blueprint-modal, #blueprint-modal *, #blueprint-container, #blueprint-canvas {
+        visibility: visible !important;
+    }
+    #blueprint-modal {
+        position: absolute !important;
+        inset: 0 !important;
+        background: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
+        z-index: 99999 !important;
+    }
+    .modal-content {
+        background: white !important;
+        border: none !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .modal-header, .modal-footer, .modal-body > div:first-child {
+        display: none !important;
+    }
+    .modal-body {
+        background: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+    }
+    #blueprint-container {
+        background: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+    #blueprint-canvas {
+        max-width: 100% !important;
+        width: auto !important;
+        height: auto !important;
+        box-shadow: none !important;
+    }
+}
+

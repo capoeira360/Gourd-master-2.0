@@ -811,3 +811,10 @@ export function animatePatternPulse(group, opacity, elapsed) {
         }
     });
 }
+
+window.appPatternHelpers = {
+    generateHorizontalPaths,
+    generateVerticalPaths,
+    generateConcentricLoops,
+    clipPathToZone
+};

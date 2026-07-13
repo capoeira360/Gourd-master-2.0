@@ -99,7 +99,8 @@
             <!-- 3D Viewport Area -->
             <main id="viewport" class="viewport-container">
                 <canvas id="viewport-canvas"></canvas>
-                <div class="viewport-vignette"></div>
+                <div id="viewport-photo-guide" style="position: absolute; inset: 0; background-position: center; background-repeat: no-repeat; background-size: contain; opacity: 0.4; pointer-events: none; display: none; z-index: 1;"></div>
+                <div class="viewport-vignette" style="z-index: 2;"></div>
 
                 <!-- Viewport Preset Options HUD -->
                 <div class="viewport-overlay-left">
@@ -126,7 +127,7 @@
             <aside class="sidebar-right desktop-only">
                 <!-- Properties Panel Tabs -->
                 <div class="panel-tabs">
-                    <button class="panel-tab" data-tab="transform">Transform</button>
+                    <button class="panel-tab" data-tab="shape">Gourd Shape</button>
                     <button class="panel-tab active" data-tab="pattern">Pattern</button>
                     <button class="panel-tab" data-tab="material">Material</button>
                     <button class="panel-tab" data-tab="measure">Measure</button>
@@ -178,9 +179,9 @@
             <i class="fas fa-crosshairs"></i>
             <span>Move Mask</span>
         </button>
-        <button class="mobile-nav-btn" data-tool="transform">
-            <i class="fas fa-arrows-alt"></i>
-            <span>Transform</span>
+        <button class="mobile-nav-btn" data-tool="shape">
+            <i class="fas fa-arrows-alt-v"></i>
+            <span>Shape</span>
         </button>
         <button class="mobile-nav-btn" data-tool="carve">
             <i class="fas fa-pen-nib"></i>
@@ -197,6 +198,34 @@
         <div id="sheet-handle" class="mobile-sheet-handle"></div>
         <div id="mobile-sheet-content" class="panel-body" style="padding-top: 4px; padding-bottom: 24px;">
             <!-- Form controls will be dynamically injected here on mobile size -->
+        </div>
+    </div>
+
+    <!-- ===== BLUEPRINT MODAL ===== -->
+    <div id="blueprint-modal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; padding: 20px; color: #fff; font-family: system-ui, sans-serif;">
+        <div class="modal-content" style="background: #1e1e24; border: 1px solid #2a2a30; border-radius: 8px; width: 90%; max-width: 1000px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #ffffff;">Artisan Wrap Blueprint (1:1 Template)</h3>
+                <button id="btn-close-blueprint" class="zone-action-btn" style="padding: 6px 12px; font-size: 11px;">Close</button>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; background: #111115;">
+                <div style="text-align: center; font-size: 12px; color: #a0a0a5; max-width: 600px; line-height: 1.5;">
+                    The template shows the flattened surface wrapper of your physical gourd. 
+                    Print it at **100% scale (no fit-to-page)**, wrap it around the gourd, align the edges, and trace/drill!
+                </div>
+                
+                <div id="blueprint-container" style="background: #ffffff; padding: 20px; border-radius: 4px; overflow: auto; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                    <canvas id="blueprint-canvas" style="display: block; background: #fff;"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-end; gap: 12px; background: #1e1e24;">
+                <button id="btn-download-blueprint-png" class="btn-primary">
+                    <i class="fas fa-file-image"></i> Download PNG
+                </button>
+                <button id="btn-print-blueprint" class="btn-secondary">
+                    <i class="fas fa-print"></i> Print Template
+                </button>
+            </div>
         </div>
     </div>
 
