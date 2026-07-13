@@ -42,7 +42,10 @@ export const state = {
             fillType: 'grid',
             visible: true,
             isCustomNamed: false,
-            patternType: 'grid'
+            patternType: 'grid',
+            holeShape: 'round',
+            holeWobbleFreq: 5,
+            holeWobbleAmp: 0.15
         }
     ],
     activeZoneId: 'zone-base',
@@ -85,7 +88,10 @@ export function pushUndoState(gourdMesh) {
         patTilt: state.patTilt,
         activeZoneId: state.activeZoneId,
         positionToolMode: state.positionToolMode,
-        fillType: state.fillType
+        fillType: state.fillType,
+        holeShape: state.holeShape,
+        holeWobbleFreq: state.holeWobbleFreq,
+        holeWobbleAmp: state.holeWobbleAmp
     };
     
     state.undoStack.push(snapshot);
@@ -109,7 +115,10 @@ export function performUndo(gourdMesh, onRestore) {
         patTilt: state.patTilt,
         activeZoneId: state.activeZoneId,
         positionToolMode: state.positionToolMode,
-        fillType: state.fillType
+        fillType: state.fillType,
+        holeShape: state.holeShape,
+        holeWobbleFreq: state.holeWobbleFreq,
+        holeWobbleAmp: state.holeWobbleAmp
     };
     state.redoStack.push(snapshotToRedo);
     
@@ -124,6 +133,9 @@ export function performUndo(gourdMesh, onRestore) {
     state.activeZoneId = prevState.activeZoneId;
     state.positionToolMode = prevState.positionToolMode;
     state.fillType = prevState.fillType;
+    state.holeShape = prevState.holeShape;
+    state.holeWobbleFreq = prevState.holeWobbleFreq;
+    state.holeWobbleAmp = prevState.holeWobbleAmp;
     
     if (onRestore) onRestore();
     return true;
@@ -144,7 +156,10 @@ export function performRedo(gourdMesh, onRestore) {
         patTilt: state.patTilt,
         activeZoneId: state.activeZoneId,
         positionToolMode: state.positionToolMode,
-        fillType: state.fillType
+        fillType: state.fillType,
+        holeShape: state.holeShape,
+        holeWobbleFreq: state.holeWobbleFreq,
+        holeWobbleAmp: state.holeWobbleAmp
     };
     state.undoStack.push(snapshotToUndo);
     
@@ -159,6 +174,9 @@ export function performRedo(gourdMesh, onRestore) {
     state.activeZoneId = nextState.activeZoneId;
     state.positionToolMode = nextState.positionToolMode;
     state.fillType = nextState.fillType;
+    state.holeShape = nextState.holeShape;
+    state.holeWobbleFreq = nextState.holeWobbleFreq;
+    state.holeWobbleAmp = nextState.holeWobbleAmp;
     
     if (onRestore) onRestore();
     return true;
@@ -195,7 +213,10 @@ export function addPatternZone() {
         fillType: 'grid',
         visible: true,
         isCustomNamed: false,
-        patternType: 'grid'
+        patternType: 'grid',
+        holeShape: 'round',
+        holeWobbleFreq: 5,
+        holeWobbleAmp: 0.15
     };
     state.patternZones.push(newZone);
     return newZone;

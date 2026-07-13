@@ -162,9 +162,23 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     </div>
                 `;
             } else if (zone.style === 'holes') {
+                const isWobbly = zone.holeShape === 'wobbly';
+                const wobbleAmpProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeWobbleAmp || 0) / 0.4)));
+
                 styleControls = `
                     ${sliderRow('Row Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
+                    <div class="control-row" style="margin-bottom: 8px;">
+                        <label class="control-label" style="width: 35%;">Hole Shape</label>
+                        <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                            <option value="round" ${zone.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
+                            <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                        </select>
+                    </div>
                     ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize, 'cm')}
+                    ${isWobbly ? `
+                        ${sliderRow('Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
+                        ${sliderRow('Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
+                    ` : ''}
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label">Layout Mode</label>
                         <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-cols: 1fr 1fr;">
@@ -520,6 +534,20 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    document.querySelectorAll('.zone-hole-shape-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.holeShape = select.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
     document.querySelectorAll('.zone-direction-select').forEach(select => {
         select.addEventListener('change', () => {
             const zoneId = select.dataset.zoneId;
@@ -737,6 +765,10 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 zone.holeCount = Math.round(1.0 + (valFloat / 100.0) * 799.0);
             } else if (param === 'holeDistance') {
                 zone.holeDistance = 0.30 - (valFloat / 100.0) * 0.298;
+            } else if (param === 'holeWobbleAmp') {
+                zone.holeWobbleAmp = (valFloat / 100.0) * 0.4;
+            } else if (param === 'holeWobbleFreq') {
+                zone.holeWobbleFreq = Math.round(valFloat);
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {
                 zone[param] = valFloat * Math.PI / 180;
             } else {

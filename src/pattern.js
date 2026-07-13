@@ -488,7 +488,28 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
 
         if (holePoints.length === 0) return 0;
 
-        const circleGeom = new THREE.CircleGeometry(holeSize, 14);
+        let circleGeom;
+        if (zone && zone.holeShape === 'wobbly') {
+            const shape = new THREE.Shape();
+            const segments = 32;
+            const amp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
+            const freq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
+            for (let i = 0; i < segments; i++) {
+                const phi = (i / segments) * Math.PI * 2;
+                const r = holeSize * (1.0 + amp * Math.cos(freq * phi));
+                const x = r * Math.cos(phi);
+                const y = r * Math.sin(phi);
+                if (i === 0) {
+                    shape.moveTo(x, y);
+                } else {
+                    shape.lineTo(x, y);
+                }
+            }
+            shape.closePath();
+            circleGeom = new THREE.ShapeGeometry(shape);
+        } else {
+            circleGeom = new THREE.CircleGeometry(holeSize, 14);
+        }
         const circleMat = new THREE.MeshBasicMaterial({
             color: 0x090706,
             side: THREE.DoubleSide,
