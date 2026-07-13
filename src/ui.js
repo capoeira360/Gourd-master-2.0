@@ -88,7 +88,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             
             <div class="panel-section-title">Bulb Curvature</div>
             ${sliderRow('Bulb Height', 'gourd-bulbPosition', 0.1, 0.4, 0.01, state.gourdBulbPosition || 0.25)}
-            ${sliderRow('Bulb Roundness', 'gourd-bulbRoundness', 0.5, 2.0, 0.05, state.gourdBulbRoundness || 1.0)}
+            ${sliderRow('Bulb Roundness', 'gourd-bulbRoundness', 0.5, 4.0, 0.05, state.gourdBulbRoundness || 1.0)}
 
             <div class="panel-section-title">Uneven Shape (Bending)</div>
             ${sliderRow('Lateral Bend (X)', 'gourd-bendX', -5.0, 5.0, 0.1, state.gourdBendX || 0.0, 'cm')}

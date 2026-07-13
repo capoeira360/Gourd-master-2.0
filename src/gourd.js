@@ -27,16 +27,16 @@ export function gourdRadius(t) {
     const hasNeck = state.gourdHasNeck !== false;
 
     let r_cm;
+    const p = 1.0 / Math.max(0.1, bulbRound); // exponent factor
+
     if (hasNeck) {
         // Standard double-bulb bottle gourd profile
         if (t < bulbPos) {
             const alpha = t / bulbPos;
-            r_cm = THREE.MathUtils.lerp(rBase, rBulb, smoothstep(0, 1, alpha));
+            r_cm = rBase + (rBulb - rBase) * Math.pow(Math.sin(alpha * Math.PI / 2), p);
         } else if (t < 0.55) {
-            // Blend from bulb peak to neck indentation
-            // We squish/round the bulb lobe based on bulbRound
-            const lobe = Math.exp(-Math.pow((t - bulbPos) / (0.15 * bulbRound), 2));
-            r_cm = rNeck + (rBulb - rNeck) * lobe;
+            const alpha = (t - bulbPos) / (0.55 - bulbPos);
+            r_cm = rNeck + (rBulb - rNeck) * Math.pow(Math.cos(alpha * Math.PI / 2), p);
         } else if (t < 0.8) {
             const alpha = (t - 0.55) / 0.25;
             r_cm = THREE.MathUtils.lerp(rNeck, rRim * 1.2, smoothstep(0, 1, alpha));
@@ -45,13 +45,13 @@ export function gourdRadius(t) {
             r_cm = THREE.MathUtils.lerp(rRim * 1.2, rRim, smoothstep(0, 1, alpha));
         }
     } else {
-        // Neckless pear/spherical gourd profile
+        // Neckless pear/spherical/balloon gourd profile
         if (t < bulbPos) {
             const alpha = t / bulbPos;
-            r_cm = THREE.MathUtils.lerp(rBase, rBulb, smoothstep(0, 1, alpha));
+            r_cm = rBase + (rBulb - rBase) * Math.pow(Math.sin(alpha * Math.PI / 2), p);
         } else {
             const alpha = (t - bulbPos) / (1.0 - bulbPos);
-            r_cm = THREE.MathUtils.lerp(rBulb, rRim, smoothstep(0, 1, alpha));
+            r_cm = rRim + (rBulb - rRim) * Math.pow(Math.cos(alpha * Math.PI / 2), p);
         }
     }
 
