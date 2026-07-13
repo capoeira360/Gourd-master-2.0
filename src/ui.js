@@ -49,6 +49,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
     if (tab === 'shape') {
         const isPhotoSet = !!state.gourdPhotoGuide;
         const photoOpacityProx = Math.round((state.gourdPhotoOpacity || 0.4) * 100);
+        const hasNeck = state.gourdHasNeck !== false;
         
         return `
             <div class="panel-section-title">Photo Guide Scanner</div>
@@ -75,11 +76,23 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             ` : ''}
             
             <div class="panel-section-title">Physical Dimensions</div>
+            <div class="control-row" style="margin-bottom: 10px;">
+                <label class="control-label" style="width: 50%;">Has Middle Neck?</label>
+                <input type="checkbox" id="gourd-hasNeck" ${hasNeck ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+            </div>
             ${sliderRow('Gourd Height', 'gourd-height', 10.0, 60.0, 0.5, state.gourdHeight || 30.0, 'cm')}
             ${sliderRow('Base Width', 'gourd-baseRadius', 1.0, 10.0, 0.1, state.gourdBaseRadius || 3.5, 'cm')}
             ${sliderRow('Bulb Width', 'gourd-bulbRadius', 3.0, 20.0, 0.1, state.gourdBulbRadius || 9.0, 'cm')}
-            ${sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm')}
+            ${hasNeck ? sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm') : ''}
             ${sliderRow('Rim Width', 'gourd-rimRadius', 1.0, 10.0, 0.1, state.gourdRimRadius || 2.7, 'cm')}
+            
+            <div class="panel-section-title">Bulb Curvature</div>
+            ${sliderRow('Bulb Height', 'gourd-bulbPosition', 0.1, 0.4, 0.01, state.gourdBulbPosition || 0.25)}
+            ${sliderRow('Bulb Roundness', 'gourd-bulbRoundness', 0.5, 2.0, 0.05, state.gourdBulbRoundness || 1.0)}
+
+            <div class="panel-section-title">Uneven Shape (Bending)</div>
+            ${sliderRow('Lateral Bend (X)', 'gourd-bendX', -5.0, 5.0, 0.1, state.gourdBendX || 0.0, 'cm')}
+            ${sliderRow('Lateral Bend (Z)', 'gourd-bendZ', -5.0, 5.0, 0.1, state.gourdBendZ || 0.0, 'cm')}
             
             <div class="panel-section-title">Artisan Blueprint Export</div>
             <button id="btn-export-blueprint" class="btn-primary" style="width: 100%; margin-top: 5px; margin-bottom: 8px; justify-content: center;">
@@ -797,6 +810,16 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     }
 
+    const hasNeckCheck = document.getElementById('gourd-hasNeck');
+    if (hasNeckCheck) {
+        hasNeckCheck.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            state.gourdHasNeck = hasNeckCheck.checked;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    }
+
     // Blueprint Generator Events
     const btnExportBlueprint = document.getElementById('btn-export-blueprint');
     if (btnExportBlueprint) {
@@ -868,6 +891,18 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
             updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
         } else if (param === 'rimRadius') {
             state.gourdRimRadius = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'bulbPosition') {
+            state.gourdBulbPosition = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'bulbRoundness') {
+            state.gourdBulbRoundness = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'bendX') {
+            state.gourdBendX = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'bendZ') {
+            state.gourdBendZ = valFloat;
             updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
         } else if (param === 'photoOpacity') {
             state.gourdPhotoOpacity = valFloat / 100.0;
@@ -1327,10 +1362,26 @@ export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpd
         gourdMesh.geometry.dispose();
         gourdMesh.geometry = createGourdGeometry();
         
+        const H = state.gourdHeight || 30.0;
+        const H_three = H * 0.1;
+        
+        // Re-position grid and ground in scene
+        const scene = gourdMesh.parent;
+        if (scene) {
+            const grid = scene.children.find(c => c instanceof THREE.GridHelper);
+            if (grid) {
+                grid.position.y = -H_three / 2;
+            }
+            const ground = scene.children.find(c => c.material && c.material instanceof THREE.ShadowMaterial);
+            if (ground) {
+                ground.position.y = -H_three / 2 - 0.01;
+            }
+        }
+
         // Update info badge HUD
         const badgeH = document.getElementById('badge-h');
         const badgeW = document.getElementById('badge-w');
-        if (badgeH) badgeH.innerText = (state.gourdHeight || 30.0).toFixed(1);
+        if (badgeH) badgeH.innerText = H.toFixed(1);
         if (badgeW) badgeW.innerText = ((state.gourdBulbRadius || 9.0) * 2.0).toFixed(1);
         
         updatePatternGroup(patternGroup, state);

@@ -92,12 +92,13 @@ function init() {
     const groundMat = new THREE.ShadowMaterial({ opacity: 0.3 });
     const ground = new THREE.Mesh(groundGeom, groundMat);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -GOURD_HEIGHT / 2 - 0.01;
+    const initH_three = (state.gourdHeight || 30.0) * 0.1;
+    ground.position.y = -initH_three / 2 - 0.01;
     ground.receiveShadow = true;
     scene.add(ground);
 
     gridHelper = new THREE.GridHelper(8, 32, 0x2a2a30, 0x222228);
-    gridHelper.position.y = -GOURD_HEIGHT / 2;
+    gridHelper.position.y = -initH_three / 2;
     scene.add(gridHelper);
 
     // 7. Gourd Mesh setup
