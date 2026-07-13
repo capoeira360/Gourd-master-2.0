@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { state } from './state.js';
 
 export const GOURD_HEIGHT = 3.0;
+export function getGourdHeight() {
+    return (state.gourdHeight || 30.0) * 0.1;
+}
 export const PROFILE_SEGS = 80;
 export const RADIAL_SEGS = 64;
 const EPS = 0.001;

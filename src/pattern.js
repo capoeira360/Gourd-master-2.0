@@ -1,22 +1,39 @@
 import * as THREE from 'three';
-import { getGourdRadius, GOURD_HEIGHT } from './gourd.js';
+import { getGourdRadius, getGourdHeight } from './gourd.js';
+import { state } from './state.js';
 
 // Calculates a 3D coordinate directly wrapped on the gourd's surface with an offset
 export function getSurfacePoint(t, angle, offset = 0.006, rOffset = 0) {
+    const H_three = getGourdHeight();
     const r = getGourdRadius(t) + offset + rOffset;
-    const y = t * GOURD_HEIGHT - GOURD_HEIGHT / 2;
-    return new THREE.Vector3(r * Math.cos(angle), y, r * Math.sin(angle));
+    let y = t * H_three - H_three / 2;
+    
+    let x = r * Math.cos(angle);
+    let z = r * Math.sin(angle);
+    
+    // Apply lateral shifts for uneven/bent shape
+    const bendX = state.gourdBendX || 0;
+    const bendZ = state.gourdBendZ || 0;
+    if (bendX !== 0 || bendZ !== 0) {
+        const factor = Math.pow(t, 2);
+        const scaleFactor = 0.1;
+        x += bendX * scaleFactor * factor;
+        z += bendZ * scaleFactor * factor;
+    }
+    
+    return new THREE.Vector3(x, y, z);
 }
 
 // Calculates the surface normal vector at height t and angle theta
 export function getSurfaceNormal(t, theta) {
+    const H_three = getGourdHeight();
     const dt = 0.01;
     const r1 = getGourdRadius(Math.max(0, t - dt));
     const r2 = getGourdRadius(Math.min(1, t + dt));
     const dr = (r2 - r1) / (2 * dt);
 
     // Normal components in local lathe coordinate space
-    const ny = -dr / GOURD_HEIGHT;
+    const ny = -dr / H_three;
     const nx = Math.cos(theta);
     const nz = Math.sin(theta);
 
@@ -54,20 +71,20 @@ export function isPointInZone(t, theta, zone) {
         dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
         const r = getGourdRadius(zone.centerT);
-        const dy = dt * GOURD_HEIGHT;
+        const dy = dt * getGourdHeight();
         const dx = r * dTheta;
         const dist = Math.sqrt(dx * dx + dy * dy);
         return dist <= zone.radius;
     }
 
     if (zone.type === 'diagonal-stripe') {
-        const y = t * GOURD_HEIGHT - GOURD_HEIGHT / 2;
+        const y = t * getGourdHeight() - getGourdHeight() / 2;
         const r = getGourdRadius(t);
         const x = r * theta;
         const slantRad = (zone.slantAngle || 0) * Math.PI / 180;
 
         const proj = y * Math.cos(slantRad) - x * Math.sin(slantRad);
-        const centerProj = (zone.centerT * GOURD_HEIGHT - GOURD_HEIGHT / 2) * Math.cos(slantRad);
+        const centerProj = (zone.centerT * getGourdHeight() - getGourdHeight() / 2) * Math.cos(slantRad);
         return Math.abs(proj - centerProj) <= (zone.width || 0.15);
     }
 
@@ -78,7 +95,7 @@ export function isPointInZone(t, theta, zone) {
         dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
         const r = getGourdRadius(zone.centerT);
-        const dy = dt * GOURD_HEIGHT;
+        const dy = dt * getGourdHeight();
         const dx = r * dTheta;
 
         // Apply local shape rotation
@@ -209,7 +226,7 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
             const segs = 64;
             for (let j = 0; j <= segs; j++) {
                 const a = (j / segs) * Math.PI * 2;
-                const tTilt = tBase + (rBase * tanGamma / GOURD_HEIGHT) * Math.cos(a);
+                const tTilt = tBase + (rBase * tanGamma / getGourdHeight()) * Math.cos(a);
                 const t = Math.max(0.01, Math.min(0.99, tTilt));
                 path.push({ t, theta: a, rOffset: 0 });
             }
@@ -230,7 +247,7 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
                     continue;
                 }
                 const a = startAngle + t * Math.PI * wraps;
-                const twist = ((t - 0.5) * GOURD_HEIGHT / Math.max(0.1, r)) * tanGamma;
+                const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
                 path.push({ t, theta: a + twist, rOffset: 0 });
             }
             if (path.length > 1) paths.push(path);
@@ -250,7 +267,7 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
                     continue;
                 }
                 const a = startAngle + t * Math.PI * wraps;
-                const twist = ((t - 0.5) * GOURD_HEIGHT / Math.max(0.1, r)) * tanGamma;
+                const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
                 path.push({ t, theta: a + twist, rOffset: 0 });
             }
             if (path.length > 1) paths.push(path);
@@ -271,7 +288,7 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
             for (let j = 0; j <= teeth * 2; j++) {
                 const a = (j / (teeth * 2)) * Math.PI * 2;
                 const zigOffset = ((j % 2 === 0) ? amp : -amp);
-                const tTilt = tBase + (rBase * tanGamma / GOURD_HEIGHT) * Math.cos(a);
+                const tTilt = tBase + (rBase * tanGamma / getGourdHeight()) * Math.cos(a);
                 const t = Math.max(0.01, Math.min(0.99, tTilt));
                 path.push({ t, theta: a, rOffset: zigOffset });
             }
@@ -302,7 +319,7 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0) {
                     path.length = 0;
                     continue;
                 }
-                const twist = ((t - 0.5) * GOURD_HEIGHT / Math.max(0.1, r)) * tanGamma;
+                const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
                 path.push({ t, theta: baseAngle + twist, rOffset: 0 });
             }
             if (path.length > 1) paths.push(path);
@@ -322,7 +339,7 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0) {
                     continue;
                 }
                 const a = startAngle - t * Math.PI * wraps;
-                const twist = ((t - 0.5) * GOURD_HEIGHT / Math.max(0.1, r)) * tanGamma;
+                const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
                 path.push({ t, theta: a + twist, rOffset: 0 });
             }
             if (path.length > 1) paths.push(path);
@@ -340,7 +357,7 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0) {
                     path.length = 0;
                     continue;
                 }
-                const twist = ((t - 0.5) * GOURD_HEIGHT / Math.max(0.1, r)) * tanGamma;
+                const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
                 path.push({ t, theta: a + twist, rOffset: 0 });
             }
             if (path.length > 1) paths.push(path);
@@ -661,7 +678,7 @@ function generateConcentricLoops(zone) {
             const dx = rx * Math.cos(phi) - ry * Math.sin(phi);
             const dy = rx * Math.sin(phi) + ry * Math.cos(phi);
 
-            const t = zone.centerT + dy / GOURD_HEIGHT;
+            const t = zone.centerT + dy / getGourdHeight();
             const r = getGourdRadius(t);
             const theta = zone.centerTheta + dx / r;
 

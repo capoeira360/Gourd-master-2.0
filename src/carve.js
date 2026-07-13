@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { getSurfacePoint } from './pattern.js';
-import { GOURD_HEIGHT } from './gourd.js';
+import { getGourdHeight } from './gourd.js';
 
 let isDrawing = false;
 let currentPath = [];
@@ -29,8 +29,21 @@ export function handleCarvePointerDown(e, canvas, camera, gourdMesh, carveGroup,
 
         // Convert the hit point to the local coordinates of the gourd mesh
         const localPt = hits[0].point.clone().applyMatrix4(gourdMesh.matrixWorld.clone().invert());
-        const t = Math.max(0, Math.min(1, (localPt.y + GOURD_HEIGHT / 2) / GOURD_HEIGHT));
-        const theta = Math.atan2(localPt.z, localPt.x);
+        const H_three = getGourdHeight();
+        const t = Math.max(0, Math.min(1, (localPt.y + H_three / 2) / H_three));
+        
+        // Subtract lateral bend offsets before computing angle
+        const bendX = state.gourdBendX || 0;
+        const bendZ = state.gourdBendZ || 0;
+        let lx = localPt.x;
+        let lz = localPt.z;
+        if (bendX !== 0 || bendZ !== 0) {
+            const factor = Math.pow(t, 2);
+            const scaleFactor = 0.1;
+            lx -= bendX * scaleFactor * factor;
+            lz -= bendZ * scaleFactor * factor;
+        }
+        const theta = Math.atan2(lz, lx);
 
         currentPath.push({ t, theta });
 
@@ -65,8 +78,21 @@ export function handleCarvePointerMove(e, canvas, camera, gourdMesh, carveGroup,
 
     if (hits.length > 0) {
         const localPt = hits[0].point.clone().applyMatrix4(gourdMesh.matrixWorld.clone().invert());
-        const t = Math.max(0, Math.min(1, (localPt.y + GOURD_HEIGHT / 2) / GOURD_HEIGHT));
-        const theta = Math.atan2(localPt.z, localPt.x);
+        const H_three = getGourdHeight();
+        const t = Math.max(0, Math.min(1, (localPt.y + H_three / 2) / H_three));
+        
+        // Subtract lateral bend offsets before computing angle
+        const bendX = state.gourdBendX || 0;
+        const bendZ = state.gourdBendZ || 0;
+        let lx = localPt.x;
+        let lz = localPt.z;
+        if (bendX !== 0 || bendZ !== 0) {
+            const factor = Math.pow(t, 2);
+            const scaleFactor = 0.1;
+            lx -= bendX * scaleFactor * factor;
+            lz -= bendZ * scaleFactor * factor;
+        }
+        const theta = Math.atan2(lz, lx);
 
         const lastPt = currentPath[currentPath.length - 1];
         // Calculate cylindrical coordinate distance to filter out mouse jitter
