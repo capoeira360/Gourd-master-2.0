@@ -74,26 +74,29 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     💡 Switch to the <b>Front View</b> using the viewport options to align the 3D outline with your physical gourd's photo!
                 </p>
             ` : ''}
-            
-            <div class="panel-section-title">Physical Dimensions</div>
+                      <div class="panel-section-title">Main Dimensions</div>
             <div class="control-row" style="margin-bottom: 10px;">
                 <label class="control-label" style="width: 50%;">Has Middle Neck?</label>
                 <input type="checkbox" id="gourd-hasNeck" ${hasNeck ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
             </div>
             ${sliderRow('Gourd Height', 'gourd-height', 10.0, 60.0, 0.5, state.gourdHeight || 30.0, 'cm')}
             ${sliderRow('Base Width', 'gourd-baseRadius', 1.0, 10.0, 0.1, state.gourdBaseRadius || 3.5, 'cm')}
-            ${sliderRow('Bulb Width', 'gourd-bulbRadius', 3.0, 20.0, 0.1, state.gourdBulbRadius || 9.0, 'cm')}
-            ${hasNeck ? sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm') : ''}
             ${sliderRow('Rim Width', 'gourd-rimRadius', 1.0, 10.0, 0.1, state.gourdRimRadius || 2.7, 'cm')}
             
             <div class="panel-section-title">Bulb Curvature</div>
+            ${sliderRow('Bulb Width', 'gourd-bulbRadius', 3.0, 20.0, 0.1, state.gourdBulbRadius || 9.0, 'cm')}
             ${sliderRow('Bulb Height', 'gourd-bulbPosition', 0.1, 0.4, 0.01, state.gourdBulbPosition || 0.25)}
             ${sliderRow('Bulb Roundness', 'gourd-bulbRoundness', 0.5, 4.0, 0.05, state.gourdBulbRoundness || 1.0)}
 
             ${hasNeck ? `
                 <div class="panel-section-title">Neck Curvature</div>
+                ${sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm')}
                 ${sliderRow('Neck Height', 'gourd-neckPosition', 0.4, 0.75, 0.01, state.gourdNeckPosition || 0.55)}
                 ${sliderRow('Neck Roundness', 'gourd-neckRoundness', 0.5, 3.0, 0.05, state.gourdNeckRoundness || 1.0)}
+
+                <div class="panel-section-title">Upper Neck Curvature</div>
+                ${sliderRow('Upper Neck Width', 'gourd-upperNeckWidth', 1.0, 12.0, 0.1, state.gourdUpperNeckWidth || 3.24, 'cm')}
+                ${sliderRow('Upper Neck Height', 'gourd-upperNeckPosition', 0.6, 0.95, 0.01, state.gourdUpperNeckPosition || 0.78)}
             ` : ''}
 
             <div class="panel-section-title">Uneven Shape (Bending)</div>
@@ -909,6 +912,12 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
             updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
         } else if (param === 'neckRoundness') {
             state.gourdNeckRoundness = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'upperNeckWidth') {
+            state.gourdUpperNeckWidth = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'upperNeckPosition') {
+            state.gourdUpperNeckPosition = valFloat;
             updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
         } else if (param === 'bendX') {
             state.gourdBendX = valFloat;

@@ -33,7 +33,8 @@ export function gourdRadius(t) {
         const neckPos = state.gourdNeckPosition !== undefined ? state.gourdNeckPosition : 0.55;
         const neckRound = state.gourdNeckRoundness !== undefined ? state.gourdNeckRoundness : 1.0;
         const neckP = 1.0 / Math.max(0.1, neckRound);
-        const tCollar = neckPos + (1.0 - neckPos) * 0.5;
+        const rCollar = state.gourdUpperNeckWidth !== undefined ? state.gourdUpperNeckWidth : rRim * 1.2;
+        const tCollar = state.gourdUpperNeckPosition !== undefined ? state.gourdUpperNeckPosition : (neckPos + (1.0 - neckPos) * 0.5);
 
         // Standard double-bulb bottle gourd profile
         if (t < bulbPos) {
@@ -44,10 +45,10 @@ export function gourdRadius(t) {
             r_cm = rNeck + (rBulb - rNeck) * Math.pow(Math.cos(alpha * Math.PI / 2), p);
         } else if (t < tCollar) {
             const alpha = (t - neckPos) / (tCollar - neckPos);
-            r_cm = rNeck + (rRim * 1.2 - rNeck) * Math.pow(Math.sin(alpha * Math.PI / 2), neckP);
+            r_cm = rNeck + (rCollar - rNeck) * Math.pow(Math.sin(alpha * Math.PI / 2), neckP);
         } else {
             const alpha = (t - tCollar) / (1.0 - tCollar);
-            r_cm = rRim * 1.2 + (rRim - rRim * 1.2) * Math.sin(alpha * Math.PI / 2);
+            r_cm = rCollar + (rRim - rCollar) * Math.sin(alpha * Math.PI / 2);
         }
     } else {
         // Neckless pear/spherical/balloon gourd profile
