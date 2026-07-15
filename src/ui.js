@@ -188,6 +188,13 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
                     ${sliderRow('Patch Radius', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius, 'cm')}
                 `;
+            } else if (zone.type === 'square-patch' || zone.type === 'square') {
+                boundsSliders = `
+                    ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
+                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
+                    ${sliderRow('Patch Size', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius, 'cm')}
+                    ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
+                `;
             } else if (['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
                 boundsSliders = `
                     ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
@@ -264,7 +271,9 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
                                 <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
                                 <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
+                                <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}>Square Patch</option>
                                 <option value="circle" ${zone.type === 'circle' ? 'selected' : ''}>Circle Frame</option>
+                                <option value="square" ${zone.type === 'square' ? 'selected' : ''}>Square Frame</option>
                                 <option value="fish" ${zone.type === 'fish' ? 'selected' : ''}>Fish Silhouette</option>
                                 <option value="star" ${zone.type === 'star' ? 'selected' : ''}>5-Point Star</option>
                                 <option value="flower" ${zone.type === 'flower' ? 'selected' : ''}>Flower Rosette</option>
@@ -272,6 +281,18 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <option value="triangle" ${zone.type === 'triangle' ? 'selected' : ''}>Triangle Shape</option>
                             </select>
                         </div>
+                        
+                        <div class="control-row" style="margin-bottom: 8px;">
+                            <label class="control-label" style="width: 35%;">Mask Mode</label>
+                            <select class="zone-mask-mode-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                                <option value="include" ${zone.maskMode !== 'exclude' ? 'selected' : ''}>Include Only</option>
+                                <option value="exclude" ${zone.maskMode === 'exclude' ? 'selected' : ''}>Exclude (Mask Out)</option>
+                            </select>
+                        </div>
+
+                        ${!['full', 'hor-band', 'ver-strip'].includes(zone.type) ? `
+                            ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
+                        ` : ''}
                         
                         ${fillTypeSelect}
                         ${orientationSelect}
@@ -547,7 +568,9 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         'ver-strip': 'Vertical Strip',
         'diagonal-stripe': 'Diagonal Stripe',
         'circular-patch': 'Circular Patch',
+        'square-patch': 'Square Patch',
         'circle': 'Circle Frame',
+        'square': 'Square Frame',
         'fish': 'Fish Silhouette',
         'star': '5-Point Star',
         'flower': 'Flower Rosette',
@@ -566,6 +589,20 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                     const idx = state.patternZones.findIndex(z => z.id === zoneId) + 1;
                     zone.name = `${shapeFriendlyNames[zone.type]} ${idx}`;
                 }
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-mask-mode-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.maskMode = select.value;
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
@@ -967,6 +1004,8 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 zone.holeWobbleAmp = (valFloat / 100.0) * 0.4;
             } else if (param === 'holeWobbleFreq') {
                 zone.holeWobbleFreq = Math.round(valFloat);
+            } else if (param === 'patchCount') {
+                zone.patchCount = Math.round(valFloat);
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {
                 zone[param] = valFloat * Math.PI / 180;
             } else {

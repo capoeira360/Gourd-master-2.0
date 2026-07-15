@@ -70,6 +70,8 @@ export const state = {
     gourdPhotoScale: 1.0,
     gourdPhotoX: 0,
     gourdPhotoY: 0,
+    maskMode: 'include',
+    patchCount: 1,
     
     // Decoupled stats tracking
     patternCount: 0,
@@ -126,7 +128,9 @@ export function pushUndoState(gourdMesh) {
         gourdUpperNeckPosition: state.gourdUpperNeckPosition,
         gourdHasNeck: state.gourdHasNeck,
         gourdBendX: state.gourdBendX,
-        gourdBendZ: state.gourdBendZ
+        gourdBendZ: state.gourdBendZ,
+        maskMode: state.maskMode,
+        patchCount: state.patchCount
     };
     
     state.undoStack.push(snapshot);
@@ -167,7 +171,9 @@ export function performUndo(gourdMesh, onRestore) {
         gourdUpperNeckPosition: state.gourdUpperNeckPosition,
         gourdHasNeck: state.gourdHasNeck,
         gourdBendX: state.gourdBendX,
-        gourdBendZ: state.gourdBendZ
+        gourdBendZ: state.gourdBendZ,
+        maskMode: state.maskMode,
+        patchCount: state.patchCount
     };
     state.redoStack.push(snapshotToRedo);
     
@@ -199,6 +205,8 @@ export function performUndo(gourdMesh, onRestore) {
     state.gourdHasNeck = prevState.gourdHasNeck;
     state.gourdBendX = prevState.gourdBendX;
     state.gourdBendZ = prevState.gourdBendZ;
+    state.maskMode = prevState.maskMode;
+    state.patchCount = prevState.patchCount;
     
     if (onRestore) onRestore();
     return true;
@@ -236,7 +244,9 @@ export function performRedo(gourdMesh, onRestore) {
         gourdUpperNeckPosition: state.gourdUpperNeckPosition,
         gourdHasNeck: state.gourdHasNeck,
         gourdBendX: state.gourdBendX,
-        gourdBendZ: state.gourdBendZ
+        gourdBendZ: state.gourdBendZ,
+        maskMode: state.maskMode,
+        patchCount: state.patchCount
     };
     state.undoStack.push(snapshotToUndo);
     
@@ -268,6 +278,8 @@ export function performRedo(gourdMesh, onRestore) {
     state.gourdHasNeck = nextState.gourdHasNeck;
     state.gourdBendX = nextState.gourdBendX;
     state.gourdBendZ = nextState.gourdBendZ;
+    state.maskMode = nextState.maskMode;
+    state.patchCount = nextState.patchCount;
     
     if (onRestore) onRestore();
     return true;
