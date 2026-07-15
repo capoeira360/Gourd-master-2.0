@@ -121,7 +121,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const holeDistProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - zone.holeDistance) / 0.298)));
             const holeCountProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeCount - 1) / 799)));
 
-            const isLocalShape = ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type);
+            const isLocalShape = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type);
             
             let fillTypeSelect = '';
             if (isLocalShape) {
@@ -1593,7 +1593,7 @@ function generateAndShowBlueprint() {
         let paths = [];
         const helpers = window.appPatternHelpers || {};
         
-        if (zone.fillType === 'concentric' && ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+        if (zone.fillType === 'concentric' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             paths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
         } else {
             const patLayout = zone.patternType || 'grid';

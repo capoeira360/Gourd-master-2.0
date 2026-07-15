@@ -88,7 +88,7 @@ export function isPointInZone(t, theta, zone) {
         let dTheta = mappedTheta - zone.centerTheta;
         dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
-        const r = getGourdRadius(zone.centerT);
+        const r = getGourdRadius(t);
         const dy = dt * getGourdHeight();
         const dx = r * dTheta;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -98,7 +98,7 @@ export function isPointInZone(t, theta, zone) {
         let dTheta = mappedTheta - zone.centerTheta;
         dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
-        const r = getGourdRadius(zone.centerT);
+        const r = getGourdRadius(t);
         const dy = dt * getGourdHeight();
         const dx = r * dTheta;
         
@@ -111,10 +111,14 @@ export function isPointInZone(t, theta, zone) {
         if (zone.type === 'square-patch') {
             inZone = Math.abs(rx) <= halfSide && Math.abs(ry) <= halfSide;
         } else {
-            const thickness = 0.015;
             const inOuter = Math.abs(rx) <= halfSide && Math.abs(ry) <= halfSide;
-            const inInner = Math.abs(rx) <= (halfSide - thickness) && Math.abs(ry) <= (halfSide - thickness);
-            inZone = inOuter && !inInner;
+            if (zone.fillType === 'concentric') {
+                inZone = inOuter;
+            } else {
+                const thickness = 0.015;
+                const inInner = Math.abs(rx) <= (halfSide - thickness) && Math.abs(ry) <= (halfSide - thickness);
+                inZone = inOuter && !inInner;
+            }
         }
     } else if (zone.type === 'diagonal-stripe') {
         const y = t * getGourdHeight() - getGourdHeight() / 2;
@@ -132,7 +136,7 @@ export function isPointInZone(t, theta, zone) {
             let dTheta = mappedTheta - zone.centerTheta;
             dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
-            const r = getGourdRadius(zone.centerT);
+            const r = getGourdRadius(t);
             const dy = dt * getGourdHeight();
             const dx = r * dTheta;
 
@@ -145,7 +149,14 @@ export function isPointInZone(t, theta, zone) {
             const v = ry / radius;
 
             if (zone.type === 'circle') {
-                inZone = (u * u + v * v) <= 1.0;
+                const inOuter = (u * u + v * v) <= 1.0;
+                if (zone.fillType === 'concentric') {
+                    inZone = inOuter;
+                } else {
+                    const thickness = 0.015;
+                    const inInner = (u * u + v * v) <= ((1.0 - thickness) * (1.0 - thickness));
+                    inZone = inOuter && !inInner;
+                }
             } else if (zone.type === 'fish') {
                 const inBody = (((u + 0.15) * (u + 0.15)) / 0.36 + (v * v) / 0.08) <= 1.0;
                 const inTail = (u >= 0.2 && u <= 0.7 && Math.abs(v) <= 0.5 * (u - 0.15));
@@ -602,16 +613,36 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
 
 // Generates nested concentric outlines scaling inwards for local shape masks
 function generateConcentricLoops(zone) {
-    const localShapes = ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'];
+    const localShapes = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'];
     if (!localShapes.includes(zone.type)) return [];
 
     const N = 100;
     const basePts = [];
 
-    if (zone.type === 'circle') {
+    if (zone.type === 'circle' || zone.type === 'circular-patch') {
         for (let i = 0; i <= N; i++) {
             const psi = (i / N) * Math.PI * 2;
             basePts.push({ u: Math.cos(psi), v: Math.sin(psi) });
+        }
+    } else if (zone.type === 'square' || zone.type === 'square-patch') {
+        const sqVerts = [
+            { u: -1.0, v: 1.0 },
+            { u: 1.0, v: 1.0 },
+            { u: 1.0, v: -1.0 },
+            { u: -1.0, v: -1.0 },
+            { u: -1.0, v: 1.0 }
+        ];
+        for (let i = 0; i <= N; i++) {
+            const alpha = i / N;
+            const totalLength = 4 * alpha;
+            const idx = Math.min(3, Math.floor(totalLength));
+            const segAlpha = totalLength - idx;
+            const pA = sqVerts[idx];
+            const pB = sqVerts[idx + 1];
+            basePts.push({
+                u: pA.u + segAlpha * (pB.u - pA.u),
+                v: pA.v + segAlpha * (pB.v - pA.v)
+            });
         }
     } else if (zone.type === 'star') {
         const starVerts = [];
@@ -756,7 +787,7 @@ export function updatePatternGroup(group, state) {
     for (const zone of state.patternZones) {
         if (zone.style === 'off' || zone.visible === false) continue;
 
-        if (zone.fillType === 'concentric' && ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+        if (zone.fillType === 'concentric' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             const concentricLoops = generateConcentricLoops(zone);
             const validLoops = concentricLoops.map(loop => {
                 return loop.filter(pt => pt.t >= 0 && pt.t <= 1);
