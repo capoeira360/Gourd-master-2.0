@@ -307,7 +307,8 @@ export function addPatternZone() {
         patternType: 'grid',
         holeShape: 'round',
         holeWobbleFreq: 5,
-        holeWobbleAmp: 0.15
+        holeWobbleAmp: 0.15,
+        leanAngle: 0.0
     };
     state.patternZones.push(newZone);
     return newZone;

@@ -198,10 +198,15 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             }
 
             let styleControls = '';
+            const leanAngleVal = zone.leanAngle !== undefined ? zone.leanAngle : 0.0;
+            const hasVertical = zone.direction === 'both' || zone.direction === 'vertical';
+            const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
+
             if (zone.style === 'lines') {
                 styleControls = `
                     ${sliderRow('Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
                     ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx)}
+                    ${showLean ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
                     <div class="control-row" style="margin-bottom: 10px;">
                         <label class="control-label">Line Color</label>
                         <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
@@ -214,6 +219,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
                 styleControls = `
                     ${sliderRow('Row Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
+                    ${showLean ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Hole Shape</label>
                         <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
@@ -1553,7 +1559,7 @@ function generateAndShowBlueprint() {
         } else {
             const patLayout = zone.patternType || 'grid';
             const horPaths = helpers.generateHorizontalPaths ? helpers.generateHorizontalPaths(patLayout, zone.density, state.patTilt) : [];
-            const verPaths = helpers.generateVerticalPaths ? helpers.generateVerticalPaths(patLayout, zone.density, state.patTilt) : [];
+            const verPaths = helpers.generateVerticalPaths ? helpers.generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0) : [];
             
             const direction = zone.direction || 'both';
             if (direction === 'both' || direction === 'horizontal') {

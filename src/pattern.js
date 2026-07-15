@@ -302,9 +302,10 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
 }
 
 // Generates secondary/vertical paths (meridians, CCW spirals) with tilt shear
-export function generateVerticalPaths(type, density, tiltAngleDeg = 0) {
+export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle = 0) {
     const paths = [];
     const tanGamma = Math.tan(tiltAngleDeg * Math.PI / 180);
+    const leanTan = Math.tan(leanAngle * Math.PI / 180);
 
     if (type === 'grid' || type === 'spiral') {
         const merCount = Math.round(density * 10);
@@ -320,7 +321,8 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0) {
                     continue;
                 }
                 const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
-                path.push({ t, theta: baseAngle + twist, rOffset: 0 });
+                const leanOffset = (t * getGourdHeight() * leanTan) / Math.max(0.05, r);
+                path.push({ t, theta: baseAngle + twist + leanOffset, rOffset: 0 });
             }
             if (path.length > 1) paths.push(path);
         }
@@ -340,7 +342,8 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0) {
                 }
                 const a = startAngle - t * Math.PI * wraps;
                 const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
-                path.push({ t, theta: a + twist, rOffset: 0 });
+                const leanOffset = (t * getGourdHeight() * leanTan) / Math.max(0.05, r);
+                path.push({ t, theta: a + twist + leanOffset, rOffset: 0 });
             }
             if (path.length > 1) paths.push(path);
         }
@@ -358,7 +361,8 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0) {
                     continue;
                 }
                 const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
-                path.push({ t, theta: a + twist, rOffset: 0 });
+                const leanOffset = (t * getGourdHeight() * leanTan) / Math.max(0.05, r);
+                path.push({ t, theta: a + twist + leanOffset, rOffset: 0 });
             }
             if (path.length > 1) paths.push(path);
         }
@@ -750,7 +754,7 @@ export function updatePatternGroup(group, state) {
 
         const patLayout = zone.patternType || 'grid';
         const horPaths = generateHorizontalPaths(patLayout, zone.density, state.patTilt);
-        const verPaths = generateVerticalPaths(patLayout, zone.density, state.patTilt);
+        const verPaths = generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0);
 
         if (zone.style === 'lines') {
             hasLines = true;
