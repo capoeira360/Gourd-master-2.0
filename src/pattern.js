@@ -787,7 +787,7 @@ export function updatePatternGroup(group, state) {
     for (const zone of state.patternZones) {
         if (zone.style === 'off' || zone.visible === false) continue;
 
-        if (zone.fillType === 'concentric' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+        if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             const concentricLoops = generateConcentricLoops(zone);
             const validLoops = concentricLoops.map(loop => {
                 return loop.filter(pt => pt.t >= 0 && pt.t <= 1);

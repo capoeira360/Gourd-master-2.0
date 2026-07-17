@@ -1593,7 +1593,7 @@ function generateAndShowBlueprint() {
         let paths = [];
         const helpers = window.appPatternHelpers || {};
         
-        if (zone.fillType === 'concentric' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+        if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             paths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
         } else {
             const patLayout = zone.patternType || 'grid';

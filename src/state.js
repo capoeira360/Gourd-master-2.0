@@ -320,7 +320,9 @@ export function addPatternZone() {
         holeShape: 'round',
         holeWobbleFreq: 5,
         holeWobbleAmp: 0.15,
-        leanAngle: 0.0
+        leanAngle: 0.0,
+        maskMode: 'include',
+        patchCount: 1
     };
     state.patternZones.push(newZone);
     return newZone;
