@@ -324,7 +324,8 @@ export function addPatternZone() {
         maskMode: 'include',
         patchCount: 1,
         clipBackground: true,
-        customImageDataUrl: null
+        customImageDataUrl: null,
+        customSvgText: null
     };
     state.patternZones.push(newZone);
     return newZone;

@@ -867,6 +867,106 @@ function generateConcentricLoops(zone) {
     return loops;
 }
 
+// Parses SVG text, samples path points, and conformally projects coordinates onto the 3D gourd surface
+export function getSvgPaths(zone) {
+    if (!zone || !zone.customSvgText) return [];
+    
+    const paths = [];
+    try {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(zone.customSvgText, "image/svg+xml");
+        const svgEl = xmlDoc.documentElement;
+        if (!svgEl) return [];
+
+        let w = 100, h = 100;
+        const viewBox = svgEl.getAttribute('viewBox');
+        if (viewBox) {
+            const parts = viewBox.split(/\s+/).filter(Boolean);
+            if (parts.length === 4) {
+                w = parseFloat(parts[2]);
+                h = parseFloat(parts[3]);
+            }
+        } else {
+            const widthAttr = svgEl.getAttribute('width');
+            const heightAttr = svgEl.getAttribute('height');
+            if (widthAttr) w = parseFloat(widthAttr);
+            if (heightAttr) h = parseFloat(heightAttr);
+        }
+
+        const hiddenContainer = document.createElement('div');
+        hiddenContainer.style.position = 'absolute';
+        hiddenContainer.style.width = '0px';
+        hiddenContainer.style.height = '0px';
+        hiddenContainer.style.overflow = 'hidden';
+        hiddenContainer.style.visibility = 'hidden';
+        hiddenContainer.innerHTML = zone.customSvgText;
+        document.body.appendChild(hiddenContainer);
+
+        const svgDomEl = hiddenContainer.querySelector('svg');
+        if (svgDomEl) {
+            const pathEls = svgDomEl.querySelectorAll('path');
+            
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = Math.max(0.005, zone.radius || 0.15);
+            const shapeRotRad = (zone.shapeRotation || 0) * Math.PI / 180;
+            
+            // Fixed sample resolution step (0.02 cm) to keep curves clean
+            const stepSize = 0.02;
+            const svgToCm = radius / (w / 2);
+            const stepSizeInSvgPixels = stepSize / Math.max(0.0001, svgToCm);
+
+            const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
+
+            for (const pathEl of pathEls) {
+                const len = pathEl.getTotalLength();
+                if (len <= 0) continue;
+
+                const steps = Math.max(15, Math.round(len / stepSizeInSvgPixels));
+                
+                for (let p = 0; p < patchCount; p++) {
+                    const offsetTheta = (p / patchCount) * Math.PI * 2;
+                    let currentTheta = zone.centerTheta + offsetTheta;
+                    currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+                    const segment = [];
+                    for (let i = 0; i <= steps; i++) {
+                        const dist = (i / steps) * len;
+                        const svgPt = pathEl.getPointAtLength(dist);
+                        
+                        const u = (svgPt.x - cx) / (w / 2);
+                        const v = -(svgPt.y - cy) / (h / 2); // Invert Y axis
+
+                        const rx = u * radius;
+                        const ry = v * radius;
+
+                        const dx = rx * Math.cos(shapeRotRad) - ry * Math.sin(shapeRotRad);
+                        const dy = rx * Math.sin(shapeRotRad) + ry * Math.cos(shapeRotRad);
+
+                        const dt = dy / getGourdHeight();
+                        const t = zone.centerT + dt;
+                        if (t < 0.01 || t > 0.99) continue;
+
+                        const rGourd = getGourdRadius(t);
+                        const dTheta = dx / rGourd;
+                        let thetaPt = currentTheta + dTheta;
+                        thetaPt = ((thetaPt + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+                        segment.push({ t, theta: thetaPt, rOffset: 0 });
+                    }
+                    if (segment.length >= 2) {
+                        paths.push(segment);
+                    }
+                }
+            }
+        }
+        document.body.removeChild(hiddenContainer);
+    } catch (err) {
+        console.error("Error parsing SVG vector paths", err);
+    }
+    return paths;
+}
+
 // Rebuilds pattern inside a parent THREE.Group (handles lines and instanced holes)
 export function updatePatternGroup(group, state) {
     // Clear old children
@@ -894,6 +994,28 @@ export function updatePatternGroup(group, state) {
     // Render each pattern zone individually
     for (const zone of state.patternZones) {
         if (zone.style === 'off' || zone.visible === false) continue;
+
+        if (zone.type === 'custom-image' && zone.customSvgText) {
+            const svgPaths = getSvgPaths(zone);
+            if (zone.style === 'lines') {
+                hasLines = true;
+                const count = renderPatternLayer(
+                    group, svgPaths, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            } else if (zone.style === 'holes') {
+                hasHoles = true;
+                const count = renderPatternLayer(
+                    group, svgPaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            continue;
+        }
 
         if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             const concentricLoops = generateConcentricLoops(zone);

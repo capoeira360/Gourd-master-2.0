@@ -1,6 +1,6 @@
 import { state, pushUndoState, performUndo, performRedo, addPatternZone, removePatternZone, duplicatePatternZone, movePatternZoneUp, movePatternZoneDown } from './state.js';
 import { calculateMeasurements, updateMeasureLines } from './measure.js';
-import { updatePatternGroup } from './pattern.js';
+import { updatePatternGroup, getSvgPaths } from './pattern.js';
 import { updateCarveGroup, clearCarvings } from './carve.js';
 import * as THREE from 'three';
 import { gourdRadius, createGourdGeometry } from './gourd.js';
@@ -137,7 +137,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             }
             
             let orientationSelect = '';
-            if (!isLocalShape || zone.fillType !== 'concentric') {
+            if ((!isLocalShape || zone.fillType !== 'concentric') && zone.type !== 'custom-image') {
                 orientationSelect = `
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Orientation</label>
@@ -151,7 +151,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             }
 
             let patternTypeSelector = '';
-            if (!isLocalShape || zone.fillType !== 'concentric') {
+            if ((!isLocalShape || zone.fillType !== 'concentric') && zone.type !== 'custom-image') {
                 patternTypeSelector = `
                     <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: flex-start;">
                         <label class="control-label" style="margin-bottom: 6px;">Pattern Layout</label>
@@ -211,9 +211,9 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
             if (zone.style === 'lines') {
                 styleControls = `
-                    ${sliderRow('Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
-                    ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx)}
-                    ${showLean ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow('Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx) : ''}
+                    ${showLean && zone.type !== 'custom-image' ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
                     <div class="control-row" style="margin-bottom: 10px;">
                         <label class="control-label">Line Color</label>
                         <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
@@ -225,8 +225,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 const wobbleAmpProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeWobbleAmp || 0) / 0.4)));
 
                 styleControls = `
-                    ${sliderRow('Row Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
-                    ${showLean ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow('Row Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${showLean && zone.type !== 'custom-image' ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Hole Shape</label>
                         <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
@@ -1753,7 +1753,9 @@ function generateAndShowBlueprint() {
         let paths = [];
         const helpers = window.appPatternHelpers || {};
         
-        if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+        if (zone.type === 'custom-image' && zone.customSvgText) {
+            paths = getSvgPaths(zone);
+        } else if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             paths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
         } else {
             const patLayout = zone.patternType || 'grid';
