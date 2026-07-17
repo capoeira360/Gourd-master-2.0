@@ -323,7 +323,8 @@ export function addPatternZone() {
         leanAngle: 0.0,
         maskMode: 'include',
         patchCount: 1,
-        clipBackground: true
+        clipBackground: true,
+        customImageDataUrl: null
     };
     state.patternZones.push(newZone);
     return newZone;

@@ -121,10 +121,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const holeDistProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - zone.holeDistance) / 0.298)));
             const holeCountProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeCount - 1) / 799)));
 
-            const isLocalShape = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type);
+            const isLocalShape = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle', 'custom-image'].includes(zone.type);
             
             let fillTypeSelect = '';
-            if (isLocalShape) {
+            if (isLocalShape && zone.type !== 'custom-image') {
                 fillTypeSelect = `
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Fill Type</label>
@@ -195,7 +195,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     ${sliderRow('Patch Size', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius, 'cm')}
                     ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
                 `;
-            } else if (['circle', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+            } else if (['circle', 'custom-image', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
                 boundsSliders = `
                     ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
                     ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
@@ -279,6 +279,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <option value="flower" ${zone.type === 'flower' ? 'selected' : ''}>Flower Rosette</option>
                                 <option value="heart" ${zone.type === 'heart' ? 'selected' : ''}>Heart Shape</option>
                                 <option value="triangle" ${zone.type === 'triangle' ? 'selected' : ''}>Triangle Shape</option>
+                                <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
                             </select>
                         </div>
                         
@@ -289,6 +290,20 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <option value="exclude" ${zone.maskMode === 'exclude' ? 'selected' : ''}>Exclude (Mask Out)</option>
                             </select>
                         </div>
+
+                        ${zone.type === 'custom-image' ? `
+                            <div class="control-row" style="margin-bottom: 8px;">
+                                <label class="control-label" style="width: 35%;">Upload Mask</label>
+                                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                                    <input type="file" class="zone-custom-image-file" data-zone-id="${zone.id}" accept="image/png, image/jpeg, image/svg+xml" style="font-size: 11px; padding: 2px 0;">
+                                    ${zone.customImageDataUrl ? `
+                                        <div style="font-size: 10px; color: #4CAF50; font-weight: 500;">✓ Custom image loaded</div>
+                                    ` : `
+                                        <div style="font-size: 10px; color: var(--color-tx-m); font-style: italic;">Choose transparent PNG or SVG.</div>
+                                    `}
+                                </div>
+                            </div>
+                        ` : ''}
 
                         ${!['full', 'hor-band', 'ver-strip'].includes(zone.type) ? `
                             <div class="control-row" style="margin-bottom: 8px;">
@@ -590,6 +605,33 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    document.querySelectorAll('.zone-custom-image-file').forEach(input => {
+        input.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const zoneId = input.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    pushUndoState(gourdMesh);
+                    zone.customImageDataUrl = event.target.result;
+
+                    // Invalidate the cache for this data url to reload it
+                    if (window.appImageCache) {
+                        delete window.appImageCache[zone.customImageDataUrl];
+                    }
+
+                    updatePatternGroup(patternGroup, state);
+                    if (onUpdatePattern) onUpdatePattern();
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+
     const shapeFriendlyNames = {
         'full': 'Full Gourd',
         'hor-band': 'Height Band',
@@ -603,7 +645,8 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         'star': '5-Point Star',
         'flower': 'Flower Rosette',
         'heart': 'Heart Shape',
-        'triangle': 'Triangle Shape'
+        'triangle': 'Triangle Shape',
+        'custom-image': 'Custom Image'
     };
 
     document.querySelectorAll('.zone-shape-select').forEach(select => {
@@ -1631,6 +1674,35 @@ function generateAndShowBlueprint() {
         ctx.strokeStyle = zone.color || '#D4A843';
         ctx.fillStyle = zone.color || '#D4A843';
         ctx.lineWidth = 1.5;
+
+        // Draw custom image mask preview if available
+        if (zone.type === 'custom-image' && zone.customImageDataUrl) {
+            const cached = window.appImageCache && window.appImageCache[zone.customImageDataUrl];
+            if (cached && cached.status === 'loaded' && cached.img) {
+                const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
+                for (let p = 0; p < patchCount; p++) {
+                    const offsetTheta = (p / patchCount) * Math.PI * 2;
+                    let currentTheta = zone.centerTheta + offsetTheta;
+                    currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                    
+                    const centerPt = mapToCanvas(zone.centerT, currentTheta);
+                    const radius_px = zone.radius * scale;
+                    const size_px = radius_px * 2;
+                    
+                    ctx.save();
+                    ctx.translate(centerPt.x, centerPt.y);
+                    ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
+                    ctx.globalAlpha = 0.22;
+                    ctx.drawImage(cached.img, -radius_px, -radius_px, size_px, size_px);
+                    
+                    ctx.strokeStyle = '#888888';
+                    ctx.lineWidth = 0.8;
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeRect(-radius_px, -radius_px, size_px, size_px);
+                    ctx.restore();
+                }
+            }
+        }
         
         let paths = [];
         const helpers = window.appPatternHelpers || {};

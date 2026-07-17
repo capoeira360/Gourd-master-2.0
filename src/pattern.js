@@ -77,6 +77,74 @@ export function isPointInZoneRaw(t, theta, zone) {
         mappedTheta = zone.centerTheta + dTheta;
     }
 
+    if (zone.type === 'custom-image') {
+        const dt = t - zone.centerT;
+        let dTheta = mappedTheta - zone.centerTheta;
+        dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+        const r = getGourdRadius(t);
+        const dy = dt * getGourdHeight();
+        const dx = r * dTheta;
+
+        const shapeRotRad = -(zone.shapeRotation || 0) * Math.PI / 180;
+        const rx = dx * Math.cos(shapeRotRad) - dy * Math.sin(shapeRotRad);
+        const ry = dx * Math.sin(shapeRotRad) + dy * Math.cos(shapeRotRad);
+
+        const radius = Math.max(0.005, zone.radius || 0.15);
+        const u = rx / radius;
+        const v = ry / radius;
+
+        if (Math.abs(u) > 1.0 || Math.abs(v) > 1.0) {
+            return false;
+        }
+
+        const px = Math.floor((u + 1.0) / 2.0 * 128);
+        const py = Math.floor((v + 1.0) / 2.0 * 128);
+        const invertedPy = 127 - py;
+
+        if (zone.customImageDataUrl) {
+            if (!window.appImageCache) window.appImageCache = {};
+            const cached = window.appImageCache[zone.customImageDataUrl];
+            if (cached && cached.status === 'loaded' && cached.alphaGrid) {
+                const alphaGrid = cached.alphaGrid;
+                const idx = (invertedPy * 128 + px) * 4;
+                const red = alphaGrid[idx];
+                const green = alphaGrid[idx + 1];
+                const blue = alphaGrid[idx + 2];
+                const alpha = alphaGrid[idx + 3];
+
+                if (alpha < 50) return false;
+                const brightness = (red + green + blue) / 3;
+                return brightness < 200;
+            } else if (!cached) {
+                // Trigger loading
+                window.appImageCache[zone.customImageDataUrl] = { status: 'loading' };
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, 128, 128);
+                    const alphaGrid = ctx.getImageData(0, 0, 128, 128).data;
+                    window.appImageCache[zone.customImageDataUrl] = {
+                        status: 'loaded',
+                        img: img,
+                        alphaGrid: alphaGrid
+                    };
+                    if (window.refreshPatternGroup) {
+                        window.refreshPatternGroup();
+                    }
+                };
+                img.src = zone.customImageDataUrl;
+            }
+        } else {
+            // Draw a fallback cross shape so they see something is active
+            return Math.abs(u) <= 0.15 || Math.abs(v) <= 0.15;
+        }
+        return false;
+    }
+
     if (zone.type === 'circular-patch') {
         const dt = t - zone.centerT;
         let dTheta = mappedTheta - zone.centerTheta;

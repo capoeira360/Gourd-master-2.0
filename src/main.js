@@ -128,6 +128,10 @@ function init() {
     // Initial calculations
     const unscaledMeas = calculateMeasurements(1.0, 1.0);
     updatePatternGroup(patternGroup, state);
+    window.refreshPatternGroup = () => {
+        updatePatternGroup(patternGroup, state);
+        if (onUpdatePattern) onUpdatePattern();
+    };
     updateMeasureLines(measureGroup, unscaledMeas);
     updateCarveGroup(carveGroup, state);
 
