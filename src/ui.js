@@ -291,6 +291,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         </div>
 
                         ${!['full', 'hor-band', 'ver-strip'].includes(zone.type) ? `
+                            <div class="control-row" style="margin-bottom: 8px;">
+                                <label class="control-label" style="width: 50%;">Clip Background?</label>
+                                <input type="checkbox" class="zone-clip-bg-checkbox" data-zone-id="${zone.id}" ${zone.clipBackground !== false ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                            </div>
                             ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
                         ` : ''}
                         
@@ -603,6 +607,20 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (zone) {
                 pushUndoState(gourdMesh);
                 zone.maskMode = select.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-clip-bg-checkbox').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const zoneId = cb.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.clipBackground = cb.checked;
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);

@@ -41,16 +41,13 @@ export function getSurfaceNormal(t, theta) {
     return normal.normalize();
 }
 
-// Checks if a point on the surface (height t, angle theta) lies inside a pattern zone
-export function isPointInZone(t, theta, zone) {
+// Checks if a point on the surface (height t, angle theta) lies inside a pattern zone boundary (ignores exclusion/inversion masks)
+export function isPointInZoneRaw(t, theta, zone) {
     if (!zone) return true;
-    if (zone.type === 'full') {
-        return zone.maskMode !== 'exclude';
-    }
+    if (zone.type === 'full') return true;
 
     if (zone.type === 'hor-band') {
-        const inZone = t >= zone.tMin && t <= zone.tMax;
-        return zone.maskMode === 'exclude' ? !inZone : inZone;
+        return t >= zone.tMin && t <= zone.tMax;
     }
 
     if (zone.type === 'ver-strip') {
@@ -66,8 +63,7 @@ export function isPointInZone(t, theta, zone) {
         while (val < min) val += Math.PI * 2;
         while (val > min + Math.PI * 2) val -= Math.PI * 2;
         
-        const inZone = val >= min && val <= max;
-        return zone.maskMode === 'exclude' ? !inZone : inZone;
+        return val >= min && val <= max;
     }
 
     // Apply repeated sector mapping for all localized patches/shapes
@@ -81,8 +77,6 @@ export function isPointInZone(t, theta, zone) {
         mappedTheta = zone.centerTheta + dTheta;
     }
 
-    let inZone = false;
-
     if (zone.type === 'circular-patch') {
         const dt = t - zone.centerT;
         let dTheta = mappedTheta - zone.centerTheta;
@@ -92,8 +86,10 @@ export function isPointInZone(t, theta, zone) {
         const dy = dt * getGourdHeight();
         const dx = r * dTheta;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        inZone = dist <= zone.radius;
-    } else if (zone.type === 'square-patch' || zone.type === 'square') {
+        return dist <= zone.radius;
+    }
+
+    if (zone.type === 'square-patch' || zone.type === 'square') {
         const dt = t - zone.centerT;
         let dTheta = mappedTheta - zone.centerTheta;
         dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
@@ -109,18 +105,20 @@ export function isPointInZone(t, theta, zone) {
         const halfSide = zone.radius || 0.15;
         
         if (zone.type === 'square-patch') {
-            inZone = Math.abs(rx) <= halfSide && Math.abs(ry) <= halfSide;
+            return Math.abs(rx) <= halfSide && Math.abs(ry) <= halfSide;
         } else {
             const inOuter = Math.abs(rx) <= halfSide && Math.abs(ry) <= halfSide;
             if (zone.fillType === 'concentric') {
-                inZone = inOuter;
+                return inOuter;
             } else {
                 const thickness = 0.015;
                 const inInner = Math.abs(rx) <= (halfSide - thickness) && Math.abs(ry) <= (halfSide - thickness);
-                inZone = inOuter && !inInner;
+                return inOuter && !inInner;
             }
         }
-    } else if (zone.type === 'diagonal-stripe') {
+    }
+
+    if (zone.type === 'diagonal-stripe') {
         const y = t * getGourdHeight() - getGourdHeight() / 2;
         const r = getGourdRadius(t);
         const x = r * theta;
@@ -128,61 +126,98 @@ export function isPointInZone(t, theta, zone) {
 
         const proj = y * Math.cos(slantRad) - x * Math.sin(slantRad);
         const centerProj = (zone.centerT * getGourdHeight() - getGourdHeight() / 2) * Math.cos(slantRad);
-        inZone = Math.abs(proj - centerProj) <= (zone.width || 0.15);
-    } else {
-        const localShapes = ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'];
-        if (localShapes.includes(zone.type)) {
-            const dt = t - zone.centerT;
-            let dTheta = mappedTheta - zone.centerTheta;
-            dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+        return Math.abs(proj - centerProj) <= (zone.width || 0.15);
+    }
 
-            const r = getGourdRadius(t);
-            const dy = dt * getGourdHeight();
-            const dx = r * dTheta;
+    const localShapes = ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'];
+    if (localShapes.includes(zone.type)) {
+        const dt = t - zone.centerT;
+        let dTheta = mappedTheta - zone.centerTheta;
+        dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
-            const shapeRotRad = -(zone.shapeRotation || 0) * Math.PI / 180;
-            const rx = dx * Math.cos(shapeRotRad) - dy * Math.sin(shapeRotRad);
-            const ry = dx * Math.sin(shapeRotRad) + dy * Math.cos(shapeRotRad);
+        const r = getGourdRadius(t);
+        const dy = dt * getGourdHeight();
+        const dx = r * dTheta;
 
-            const radius = Math.max(0.005, zone.radius || 0.15);
-            const u = rx / radius;
-            const v = ry / radius;
+        const shapeRotRad = -(zone.shapeRotation || 0) * Math.PI / 180;
+        const rx = dx * Math.cos(shapeRotRad) - dy * Math.sin(shapeRotRad);
+        const ry = dx * Math.sin(shapeRotRad) + dy * Math.cos(shapeRotRad);
 
-            if (zone.type === 'circle') {
-                const inOuter = (u * u + v * v) <= 1.0;
-                if (zone.fillType === 'concentric') {
-                    inZone = inOuter;
-                } else {
-                    const thickness = 0.015;
-                    const inInner = (u * u + v * v) <= ((1.0 - thickness) * (1.0 - thickness));
-                    inZone = inOuter && !inInner;
-                }
-            } else if (zone.type === 'fish') {
-                const inBody = (((u + 0.15) * (u + 0.15)) / 0.36 + (v * v) / 0.08) <= 1.0;
-                const inTail = (u >= 0.2 && u <= 0.7 && Math.abs(v) <= 0.5 * (u - 0.15));
-                const inEye = (((u + 0.3) * (u + 0.3)) + ((v - 0.04) * (v - 0.04))) <= 0.0016;
-                inZone = (inBody || inTail) && !inEye;
-            } else if (zone.type === 'star') {
-                const rStar = Math.sqrt(u * u + v * v);
-                const aStar = Math.atan2(v, u);
-                const starBound = 0.6 + 0.4 * Math.cos(5 * aStar - Math.PI / 2) * 0.4;
-                inZone = rStar <= starBound;
-            } else if (zone.type === 'flower') {
-                const rFl = Math.sqrt(u * u + v * v);
-                const aFl = Math.atan2(v, u);
-                const flBound = 0.7 + 0.3 * Math.cos(6 * aFl);
-                inZone = rFl <= flBound;
-            } else if (zone.type === 'heart') {
-                const x = u * 1.2;
-                const y = (v + 0.2) * 1.2;
-                inZone = (x*x + y*y - 0.4)*(x*x + y*y - 0.4)*(x*x + y*y - 0.4) - x*x*y*y*y <= 0;
-            } else if (zone.type === 'triangle') {
-                inZone = v >= -0.5 && v <= 1.0 - 1.5 * Math.abs(u);
+        const radius = Math.max(0.005, zone.radius || 0.15);
+        const u = rx / radius;
+        const v = ry / radius;
+
+        if (zone.type === 'circle') {
+            const inOuter = (u * u + v * v) <= 1.0;
+            if (zone.fillType === 'concentric') {
+                return inOuter;
+            } else {
+                const thickness = 0.015;
+                const inInner = (u * u + v * v) <= ((1.0 - thickness) * (1.0 - thickness));
+                return inOuter && !inInner;
+            }
+        }
+        if (zone.type === 'fish') {
+            const inBody = (((u + 0.15) * (u + 0.15)) / 0.36 + (v * v) / 0.08) <= 1.0;
+            const inTail = (u >= 0.2 && u <= 0.7 && Math.abs(v) <= 0.5 * (u - 0.15));
+            const inEye = (((u + 0.3) * (u + 0.3)) + ((v - 0.04) * (v - 0.04))) <= 0.0016;
+            return (inBody || inTail) && !inEye;
+        }
+        if (zone.type === 'star') {
+            const rStar = Math.sqrt(u * u + v * v);
+            const aStar = Math.atan2(v, u);
+            const starBound = 0.6 + 0.4 * Math.cos(5 * aStar - Math.PI / 2) * 0.4;
+            return rStar <= starBound;
+        }
+        if (zone.type === 'flower') {
+            const rFl = Math.sqrt(u * u + v * v);
+            const aFl = Math.atan2(v, u);
+            const flBound = 0.7 + 0.3 * Math.cos(6 * aFl);
+            return rFl <= flBound;
+        }
+        if (zone.type === 'heart') {
+            const x = u * 1.2;
+            const y = (v + 0.2) * 1.2;
+            return (x*x + y*y - 0.4)*(x*x + y*y - 0.4)*(x*x + y*y - 0.4) - x*x*y*y*y <= 0;
+        }
+        if (zone.type === 'triangle') {
+            return v >= -0.5 && v <= 1.0 - 1.5 * Math.abs(u);
+        }
+    }
+
+    return false;
+}
+
+// Checks if a point on the surface (height t, angle theta) lies inside a pattern zone (handles exclusion masks & cross-layer masking)
+export function isPointInZone(t, theta, zone) {
+    if (!zone) return true;
+
+    // 1. Evaluate this zone's own clipping bounds (and handle exclusion mask inversion)
+    const inThisZoneRaw = isPointInZoneRaw(t, theta, zone);
+    let inThisZone = zone.maskMode === 'exclude' ? !inThisZoneRaw : inThisZoneRaw;
+    if (zone.type === 'full' && zone.maskMode === 'exclude') {
+        inThisZone = false;
+    }
+
+    if (!inThisZone) return false;
+
+    // 2. Check cross-layer clipping (exclude background under this point if other localized shapes request it)
+    const zones = (state && state.patternZones) ? state.patternZones : [];
+    for (const otherZone of zones) {
+        if (otherZone.id === zone.id) continue;
+        if (otherZone.style === 'off' || otherZone.visible === false) continue;
+        if (otherZone.clipBackground === false) continue;
+
+        const isLocal = ['circular-patch', 'circle', 'square-patch', 'square', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(otherZone.type);
+        if (isLocal && otherZone.maskMode !== 'exclude') {
+            // If the point is inside the other shape, clip it out!
+            if (isPointInZoneRaw(t, theta, otherZone)) {
+                return false;
             }
         }
     }
 
-    return zone.maskMode === 'exclude' ? !inZone : inZone;
+    return true;
 }
 
 // Clips a continuous coordinate path into multiple segments that lie within a zone

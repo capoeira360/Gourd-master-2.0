@@ -322,7 +322,8 @@ export function addPatternZone() {
         holeWobbleAmp: 0.15,
         leanAngle: 0.0,
         maskMode: 'include',
-        patchCount: 1
+        patchCount: 1,
+        clipBackground: true
     };
     state.patternZones.push(newZone);
     return newZone;
