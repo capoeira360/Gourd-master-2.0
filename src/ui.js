@@ -1,4 +1,4 @@
-import { state, pushUndoState, performUndo, performRedo, addPatternZone, removePatternZone, duplicatePatternZone } from './state.js';
+import { state, pushUndoState, performUndo, performRedo, addPatternZone, removePatternZone, duplicatePatternZone, movePatternZoneUp, movePatternZoneDown } from './state.js';
 import { calculateMeasurements, updateMeasureLines } from './measure.js';
 import { updatePatternGroup } from './pattern.js';
 import { updateCarveGroup, clearCarvings } from './carve.js';
@@ -114,7 +114,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
     }
     
     if (tab === 'pattern') {
-        const zoneCards = state.patternZones.map(zone => {
+        const zoneCards = state.patternZones.map((zone, idx) => {
             const s = 1.0 / zone.density;
             const densityProx = Math.max(0, Math.min(100, Math.round(100 * (3.0 - s) / 2.96)));
             const dashProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - zone.dashSpacing) / 0.30)));
@@ -326,6 +326,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <input type="text" class="zone-name-input" data-zone-id="${zone.id}" value="${zone.name}" style="font-weight: ${isActive ? '600' : 'normal'};">
                         </div>
                         <div class="zone-card-actions">
+                            <button class="zone-action-btn btn-move-up-zone" data-zone-id="${zone.id}" title="Move Up" ${idx === 0 ? 'disabled style="opacity: 0.35; cursor: not-allowed;"' : ''}>▲</button>
+                            <button class="zone-action-btn btn-move-down-zone" data-zone-id="${zone.id}" title="Move Down" ${idx === state.patternZones.length - 1 ? 'disabled style="opacity: 0.35; cursor: not-allowed;"' : ''}>▼</button>
                             <button class="zone-action-btn btn-toggle-vis" data-zone-id="${zone.id}" title="${isHidden ? 'Show Layer' : 'Hide Layer'}">
                                 <i class="fas ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
                             </button>
@@ -523,6 +525,28 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         btn.addEventListener('click', () => {
             pushUndoState(gourdMesh);
             removePatternZone(btn.dataset.zoneId);
+            updatePatternGroup(patternGroup, state);
+            if (onUpdatePattern) onUpdatePattern();
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    });
+
+    document.querySelectorAll('.btn-move-up-zone').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            movePatternZoneUp(btn.dataset.zoneId);
+            updatePatternGroup(patternGroup, state);
+            if (onUpdatePattern) onUpdatePattern();
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    });
+
+    document.querySelectorAll('.btn-move-down-zone').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            movePatternZoneDown(btn.dataset.zoneId);
             updatePatternGroup(patternGroup, state);
             if (onUpdatePattern) onUpdatePattern();
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);

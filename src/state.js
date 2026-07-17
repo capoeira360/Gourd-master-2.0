@@ -341,3 +341,19 @@ export function duplicatePatternZone(id) {
     clone.name = clone.name + ' (Copy)';
     state.patternZones.push(clone);
 }
+
+export function movePatternZoneUp(id) {
+    const idx = state.patternZones.findIndex(z => z.id === id);
+    if (idx <= 0) return;
+    const tmp = state.patternZones[idx];
+    state.patternZones[idx] = state.patternZones[idx - 1];
+    state.patternZones[idx - 1] = tmp;
+}
+
+export function movePatternZoneDown(id) {
+    const idx = state.patternZones.findIndex(z => z.id === id);
+    if (idx < 0 || idx >= state.patternZones.length - 1) return;
+    const tmp = state.patternZones[idx];
+    state.patternZones[idx] = state.patternZones[idx + 1];
+    state.patternZones[idx + 1] = tmp;
+}
