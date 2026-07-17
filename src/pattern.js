@@ -281,7 +281,7 @@ export function isPointInZone(t, theta, zone) {
         const otherIdx = zones.indexOf(otherZone);
         if (otherIdx > idx) continue; // Only clip by layers above this one in the stack
 
-        const isLocal = ['circular-patch', 'circle', 'square-patch', 'square', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(otherZone.type);
+        const isLocal = ['circular-patch', 'circle', 'square-patch', 'square', 'fish', 'star', 'flower', 'heart', 'triangle', 'custom-image'].includes(otherZone.type);
         if (isLocal && otherZone.maskMode !== 'exclude') {
             // If the point is inside the other shape, clip it out!
             if (isPointInZoneRaw(t, theta, otherZone)) {

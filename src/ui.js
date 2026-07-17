@@ -613,10 +613,9 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             const zoneId = input.dataset.zoneId;
             const zone = state.patternZones.find(z => z.id === zoneId);
             if (zone) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
+                const applyDataUrl = (dataUrl) => {
                     pushUndoState(gourdMesh);
-                    zone.customImageDataUrl = event.target.result;
+                    zone.customImageDataUrl = dataUrl;
 
                     // Invalidate the cache for this data url to reload it
                     if (window.appImageCache) {
@@ -627,7 +626,54 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                     if (onUpdatePattern) onUpdatePattern();
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                 };
-                reader.readAsDataURL(file);
+
+                const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+                if (isSvg) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        let svgText = event.target.result;
+                        try {
+                            const parser = new DOMParser();
+                            const xmlDoc = parser.parseFromString(svgText, "image/svg+xml");
+                            const svgEl = xmlDoc.documentElement;
+                            if (svgEl && svgEl.tagName.toLowerCase() === 'svg') {
+                                let width = svgEl.getAttribute('width');
+                                let height = svgEl.getAttribute('height');
+                                const viewBox = svgEl.getAttribute('viewBox');
+
+                                if ((!width || !height) && viewBox) {
+                                    const parts = viewBox.split(/\s+/).filter(Boolean);
+                                    if (parts.length === 4) {
+                                        width = parts[2];
+                                        height = parts[3];
+                                    }
+                                }
+                                if (!width) width = '128';
+                                if (!height) height = '128';
+
+                                svgEl.setAttribute('width', width);
+                                svgEl.setAttribute('height', height);
+
+                                const serializer = new XMLSerializer();
+                                svgText = serializer.serializeToString(svgEl);
+                            }
+                            const base64Svg = btoa(unescape(encodeURIComponent(svgText)));
+                            applyDataUrl(`data:image/svg+xml;base64,${base64Svg}`);
+                        } catch (err) {
+                            console.error("Failed to parse SVG viewBox dimensions, falling back to base64", err);
+                            const fallbackReader = new FileReader();
+                            fallbackReader.onload = (ev) => applyDataUrl(ev.target.result);
+                            fallbackReader.readAsDataURL(file);
+                        }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        applyDataUrl(event.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
             }
         });
     });
