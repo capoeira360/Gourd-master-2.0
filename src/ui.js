@@ -1841,7 +1841,7 @@ function generateAndShowBlueprint() {
                         let currentTheta = zone.centerTheta + offsetTheta;
                         
                         const centerPt = mapPt(zone.centerT, currentTheta, alignment, centerX);
-                        const radius_px = zone.radius * scale;
+                        const radius_px = zone.radius * (H_cm / 3.0) * scale;
                         const size_px = radius_px * 2;
                         
                         ctx.save();
@@ -1909,7 +1909,7 @@ function generateAndShowBlueprint() {
                 for (const path of paths) {
                     if (path.length === 0) continue;
                     const holeCount = zone.distMode === 'count' ? zone.holeCount : Math.max(2, Math.round(path.length * zone.density));
-                    const holeSize_px = (zone.holeSize || 0.03) * scale;
+                    const holeSize_px = (zone.holeSize !== undefined ? zone.holeSize : 0.03) * (H_cm / 3.0) * scale;
                     
                     const count = Math.max(1, Math.round(holeCount));
                     const drawHoleShape = (canvasPt) => {
@@ -1925,11 +1925,11 @@ function generateAndShowBlueprint() {
                             ctx.lineTo(canvasPt.x - holeSize_px * 0.866, canvasPt.y + holeSize_px * 0.5);
                             ctx.closePath();
                         } else if (hShape === 'wobbly') {
-                            const wobbleFreq = zone.holeWobbleFreq || 5;
-                            const wobbleAmp = zone.holeWobbleAmp || 0.15;
-                            for (let w = 0; w <= 30; w++) {
-                                const angle = (w / 30) * Math.PI * 2;
-                                const radiusFactor = 1.0 + wobbleAmp * Math.sin(angle * wobbleFreq);
+                            const wobbleFreq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
+                            const wobbleAmp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
+                            for (let w = 0; w <= 32; w++) {
+                                const angle = (w / 32) * Math.PI * 2;
+                                const radiusFactor = 1.0 + wobbleAmp * Math.cos(angle * wobbleFreq);
                                 const px = canvasPt.x + Math.cos(angle) * holeSize_px * radiusFactor;
                                 const py = canvasPt.y + Math.sin(angle) * holeSize_px * radiusFactor;
                                 if (w === 0) ctx.moveTo(px, py);
