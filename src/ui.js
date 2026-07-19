@@ -296,11 +296,14 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <label class="control-label" style="width: 35%;">Upload Mask</label>
                                 <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
                                     <input type="file" class="zone-custom-image-file" data-zone-id="${zone.id}" accept="image/png, image/jpeg, image/svg+xml" style="font-size: 11px; padding: 2px 0;">
-                                    ${zone.customImageDataUrl ? `
-                                        <div style="font-size: 10px; color: #4CAF50; font-weight: 500;">✓ Custom image loaded</div>
-                                    ` : `
-                                        <div style="font-size: 10px; color: var(--color-tx-m); font-style: italic;">Choose transparent PNG or SVG.</div>
-                                    `}
+                                    <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
+                                        <button class="option-btn btn-load-sample-svg" data-zone-id="${zone.id}" style="padding: 2px 6px; font-size: 9px; margin: 0; width: auto; flex: none; line-height: 1.2;">Load Sample SVG</button>
+                                        ${zone.customImageDataUrl ? `
+                                            <span style="font-size: 10px; color: #4CAF50; font-weight: 500;">✓ Loaded</span>
+                                        ` : `
+                                            <span style="font-size: 10px; color: var(--color-tx-m); font-style: italic;">PNG or SVG</span>
+                                        `}
+                                    </div>
                                 </div>
                             </div>
                         ` : ''}
@@ -657,10 +660,12 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                                 const serializer = new XMLSerializer();
                                 svgText = serializer.serializeToString(svgEl);
                             }
+                            zone.customSvgText = svgText;
                             const base64Svg = btoa(unescape(encodeURIComponent(svgText)));
                             applyDataUrl(`data:image/svg+xml;base64,${base64Svg}`);
                         } catch (err) {
                             console.error("Failed to parse SVG viewBox dimensions, falling back to base64", err);
+                            zone.customSvgText = null;
                             const fallbackReader = new FileReader();
                             fallbackReader.onload = (ev) => applyDataUrl(ev.target.result);
                             fallbackReader.readAsDataURL(file);
@@ -668,12 +673,43 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                     };
                     reader.readAsText(file);
                 } else {
+                    zone.customSvgText = null;
                     const reader = new FileReader();
                     reader.onload = (event) => {
                         applyDataUrl(event.target.result);
                     };
                     reader.readAsDataURL(file);
                 }
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-load-sample-svg').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const zoneId = btn.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                fetch('/sample.svg')
+                    .then(r => r.text())
+                    .then(svgText => {
+                        pushUndoState(gourdMesh);
+                        zone.customSvgText = svgText;
+                        
+                        const base64Svg = btoa(unescape(encodeURIComponent(svgText)));
+                        zone.customImageDataUrl = `data:image/svg+xml;base64,${base64Svg}`;
+                        
+                        if (window.appImageCache) {
+                            delete window.appImageCache[zone.customImageDataUrl];
+                        }
+                        
+                        updatePatternGroup(patternGroup, state);
+                        if (onUpdatePattern) onUpdatePattern();
+                        renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    })
+                    .catch(err => {
+                        console.error("Failed to load sample SVG", err);
+                        showToast("Failed to load sample.svg", "error");
+                    });
             }
         });
     });
