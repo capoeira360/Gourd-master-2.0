@@ -1666,9 +1666,13 @@ function generateAndShowBlueprint() {
 
     const scale = 20; // 20 pixels per cm (50 DPI)
     const padding = 40;
+    const spacer = 80;
     
-    const canvasWidth = Math.ceil(maxCircumference * scale + padding * 2);
-    const canvasHeight = Math.ceil(totalArcLength * scale + padding * 2);
+    const viewportHeight = Math.ceil(totalArcLength * scale + padding * 2);
+    const templateWidth = maxCircumference * scale;
+    
+    const canvasWidth = Math.ceil(templateWidth * 2 + spacer + padding * 2);
+    const canvasHeight = viewportHeight + 60; // Extra top space for labels
     
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -1678,8 +1682,8 @@ function generateAndShowBlueprint() {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     
-    // Draw fine grid pattern
-    ctx.strokeStyle = '#f0f0f5';
+    // Draw fine grid pattern across canvas
+    ctx.strokeStyle = '#f2f2f7';
     ctx.lineWidth = 1;
     for (let x = padding; x < canvasWidth - padding; x += scale * 5) {
         ctx.beginPath();
@@ -1687,16 +1691,17 @@ function generateAndShowBlueprint() {
         ctx.lineTo(x, canvasHeight);
         ctx.stroke();
     }
-    for (let y = padding; y < canvasHeight - padding; y += scale * 5) {
+    for (let y = padding + 50; y < canvasHeight - padding; y += scale * 5) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(canvasWidth, y);
         ctx.stroke();
     }
     
-    const centerX = canvasWidth / 2;
+    const centerX_front = padding + templateWidth / 2;
+    const centerX_back = padding + templateWidth + spacer + templateWidth / 2;
     
-    function mapToCanvas(t, theta) {
+    function mapPt(t, theta, alignment, customCenterX) {
         const idx = t * segments;
         const idxFloor = Math.floor(idx);
         const f = idx - idxFloor;
@@ -1710,160 +1715,209 @@ function generateAndShowBlueprint() {
         const r = gourdRadius(t);
         const r_cm = r * (H_cm / 3.0);
         
-        const y_canvas = canvasHeight - padding - arc_cm * scale;
-        const x_canvas = centerX + theta * r_cm * scale;
+        const y_canvas = viewportHeight - padding - arc_cm * scale + 50; // offset vertically for header title
+        
+        let adjustedTheta = theta;
+        if (alignment === 'back') {
+            let thetaBack = theta;
+            if (thetaBack < 0) thetaBack += Math.PI * 2;
+            adjustedTheta = thetaBack - Math.PI;
+        }
+        
+        const x_canvas = customCenterX + adjustedTheta * r_cm * scale;
         
         return { x: x_canvas, y: y_canvas };
     }
-    
-    // 2. Draw outline wrapper contour silhouette
-    ctx.strokeStyle = '#333344';
-    ctx.lineWidth = 2.0;
-    ctx.setLineDash([5, 5]);
-    
-    ctx.beginPath();
-    for (let i = 0; i <= segments; i++) {
-        const t = i / segments;
-        const pt = mapToCanvas(t, -Math.PI);
-        if (i === 0) ctx.moveTo(pt.x, pt.y);
-        else ctx.lineTo(pt.x, pt.y);
-    }
-    for (let i = segments; i >= 0; i--) {
-        const t = 1.0;
-        const theta = -Math.PI + (i / segments) * 2 * Math.PI;
-        const pt = mapToCanvas(t, theta);
-        ctx.lineTo(pt.x, pt.y);
-    }
-    for (let i = segments; i >= 0; i--) {
-        const t = i / segments;
-        const pt = mapToCanvas(t, Math.PI);
-        ctx.lineTo(pt.x, pt.y);
-    }
-    for (let i = 0; i <= segments; i++) {
-        const t = 0.0;
-        const theta = Math.PI - (i / segments) * 2 * Math.PI;
-        const pt = mapToCanvas(t, theta);
-        ctx.lineTo(pt.x, pt.y);
-    }
-    ctx.closePath();
-    ctx.stroke();
-    ctx.setLineDash([]); 
 
-    // 3. Render projected patterns
-    for (const zone of state.patternZones) {
-        if (!zone.visible || zone.style === 'off') continue;
+    // Top headers for clean printing
+    ctx.fillStyle = '#111115';
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('FRONT SIDE WRAP TEMPLATE (Centered at 0°)', centerX_front, 25);
+    ctx.fillText('BACK SIDE WRAP TEMPLATE (Centered at 180°)', centerX_back, 25);
+
+    function drawTemplate(centerX, alignment) {
+        // 1. Draw template boundary outline
+        ctx.strokeStyle = '#444455';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([5, 5]);
         
-        ctx.strokeStyle = zone.color || '#D4A843';
-        ctx.fillStyle = zone.color || '#D4A843';
-        ctx.lineWidth = 1.5;
-
-        // Draw custom image mask preview if available
-        if (zone.type === 'custom-image' && zone.customImageDataUrl) {
-            const cached = window.appImageCache && window.appImageCache[zone.customImageDataUrl];
-            if (cached && cached.status === 'loaded' && cached.img) {
-                const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
-                for (let p = 0; p < patchCount; p++) {
-                    const offsetTheta = (p / patchCount) * Math.PI * 2;
-                    let currentTheta = zone.centerTheta + offsetTheta;
-                    currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-                    
-                    const centerPt = mapToCanvas(zone.centerT, currentTheta);
-                    const radius_px = zone.radius * scale;
-                    const size_px = radius_px * 2;
-                    
-                    ctx.save();
-                    ctx.translate(centerPt.x, centerPt.y);
-                    ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
-                    ctx.globalAlpha = 0.22;
-                    ctx.drawImage(cached.img, -radius_px, -radius_px, size_px, size_px);
-                    
-                    ctx.strokeStyle = '#888888';
-                    ctx.lineWidth = 0.8;
-                    ctx.setLineDash([4, 4]);
-                    ctx.strokeRect(-radius_px, -radius_px, size_px, size_px);
-                    ctx.restore();
-                }
-            }
+        ctx.beginPath();
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const pt = mapPt(t, -Math.PI, alignment, centerX);
+            if (i === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
         }
-        
-        let paths = [];
-        const helpers = window.appPatternHelpers || {};
-        
-        if (zone.type === 'custom-image' && zone.customSvgText) {
-            paths = getSvgPaths(zone);
-        } else if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
-            paths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
-        } else {
-            const patLayout = zone.patternType || 'grid';
-            const horPaths = helpers.generateHorizontalPaths ? helpers.generateHorizontalPaths(patLayout, zone.density, state.patTilt) : [];
-            const verPaths = helpers.generateVerticalPaths ? helpers.generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0) : [];
+        for (let i = segments; i >= 0; i--) {
+            const t = 1.0;
+            const theta = -Math.PI + (i / segments) * 2 * Math.PI;
+            const pt = mapPt(t, theta, alignment, centerX);
+            ctx.lineTo(pt.x, pt.y);
+        }
+        for (let i = segments; i >= 0; i--) {
+            const t = i / segments;
+            const pt = mapPt(t, Math.PI, alignment, centerX);
+            ctx.lineTo(pt.x, pt.y);
+        }
+        for (let i = 0; i <= segments; i++) {
+            const t = 0.0;
+            const theta = Math.PI - (i / segments) * 2 * Math.PI;
+            const pt = mapPt(t, theta, alignment, centerX);
+            ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 2. Render all pattern layers conformally projected
+        for (const zone of state.patternZones) {
+            if (!zone.visible || zone.style === 'off') continue;
             
-            const direction = zone.direction || 'both';
-            if (direction === 'both' || direction === 'horizontal') {
-                for (const path of horPaths) {
-                    paths.push(...helpers.clipPathToZone(path, zone));
+            // Render custom image guide outline if loaded
+            if (zone.type === 'custom-image' && zone.customImageDataUrl) {
+                const cached = window.appImageCache && window.appImageCache[zone.customImageDataUrl];
+                if (cached && cached.status === 'loaded' && cached.img) {
+                    const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
+                    for (let p = 0; p < patchCount; p++) {
+                        const offsetTheta = (p / patchCount) * Math.PI * 2;
+                        let currentTheta = zone.centerTheta + offsetTheta;
+                        currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                        
+                        const centerPt = mapPt(zone.centerT, currentTheta, alignment, centerX);
+                        const radius_px = zone.radius * scale;
+                        const size_px = radius_px * 2;
+                        
+                        ctx.save();
+                        ctx.translate(centerPt.x, centerPt.y);
+                        ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
+                        ctx.globalAlpha = 0.18;
+                        ctx.drawImage(cached.img, -radius_px, -radius_px, size_px, size_px);
+                        
+                        ctx.strokeStyle = '#aaaaaa';
+                        ctx.lineWidth = 0.8;
+                        ctx.setLineDash([4, 4]);
+                        ctx.strokeRect(-radius_px, -radius_px, size_px, size_px);
+                        ctx.restore();
+                    }
                 }
             }
-            if (direction === 'both' || direction === 'vertical') {
-                for (const path of verPaths) {
-                    paths.push(...helpers.clipPathToZone(path, zone));
-                }
-            }
-        }
-        
-        if (zone.style === 'lines') {
-            for (const path of paths) {
-                if (path.length < 2) continue;
-                ctx.beginPath();
-                const start = mapToCanvas(path[0].t, path[0].theta);
-                ctx.moveTo(start.x, start.y);
-                for (let k = 1; k < path.length; k++) {
-                    const pt = mapToCanvas(path[k].t, path[k].theta);
-                    ctx.lineTo(pt.x, pt.y);
-                }
-                ctx.stroke();
-            }
-        } else if (zone.style === 'holes') {
-            for (const path of paths) {
-                if (path.length === 0) continue;
-                const holeCount = zone.distMode === 'count' ? zone.holeCount : Math.max(2, Math.round(path.length * zone.density));
-                const holeSize_px = (zone.holeSize || 0.03) * scale;
+            
+            let paths = [];
+            const helpers = window.appPatternHelpers || {};
+            
+            if (zone.type === 'custom-image' && zone.customSvgText) {
+                paths = getSvgPaths(zone);
+            } else if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+                paths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
+            } else {
+                const patLayout = zone.patternType || 'grid';
+                const horPaths = helpers.generateHorizontalPaths ? helpers.generateHorizontalPaths(patLayout, zone.density, state.patTilt) : [];
+                const verPaths = helpers.generateVerticalPaths ? helpers.generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0) : [];
                 
-                const count = Math.max(1, Math.round(holeCount));
-                if (count === 1) {
-                    const pt = path[Math.floor(path.length / 2)];
-                    const canvasPt = mapToCanvas(pt.t, pt.theta);
+                const direction = zone.direction || 'both';
+                if (direction === 'both' || direction === 'horizontal') {
+                    for (const path of horPaths) {
+                        paths.push(...helpers.clipPathToZone(path, zone));
+                    }
+                }
+                if (direction === 'both' || direction === 'vertical') {
+                    for (const path of verPaths) {
+                        paths.push(...helpers.clipPathToZone(path, zone));
+                    }
+                }
+            }
+            
+            if (zone.style === 'lines') {
+                ctx.strokeStyle = '#111115';
+                ctx.lineWidth = 1.6;
+                for (const path of paths) {
+                    if (path.length < 2) continue;
                     ctx.beginPath();
-                    ctx.arc(canvasPt.x, canvasPt.y, holeSize_px, 0, Math.PI * 2);
-                    ctx.fill();
-                } else {
-                    for (let k = 0; k < count; k++) {
-                        const idx = Math.min(path.length - 1, Math.floor((k / (count - 1)) * (path.length - 1)));
-                        const pt = path[idx];
-                        const canvasPt = mapToCanvas(pt.t, pt.theta);
+                    const start = mapPt(path[0].t, path[0].theta, alignment, centerX);
+                    ctx.moveTo(start.x, start.y);
+                    for (let k = 1; k < path.length; k++) {
+                        const pt = mapPt(path[k].t, path[k].theta, alignment, centerX);
+                        ctx.lineTo(pt.x, pt.y);
+                    }
+                    ctx.stroke();
+                }
+            } else if (zone.style === 'holes') {
+                ctx.fillStyle = '#22222b';
+                ctx.strokeStyle = '#111115';
+                ctx.lineWidth = 0.8;
+
+                for (const path of paths) {
+                    if (path.length === 0) continue;
+                    const holeCount = zone.distMode === 'count' ? zone.holeCount : Math.max(2, Math.round(path.length * zone.density));
+                    const holeSize_px = (zone.holeSize || 0.03) * scale;
+                    
+                    const count = Math.max(1, Math.round(holeCount));
+                    const drawHoleShape = (canvasPt) => {
+                        const hShape = zone.holeShape || 'round';
                         ctx.beginPath();
-                        ctx.arc(canvasPt.x, canvasPt.y, holeSize_px, 0, Math.PI * 2);
+                        if (hShape === 'round') {
+                            ctx.arc(canvasPt.x, canvasPt.y, holeSize_px, 0, Math.PI * 2);
+                        } else if (hShape === 'square') {
+                            ctx.rect(canvasPt.x - holeSize_px, canvasPt.y - holeSize_px, holeSize_px * 2, holeSize_px * 2);
+                        } else if (hShape === 'triangle') {
+                            ctx.moveTo(canvasPt.x, canvasPt.y - holeSize_px);
+                            ctx.lineTo(canvasPt.x + holeSize_px * 0.866, canvasPt.y + holeSize_px * 0.5);
+                            ctx.lineTo(canvasPt.x - holeSize_px * 0.866, canvasPt.y + holeSize_px * 0.5);
+                            ctx.closePath();
+                        } else if (hShape === 'wobbly') {
+                            const wobbleFreq = zone.holeWobbleFreq || 5;
+                            const wobbleAmp = zone.holeWobbleAmp || 0.15;
+                            for (let w = 0; w <= 30; w++) {
+                                const angle = (w / 30) * Math.PI * 2;
+                                const radiusFactor = 1.0 + wobbleAmp * Math.sin(angle * wobbleFreq);
+                                const px = canvasPt.x + Math.cos(angle) * holeSize_px * radiusFactor;
+                                const py = canvasPt.y + Math.sin(angle) * holeSize_px * radiusFactor;
+                                if (w === 0) ctx.moveTo(px, py);
+                                else ctx.lineTo(px, py);
+                            }
+                            ctx.closePath();
+                        }
                         ctx.fill();
+                        ctx.stroke();
+                    };
+
+                    if (count === 1) {
+                        const pt = path[Math.floor(path.length / 2)];
+                        const canvasPt = mapPt(pt.t, pt.theta, alignment, centerX);
+                        drawHoleShape(canvasPt);
+                    } else {
+                        for (let k = 0; k < count; k++) {
+                            const idx = Math.min(path.length - 1, Math.floor((k / (count - 1)) * (path.length - 1)));
+                            const pt = path[idx];
+                            const canvasPt = mapPt(pt.t, pt.theta, alignment, centerX);
+                            drawHoleShape(canvasPt);
+                        }
                     }
                 }
             }
         }
     }
-    
-    // Draw 5 x 5 cm print scale validation helper box
+
+    // Draw both templates side by side
+    drawTemplate(centerX_front, 'front');
+    drawTemplate(centerX_back, 'back');
+
+    // Draw 5 x 5 cm print scale validation helper box (Left side)
     ctx.fillStyle = '#111115';
-    ctx.fillRect(padding, padding, 5 * scale, 5 * scale);
+    ctx.fillRect(padding, padding + 50, 5 * scale, 5 * scale);
     ctx.fillStyle = '#ffffff';
     ctx.font = '8px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('5 cm', padding + 2.5 * scale, padding + 1.8 * scale);
-    ctx.fillText('Calibration', padding + 2.5 * scale, padding + 2.8 * scale);
-    ctx.fillText('Square', padding + 2.5 * scale, padding + 3.8 * scale);
+    ctx.fillText('5 cm', padding + 2.5 * scale, padding + 50 + 1.8 * scale);
+    ctx.fillText('Calibration', padding + 2.5 * scale, padding + 50 + 2.8 * scale);
+    ctx.fillText('Square', padding + 2.5 * scale, padding + 50 + 3.8 * scale);
     
     ctx.fillStyle = '#111115';
-    ctx.font = '10px system-ui, sans-serif';
+    ctx.font = '9px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText('📏 5 x 5 cm calibration square', padding, padding + 6.2 * scale);
+    ctx.fillText('📏 5 x 5 cm calibration square', padding, padding + 50 + 6.2 * scale);
 }
