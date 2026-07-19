@@ -1715,18 +1715,67 @@ function generateAndShowBlueprint() {
         const r = gourdRadius(t);
         const r_cm = r * (H_cm / 3.0);
         
-        const y_canvas = viewportHeight - padding - arc_cm * scale + 50; // offset vertically for header title
+        const y_canvas = viewportHeight - padding - arc_cm * scale + 50;
         
         let adjustedTheta = theta;
         if (alignment === 'back') {
-            let thetaBack = theta;
-            if (thetaBack < 0) thetaBack += Math.PI * 2;
-            adjustedTheta = thetaBack - Math.PI;
+            // Map theta to range [0, 2*PI], then shift it so that PI (back center) is at 0.
+            let thetaVal = theta;
+            while (thetaVal < 0) thetaVal += Math.PI * 2;
+            while (thetaVal > Math.PI * 2) thetaVal -= Math.PI * 2;
+            adjustedTheta = thetaVal - Math.PI;
+        } else {
+            // Map theta to range [-PI, PI] relative to 0.
+            let thetaVal = theta;
+            while (thetaVal < -Math.PI) thetaVal += Math.PI * 2;
+            while (thetaVal > Math.PI) thetaVal -= Math.PI * 2;
+            adjustedTheta = thetaVal;
         }
         
         const x_canvas = customCenterX + adjustedTheta * r_cm * scale;
         
         return { x: x_canvas, y: y_canvas };
+    }
+
+    // Normalizes paths to domain and splits segments at periodic boundaries to prevent cross-over diagonal lines
+    function preparePathsForAlignment(paths, alignment) {
+        const prepared = [];
+        
+        for (const path of paths) {
+            if (path.length === 0) continue;
+            
+            let currentSegment = [];
+            for (let i = 0; i < path.length; i++) {
+                const pt = path[i];
+                
+                let normTheta = pt.theta;
+                if (alignment === 'front') {
+                    normTheta = ((pt.theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                } else {
+                    normTheta = ((pt.theta) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+                }
+                
+                const projectedPt = { t: pt.t, theta: normTheta };
+                
+                if (currentSegment.length > 0) {
+                    const prev = currentSegment[currentSegment.length - 1];
+                    if (Math.abs(projectedPt.theta - prev.theta) > Math.PI) {
+                        if (currentSegment.length >= 2) {
+                            prepared.push(currentSegment);
+                        }
+                        currentSegment = [];
+                    }
+                }
+                
+                currentSegment.push(projectedPt);
+            }
+            
+            if (currentSegment.length >= 2) {
+                prepared.push(currentSegment);
+            }
+        }
+        
+        return prepared;
     }
 
     // Top headers for clean printing
@@ -1738,32 +1787,39 @@ function generateAndShowBlueprint() {
     ctx.fillText('BACK SIDE WRAP TEMPLATE (Centered at 180°)', centerX_back, 25);
 
     function drawTemplate(centerX, alignment) {
+        const thetaMin = alignment === 'front' ? -Math.PI : 0;
+        const thetaMax = alignment === 'front' ? Math.PI : Math.PI * 2;
+
         // 1. Draw template boundary outline
         ctx.strokeStyle = '#444455';
         ctx.lineWidth = 1.8;
         ctx.setLineDash([5, 5]);
         
         ctx.beginPath();
+        // Left silhouette edge
         for (let i = 0; i <= segments; i++) {
             const t = i / segments;
-            const pt = mapPt(t, -Math.PI, alignment, centerX);
+            const pt = mapPt(t, thetaMin, alignment, centerX);
             if (i === 0) ctx.moveTo(pt.x, pt.y);
             else ctx.lineTo(pt.x, pt.y);
         }
+        // Top boundary curve (t = 1.0)
         for (let i = segments; i >= 0; i--) {
             const t = 1.0;
-            const theta = -Math.PI + (i / segments) * 2 * Math.PI;
+            const theta = thetaMin + (i / segments) * (thetaMax - thetaMin);
             const pt = mapPt(t, theta, alignment, centerX);
             ctx.lineTo(pt.x, pt.y);
         }
+        // Right silhouette edge
         for (let i = segments; i >= 0; i--) {
             const t = i / segments;
-            const pt = mapPt(t, Math.PI, alignment, centerX);
+            const pt = mapPt(t, thetaMax, alignment, centerX);
             ctx.lineTo(pt.x, pt.y);
         }
+        // Bottom boundary curve (t = 0.0)
         for (let i = 0; i <= segments; i++) {
             const t = 0.0;
-            const theta = Math.PI - (i / segments) * 2 * Math.PI;
+            const theta = thetaMax - (i / segments) * (thetaMax - thetaMin);
             const pt = mapPt(t, theta, alignment, centerX);
             ctx.lineTo(pt.x, pt.y);
         }
@@ -1783,7 +1839,6 @@ function generateAndShowBlueprint() {
                     for (let p = 0; p < patchCount; p++) {
                         const offsetTheta = (p / patchCount) * Math.PI * 2;
                         let currentTheta = zone.centerTheta + offsetTheta;
-                        currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
                         
                         const centerPt = mapPt(zone.centerT, currentTheta, alignment, centerX);
                         const radius_px = zone.radius * scale;
@@ -1804,13 +1859,13 @@ function generateAndShowBlueprint() {
                 }
             }
             
-            let paths = [];
+            let rawPaths = [];
             const helpers = window.appPatternHelpers || {};
             
             if (zone.type === 'custom-image' && zone.customSvgText) {
-                paths = getSvgPaths(zone);
+                rawPaths = getSvgPaths(zone);
             } else if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
-                paths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
+                rawPaths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
             } else {
                 const patLayout = zone.patternType || 'grid';
                 const horPaths = helpers.generateHorizontalPaths ? helpers.generateHorizontalPaths(patLayout, zone.density, state.patTilt) : [];
@@ -1819,15 +1874,18 @@ function generateAndShowBlueprint() {
                 const direction = zone.direction || 'both';
                 if (direction === 'both' || direction === 'horizontal') {
                     for (const path of horPaths) {
-                        paths.push(...helpers.clipPathToZone(path, zone));
+                        rawPaths.push(...helpers.clipPathToZone(path, zone));
                     }
                 }
                 if (direction === 'both' || direction === 'vertical') {
                     for (const path of verPaths) {
-                        paths.push(...helpers.clipPathToZone(path, zone));
+                        rawPaths.push(...helpers.clipPathToZone(path, zone));
                     }
                 }
             }
+
+            // Clean paths and split at boundaries to avoid bleeding diagonal lines
+            const paths = preparePathsForAlignment(rawPaths, alignment);
             
             if (zone.style === 'lines') {
                 ctx.strokeStyle = '#111115';
