@@ -257,7 +257,7 @@ export function isPointInZoneRaw(t, theta, zone) {
 }
 
 // Checks if a point on the surface (height t, angle theta) lies inside a pattern zone (handles exclusion masks & cross-layer masking)
-export function isPointInZone(t, theta, zone) {
+export function isPointInZone(t, theta, zone, templateCenter = null) {
     if (!zone) return true;
 
     // 1. Evaluate this zone's own clipping bounds
@@ -281,9 +281,49 @@ export function isPointInZone(t, theta, zone) {
 
         const isOtherLocal = !['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(otherZone.type);
         if (isOtherLocal) {
-            // If the point is inside the local shape otherZone, clip it out of this background layer!
-            if (isPointInZoneRaw(t, theta, otherZone)) {
-                return false;
+            // Check if this otherZone instance belongs to the current templateCenter
+            if (templateCenter !== null && window.activeTemplateCenters && window.activeTemplateCenters.length > 0) {
+                let closestInstanceTheta = otherZone.centerTheta;
+                let minDistInstance = Infinity;
+                const patchCount = otherZone.patchCount !== undefined ? otherZone.patchCount : 1;
+                for (let p = 0; p < patchCount; p++) {
+                    const offsetTheta = (p / patchCount) * Math.PI * 2;
+                    let currentTheta = otherZone.centerTheta + offsetTheta;
+                    let dTheta = theta - currentTheta;
+                    dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                    if (Math.abs(dTheta) < minDistInstance) {
+                        minDistInstance = Math.abs(dTheta);
+                        closestInstanceTheta = currentTheta;
+                    }
+                }
+                
+                // Normalize closestInstanceTheta relative to [-PI, PI]
+                let cTheta = closestInstanceTheta;
+                while (cTheta < -Math.PI) cTheta += Math.PI * 2;
+                while (cTheta > Math.PI) cTheta -= Math.PI * 2;
+
+                // Find which template center cTheta is closest to
+                let closestCenter = window.activeTemplateCenters[0];
+                let minDist = Infinity;
+                for (const center of window.activeTemplateCenters) {
+                    let diff = Math.abs(cTheta - center);
+                    diff = ((diff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                    if (Math.abs(diff) < minDist) {
+                        minDist = Math.abs(diff);
+                        closestCenter = center;
+                    }
+                }
+
+                if (Math.abs(closestCenter - templateCenter) < 0.0001) {
+                    if (isPointInZoneRaw(t, theta, otherZone)) {
+                        return false;
+                    }
+                }
+            } else {
+                // Default global behavior (like on the 3D model viewport where templateCenter is null)
+                if (isPointInZoneRaw(t, theta, otherZone)) {
+                    return false;
+                }
             }
         }
     }
@@ -292,7 +332,7 @@ export function isPointInZone(t, theta, zone) {
 }
 
 // Clips a continuous coordinate path into multiple segments that lie within a zone
-export function clipPathToZone(path, zone) {
+export function clipPathToZone(path, zone, templateCenter = null) {
     const subPaths = [];
     let currentSubPath = [];
 
@@ -324,7 +364,7 @@ export function clipPathToZone(path, zone) {
     };
 
     for (const pt of path) {
-        if (isPointInZone(pt.t, pt.theta, zone)) {
+        if (isPointInZone(pt.t, pt.theta, zone, templateCenter)) {
             currentSubPath.push(pt);
         } else {
             finalizeSubPath(currentSubPath);

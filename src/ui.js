@@ -1,6 +1,6 @@
 import { state, pushUndoState, performUndo, performRedo, addPatternZone, removePatternZone, duplicatePatternZone, movePatternZoneUp, movePatternZoneDown } from './state.js';
 import { calculateMeasurements, updateMeasureLines } from './measure.js';
-import { updatePatternGroup, getSvgPaths } from './pattern.js';
+import { updatePatternGroup, getSvgPaths, isPointInZone } from './pattern.js';
 import { updateCarveGroup, clearCarvings } from './carve.js';
 import * as THREE from 'three';
 import { gourdRadius, createGourdGeometry } from './gourd.js';
@@ -1649,7 +1649,49 @@ function generateAndShowBlueprint() {
     const viewportHeight = Math.ceil(totalArcLength * scale + padding * 2);
     const templateWidth = maxCircumference * scale;
     
-    const canvasWidth = Math.ceil(templateWidth * 2 + spacer + padding * 2);
+    // Scan all active local shapes to extract unique design angles
+    const rawAngles = [];
+    for (const zone of state.patternZones) {
+        if (!zone.visible || zone.style === 'off') continue;
+        const isBackground = ['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(zone.type);
+        if (!isBackground) {
+            const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
+            for (let p = 0; p < patchCount; p++) {
+                const offsetTheta = (p / patchCount) * Math.PI * 2;
+                let currentTheta = zone.centerTheta + offsetTheta;
+                while (currentTheta < -Math.PI) currentTheta += Math.PI * 2;
+                while (currentTheta > Math.PI) currentTheta -= Math.PI * 2;
+                rawAngles.push(currentTheta);
+            }
+        }
+    }
+
+    // Cluster similar angles (within 30 degrees / Math.PI / 6 of each other) to avoid duplicate templates for same side
+    const uniqueAngles = [];
+    for (const angle of rawAngles) {
+        let found = false;
+        for (const existing of uniqueAngles) {
+            let diff = Math.abs(angle - existing);
+            diff = ((diff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+            if (Math.abs(diff) < Math.PI / 6) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            uniqueAngles.push(angle);
+        }
+    }
+
+    // If no local shapes exist, default to 1 template centered at 0 degrees
+    if (uniqueAngles.length === 0) {
+        uniqueAngles.push(0);
+    }
+
+    window.activeTemplateCenters = uniqueAngles;
+
+    const n = uniqueAngles.length;
+    const canvasWidth = Math.ceil(templateWidth * n + spacer * (n - 1) + padding * 2);
     const canvasHeight = viewportHeight + 60; // Extra top space for labels
     
     canvas.width = canvasWidth;
@@ -1676,10 +1718,18 @@ function generateAndShowBlueprint() {
         ctx.stroke();
     }
     
-    const centerX_front = padding + templateWidth / 2;
-    const centerX_back = padding + templateWidth + spacer + templateWidth / 2;
+    // Draw title labels
+    ctx.fillStyle = '#111115';
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < n; i++) {
+        const angle_deg = Math.round(uniqueAngles[i] * 180 / Math.PI);
+        const centerX = padding + i * (templateWidth + spacer) + templateWidth / 2;
+        ctx.fillText(`WRAP TEMPLATE SIDE VIEW (Centered at ${angle_deg}°)`, centerX, 25);
+    }
     
-    function mapPt(t, theta, alignment, customCenterX) {
+    function mapPt(t, theta, templateCenter, customCenterX) {
         const idx = t * segments;
         const idxFloor = Math.floor(idx);
         const f = idx - idxFloor;
@@ -1695,20 +1745,10 @@ function generateAndShowBlueprint() {
         
         const y_canvas = viewportHeight - padding - arc_cm * scale + 50;
         
-        let adjustedTheta = theta;
-        if (alignment === 'back') {
-            // Map theta to range [0, 2*PI], then shift it so that PI (back center) is at 0.
-            let thetaVal = theta;
-            while (thetaVal < 0) thetaVal += Math.PI * 2;
-            while (thetaVal > Math.PI * 2) thetaVal -= Math.PI * 2;
-            adjustedTheta = thetaVal - Math.PI;
-        } else {
-            // Map theta to range [-PI, PI] relative to 0.
-            let thetaVal = theta;
-            while (thetaVal < -Math.PI) thetaVal += Math.PI * 2;
-            while (thetaVal > Math.PI) thetaVal -= Math.PI * 2;
-            adjustedTheta = thetaVal;
-        }
+        // Map theta to range [-PI, PI] relative to templateCenter
+        let dTheta = theta - templateCenter;
+        dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+        const adjustedTheta = dTheta;
         
         const x_canvas = customCenterX + adjustedTheta * r_cm * scale;
         
@@ -1716,7 +1756,7 @@ function generateAndShowBlueprint() {
     }
 
     // Normalizes paths to domain and splits segments at periodic boundaries to prevent cross-over diagonal lines
-    function preparePathsForAlignment(paths, alignment) {
+    function preparePathsForAlignment(paths, templateCenter) {
         const prepared = [];
         
         for (const path of paths) {
@@ -1728,12 +1768,9 @@ function generateAndShowBlueprint() {
             for (let i = 0; i < path.length; i++) {
                 const pt = path[i];
                 
-                let normTheta = pt.theta;
-                if (alignment === 'front') {
-                    normTheta = ((pt.theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-                } else {
-                    normTheta = ((pt.theta) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-                }
+                let dTheta = pt.theta - templateCenter;
+                dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                const normTheta = dTheta;
                 
                 const projectedPt = { t: pt.t, theta: normTheta };
                 
@@ -1759,17 +1796,9 @@ function generateAndShowBlueprint() {
         return prepared;
     }
 
-    // Top headers for clean printing
-    ctx.fillStyle = '#111115';
-    ctx.font = 'bold 11px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('FRONT SIDE WRAP TEMPLATE (Centered at 0°)', centerX_front, 25);
-    ctx.fillText('BACK SIDE WRAP TEMPLATE (Centered at 180°)', centerX_back, 25);
-
-    function drawTemplate(centerX, alignment) {
-        const thetaMin = alignment === 'front' ? -Math.PI : 0;
-        const thetaMax = alignment === 'front' ? Math.PI : Math.PI * 2;
+    function drawTemplate(centerX, templateCenter) {
+        const thetaMin = templateCenter - Math.PI;
+        const thetaMax = templateCenter + Math.PI;
 
         // 1. Draw template boundary outline
         ctx.strokeStyle = '#444455';
@@ -1780,7 +1809,7 @@ function generateAndShowBlueprint() {
         // Left silhouette edge
         for (let i = 0; i <= segments; i++) {
             const t = i / segments;
-            const pt = mapPt(t, thetaMin, alignment, centerX);
+            const pt = mapPt(t, thetaMin, templateCenter, centerX);
             if (i === 0) ctx.moveTo(pt.x, pt.y);
             else ctx.lineTo(pt.x, pt.y);
         }
@@ -1788,20 +1817,20 @@ function generateAndShowBlueprint() {
         for (let i = segments; i >= 0; i--) {
             const t = 1.0;
             const theta = thetaMin + (i / segments) * (thetaMax - thetaMin);
-            const pt = mapPt(t, theta, alignment, centerX);
+            const pt = mapPt(t, theta, templateCenter, centerX);
             ctx.lineTo(pt.x, pt.y);
         }
         // Right silhouette edge
         for (let i = segments; i >= 0; i--) {
             const t = i / segments;
-            const pt = mapPt(t, thetaMax, alignment, centerX);
+            const pt = mapPt(t, thetaMax, templateCenter, centerX);
             ctx.lineTo(pt.x, pt.y);
         }
         // Bottom boundary curve (t = 0.0)
         for (let i = 0; i <= segments; i++) {
             const t = 0.0;
             const theta = thetaMax - (i / segments) * (thetaMax - thetaMin);
-            const pt = mapPt(t, theta, alignment, centerX);
+            const pt = mapPt(t, theta, templateCenter, centerX);
             ctx.lineTo(pt.x, pt.y);
         }
         ctx.closePath();
@@ -1821,15 +1850,26 @@ function generateAndShowBlueprint() {
                         const offsetTheta = (p / patchCount) * Math.PI * 2;
                         let currentTheta = zone.centerTheta + offsetTheta;
                         
-                        // Filter by hemisphere
+                        // Filter by hemisphere closest template center
                         let cTheta = currentTheta;
                         while (cTheta < -Math.PI) cTheta += Math.PI * 2;
                         while (cTheta > Math.PI) cTheta -= Math.PI * 2;
-                        const distToFront = Math.abs(cTheta);
-                        if (alignment === 'front' && distToFront > Math.PI / 2) continue;
-                        if (alignment === 'back' && distToFront <= Math.PI / 2) continue;
+                        
+                        let closestCenter = uniqueAngles[0];
+                        let minDist = Infinity;
+                        for (const center of uniqueAngles) {
+                            let diff = Math.abs(cTheta - center);
+                            diff = ((diff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                            if (Math.abs(diff) < minDist) {
+                                minDist = Math.abs(diff);
+                                closestCenter = center;
+                            }
+                        }
+                        if (Math.abs(closestCenter - templateCenter) > 0.0001) {
+                            continue;
+                        }
 
-                        const centerPt = mapPt(zone.centerT, currentTheta, alignment, centerX);
+                        const centerPt = mapPt(zone.centerT, currentTheta, templateCenter, centerX);
                         const radius_px = zone.radius * (H_cm / 3.0) * scale;
                         const size_px = radius_px * 2;
                         
@@ -1863,18 +1903,18 @@ function generateAndShowBlueprint() {
                 const direction = zone.direction || 'both';
                 if (direction === 'both' || direction === 'horizontal') {
                     for (const path of horPaths) {
-                        rawPaths.push(...helpers.clipPathToZone(path, zone));
+                        rawPaths.push(...helpers.clipPathToZone(path, zone, templateCenter));
                     }
                 }
                 if (direction === 'both' || direction === 'vertical') {
                     for (const path of verPaths) {
-                        rawPaths.push(...helpers.clipPathToZone(path, zone));
+                        rawPaths.push(...helpers.clipPathToZone(path, zone, templateCenter));
                     }
                 }
             }
 
             // Clean paths and split at boundaries to avoid bleeding diagonal lines
-            const paths = preparePathsForAlignment(rawPaths, alignment);
+            const paths = preparePathsForAlignment(rawPaths, templateCenter);
             
             if (zone.style === 'lines') {
                 ctx.strokeStyle = '#111115';
@@ -1882,21 +1922,28 @@ function generateAndShowBlueprint() {
                 for (const path of paths) {
                     if (path.length < 2) continue;
                     
-                    // Filter by hemisphere
+                    // Filter by hemisphere closest template center
                     if (path.centerTheta !== undefined) {
-                        let cTheta = path.centerTheta;
-                        while (cTheta < -Math.PI) cTheta += Math.PI * 2;
-                        while (cTheta > Math.PI) cTheta -= Math.PI * 2;
-                        const distToFront = Math.abs(cTheta);
-                        if (alignment === 'front' && distToFront > Math.PI / 2) continue;
-                        if (alignment === 'back' && distToFront <= Math.PI / 2) continue;
+                        let closestCenter = uniqueAngles[0];
+                        let minDist = Infinity;
+                        for (const center of uniqueAngles) {
+                            let diff = Math.abs(path.centerTheta - center);
+                            diff = ((diff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                            if (Math.abs(diff) < minDist) {
+                                minDist = Math.abs(diff);
+                                closestCenter = center;
+                            }
+                        }
+                        if (Math.abs(closestCenter - templateCenter) > 0.0001) {
+                            continue;
+                        }
                     }
 
                     ctx.beginPath();
-                    const start = mapPt(path[0].t, path[0].theta, alignment, centerX);
+                    const start = mapPt(path[0].t, path[0].theta, templateCenter, centerX);
                     ctx.moveTo(start.x, start.y);
                     for (let k = 1; k < path.length; k++) {
-                        const pt = mapPt(path[k].t, path[k].theta, alignment, centerX);
+                        const pt = mapPt(path[k].t, path[k].theta, templateCenter, centerX);
                         ctx.lineTo(pt.x, pt.y);
                     }
                     ctx.stroke();
@@ -1909,14 +1956,21 @@ function generateAndShowBlueprint() {
                 for (const path of paths) {
                     if (path.length === 0) continue;
 
-                    // Filter by hemisphere
+                    // Filter by hemisphere closest template center
                     if (path.centerTheta !== undefined) {
-                        let cTheta = path.centerTheta;
-                        while (cTheta < -Math.PI) cTheta += Math.PI * 2;
-                        while (cTheta > Math.PI) cTheta -= Math.PI * 2;
-                        const distToFront = Math.abs(cTheta);
-                        if (alignment === 'front' && distToFront > Math.PI / 2) continue;
-                        if (alignment === 'back' && distToFront <= Math.PI / 2) continue;
+                        let closestCenter = uniqueAngles[0];
+                        let minDist = Infinity;
+                        for (const center of uniqueAngles) {
+                            let diff = Math.abs(path.centerTheta - center);
+                            diff = ((diff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                            if (Math.abs(diff) < minDist) {
+                                minDist = Math.abs(diff);
+                                closestCenter = center;
+                            }
+                        }
+                        if (Math.abs(closestCenter - templateCenter) > 0.0001) {
+                            continue;
+                        }
                     }
 
                     const holeCount = zone.distMode === 'count' ? zone.holeCount : Math.max(2, Math.round(path.length * zone.density));
@@ -1954,13 +2008,13 @@ function generateAndShowBlueprint() {
 
                     if (count === 1) {
                         const pt = path[Math.floor(path.length / 2)];
-                        const canvasPt = mapPt(pt.t, pt.theta, alignment, centerX);
+                        const canvasPt = mapPt(pt.t, pt.theta, templateCenter, centerX);
                         drawHoleShape(canvasPt);
                     } else {
                         for (let k = 0; k < count; k++) {
                             const idx = Math.min(path.length - 1, Math.floor((k / (count - 1)) * (path.length - 1)));
                             const pt = path[idx];
-                            const canvasPt = mapPt(pt.t, pt.theta, alignment, centerX);
+                            const canvasPt = mapPt(pt.t, pt.theta, templateCenter, centerX);
                             drawHoleShape(canvasPt);
                         }
                     }
@@ -1969,9 +2023,11 @@ function generateAndShowBlueprint() {
         }
     }
 
-    // Draw both templates side by side
-    drawTemplate(centerX_front, 'front');
-    drawTemplate(centerX_back, 'back');
+    // Draw all templates side-by-side
+    for (let i = 0; i < n; i++) {
+        const centerX = padding + i * (templateWidth + spacer) + templateWidth / 2;
+        drawTemplate(centerX, uniqueAngles[i]);
+    }
 
     // Draw 5 x 5 cm print scale validation helper box (Left side)
     ctx.fillStyle = '#111115';
