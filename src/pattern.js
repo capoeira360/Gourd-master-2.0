@@ -271,17 +271,13 @@ export function isPointInZone(t, theta, zone) {
         return true;
     }
 
-    // Background layers can be clipped by local shape layers above them in the stack
+    // Background layers can be clipped by local shape layers in the stack
     const zones = (state && state.patternZones) ? state.patternZones : [];
-    const idx = zones.indexOf(zone);
 
     for (const otherZone of zones) {
         if (otherZone.id === zone.id) continue;
         if (otherZone.style === 'off' || otherZone.visible === false) continue;
         if (otherZone.clipBackground === false) continue;
-
-        const otherIdx = zones.indexOf(otherZone);
-        if (otherIdx > idx) continue; // Only clip by layers above this one in the stack
 
         const isOtherLocal = !['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(otherZone.type);
         if (isOtherLocal) {
