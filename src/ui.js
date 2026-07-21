@@ -1723,6 +1723,8 @@ function generateAndShowBlueprint() {
             if (path.length === 0) continue;
             
             let currentSegment = [];
+            currentSegment.centerTheta = path.centerTheta;
+
             for (let i = 0; i < path.length; i++) {
                 const pt = path[i];
                 
@@ -1742,6 +1744,7 @@ function generateAndShowBlueprint() {
                             prepared.push(currentSegment);
                         }
                         currentSegment = [];
+                        currentSegment.centerTheta = path.centerTheta;
                     }
                 }
                 
@@ -1818,6 +1821,14 @@ function generateAndShowBlueprint() {
                         const offsetTheta = (p / patchCount) * Math.PI * 2;
                         let currentTheta = zone.centerTheta + offsetTheta;
                         
+                        // Filter by hemisphere
+                        let cTheta = currentTheta;
+                        while (cTheta < -Math.PI) cTheta += Math.PI * 2;
+                        while (cTheta > Math.PI) cTheta -= Math.PI * 2;
+                        const distToFront = Math.abs(cTheta);
+                        if (alignment === 'front' && distToFront > Math.PI / 2) continue;
+                        if (alignment === 'back' && distToFront <= Math.PI / 2) continue;
+
                         const centerPt = mapPt(zone.centerT, currentTheta, alignment, centerX);
                         const radius_px = zone.radius * (H_cm / 3.0) * scale;
                         const size_px = radius_px * 2;
@@ -1870,6 +1881,17 @@ function generateAndShowBlueprint() {
                 ctx.lineWidth = 1.6;
                 for (const path of paths) {
                     if (path.length < 2) continue;
+                    
+                    // Filter by hemisphere
+                    if (path.centerTheta !== undefined) {
+                        let cTheta = path.centerTheta;
+                        while (cTheta < -Math.PI) cTheta += Math.PI * 2;
+                        while (cTheta > Math.PI) cTheta -= Math.PI * 2;
+                        const distToFront = Math.abs(cTheta);
+                        if (alignment === 'front' && distToFront > Math.PI / 2) continue;
+                        if (alignment === 'back' && distToFront <= Math.PI / 2) continue;
+                    }
+
                     ctx.beginPath();
                     const start = mapPt(path[0].t, path[0].theta, alignment, centerX);
                     ctx.moveTo(start.x, start.y);
@@ -1886,6 +1908,17 @@ function generateAndShowBlueprint() {
 
                 for (const path of paths) {
                     if (path.length === 0) continue;
+
+                    // Filter by hemisphere
+                    if (path.centerTheta !== undefined) {
+                        let cTheta = path.centerTheta;
+                        while (cTheta < -Math.PI) cTheta += Math.PI * 2;
+                        while (cTheta > Math.PI) cTheta -= Math.PI * 2;
+                        const distToFront = Math.abs(cTheta);
+                        if (alignment === 'front' && distToFront > Math.PI / 2) continue;
+                        if (alignment === 'back' && distToFront <= Math.PI / 2) continue;
+                    }
+
                     const holeCount = zone.distMode === 'count' ? zone.holeCount : Math.max(2, Math.round(path.length * zone.density));
                     const holeSize_px = (zone.holeSize !== undefined ? zone.holeSize : 0.03) * (H_cm / 3.0) * scale;
                     

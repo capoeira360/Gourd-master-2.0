@@ -296,19 +296,42 @@ export function clipPathToZone(path, zone) {
     const subPaths = [];
     let currentSubPath = [];
 
+    const isLocalZone = zone && !['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(zone.type);
+
+    const finalizeSubPath = (sub) => {
+        if (sub.length >= 2) {
+            if (isLocalZone) {
+                // Find closest repeated sector center
+                const midPt = sub[Math.floor(sub.length / 2)];
+                const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
+                let closestTheta = zone.centerTheta;
+                let minDist = Infinity;
+                for (let p = 0; p < patchCount; p++) {
+                    const offsetTheta = (p / patchCount) * Math.PI * 2;
+                    let currentTheta = zone.centerTheta + offsetTheta;
+                    
+                    let dTheta = midPt.theta - currentTheta;
+                    dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                    if (Math.abs(dTheta) < minDist) {
+                        minDist = Math.abs(dTheta);
+                        closestTheta = currentTheta;
+                    }
+                }
+                sub.centerTheta = closestTheta;
+            }
+            subPaths.push(sub);
+        }
+    };
+
     for (const pt of path) {
         if (isPointInZone(pt.t, pt.theta, zone)) {
             currentSubPath.push(pt);
         } else {
-            if (currentSubPath.length >= 2) {
-                subPaths.push(currentSubPath);
-            }
+            finalizeSubPath(currentSubPath);
             currentSubPath = [];
         }
     }
-    if (currentSubPath.length >= 2) {
-        subPaths.push(currentSubPath);
-    }
+    finalizeSubPath(currentSubPath);
     return subPaths;
 }
 
@@ -844,29 +867,38 @@ function generateConcentricLoops(zone) {
     const R = Math.max(0.005, zone.radius || 0.15);
 
     const loops = [];
-    let currentRadius = R;
+    const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
 
-    while (currentRadius > 0.002) {
-        const scale = currentRadius / R;
-        const loopPath = [];
+    for (let p = 0; p < patchCount; p++) {
+        const offsetTheta = (p / patchCount) * Math.PI * 2;
+        let currentTheta = zone.centerTheta + offsetTheta;
+        currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
-        for (const pt of basePts) {
-            const rx = pt.u * R * scale;
-            const ry = pt.v * R * scale;
+        let currentRadius = R;
+        while (currentRadius > 0.002) {
+            const scale = currentRadius / R;
+            const loopPath = [];
 
-            const phi = -(zone.shapeRotation || 0) * Math.PI / 180;
-            const dx = rx * Math.cos(phi) - ry * Math.sin(phi);
-            const dy = rx * Math.sin(phi) + ry * Math.cos(phi);
+            for (const pt of basePts) {
+                const rx = pt.u * R * scale;
+                const ry = pt.v * R * scale;
 
-            const t = zone.centerT + dy / getGourdHeight();
-            const r = getGourdRadius(t);
-            const theta = zone.centerTheta + dx / r;
+                const phi = -(zone.shapeRotation || 0) * Math.PI / 180;
+                const dx = rx * Math.cos(phi) - ry * Math.sin(phi);
+                const dy = rx * Math.sin(phi) + ry * Math.cos(phi);
 
-            loopPath.push({ t, theta });
+                const t = zone.centerT + dy / getGourdHeight();
+                const r = getGourdRadius(t);
+                let theta = currentTheta + dx / r;
+                theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+                loopPath.push({ t, theta });
+            }
+
+            loopPath.centerTheta = currentTheta;
+            loops.push(loopPath);
+            currentRadius -= spacing;
         }
-
-        loops.push(loopPath);
-        currentRadius -= spacing;
     }
 
     return loops;
