@@ -3,7 +3,7 @@ import { calculateMeasurements, updateMeasureLines } from './measure.js';
 import { updatePatternGroup, getSvgPaths, isPointInZone } from './pattern.js';
 import { updateCarveGroup, clearCarvings } from './carve.js';
 import * as THREE from 'three';
-import { gourdRadius, createGourdGeometry } from './gourd.js';
+import { getGourdRadius, createGourdGeometry } from './gourd.js';
 
 // Toast notifications helper
 export function showToast(msg, type = 'info') {
@@ -1610,33 +1610,12 @@ function generateAndShowBlueprint() {
 
     const H_cm = state.gourdHeight || 30.0;
     
-    // Compute the profile arc lengths
+    // Compute max radius to define template width
     const segments = 100;
-    const arcLengths = [0];
-    let accumulated = 0;
-    let prevPt = null;
-    
-    for (let i = 0; i <= segments; i++) {
-        const t = i / segments;
-        const r = gourdRadius(t);
-        const r_cm = r * (H_cm / 3.0);
-        const y_cm = t * H_cm;
-        const currPt = { x: r_cm, y: y_cm };
-        if (prevPt) {
-            const dx = currPt.x - prevPt.x;
-            const dy = currPt.y - prevPt.y;
-            accumulated += Math.sqrt(dx * dx + dy * dy);
-            arcLengths.push(accumulated);
-        }
-        prevPt = currPt;
-    }
-
-    const totalArcLength = accumulated;
-    
     let maxRadius_cm = 0;
     for (let i = 0; i <= segments; i++) {
         const t = i / segments;
-        const r = gourdRadius(t);
+        const r = getGourdRadius(t);
         const r_cm = r * (H_cm / 3.0);
         if (r_cm > maxRadius_cm) maxRadius_cm = r_cm;
     }
@@ -1646,7 +1625,7 @@ function generateAndShowBlueprint() {
     const padding = 40;
     const spacer = 80;
     
-    const viewportHeight = Math.ceil(totalArcLength * scale + padding * 2);
+    const viewportHeight = Math.ceil(H_cm * scale + padding * 2);
     const templateWidth = maxCircumference * scale;
     
     // Scan all active local shapes to extract unique design angles
@@ -1730,20 +1709,10 @@ function generateAndShowBlueprint() {
     }
     
     function mapPt(t, theta, templateCenter, customCenterX) {
-        const idx = t * segments;
-        const idxFloor = Math.floor(idx);
-        const f = idx - idxFloor;
-        let arc_cm;
-        if (idxFloor >= segments) {
-            arc_cm = arcLengths[segments];
-        } else {
-            arc_cm = arcLengths[idxFloor] * (1 - f) + arcLengths[idxFloor + 1] * f;
-        }
-        
-        const r = gourdRadius(t);
+        const r = getGourdRadius(t);
         const r_cm = r * (H_cm / 3.0);
-        
-        const y_canvas = viewportHeight - padding - arc_cm * scale + 50;
+        const y_cm = t * H_cm;
+        const y_canvas = viewportHeight - padding - y_cm * scale + 50;
         
         // Map theta to range [-PI, PI] relative to templateCenter
         let dTheta = theta - templateCenter;
