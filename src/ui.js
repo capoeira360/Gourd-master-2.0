@@ -282,14 +282,6 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
                             </select>
                         </div>
-                        
-                        <div class="control-row" style="margin-bottom: 8px;">
-                            <label class="control-label" style="width: 35%;">Mask Mode</label>
-                            <select class="zone-mask-mode-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
-                                <option value="include" ${zone.maskMode !== 'exclude' ? 'selected' : ''}>Include Only</option>
-                                <option value="exclude" ${zone.maskMode === 'exclude' ? 'selected' : ''}>Exclude (Mask Out)</option>
-                            </select>
-                        </div>
 
                         ${zone.type === 'custom-image' ? `
                             <div class="control-row" style="margin-bottom: 8px;">
@@ -742,20 +734,6 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                     const idx = state.patternZones.findIndex(z => z.id === zoneId) + 1;
                     zone.name = `${shapeFriendlyNames[zone.type]} ${idx}`;
                 }
-                updatePatternGroup(patternGroup, state);
-                if (onUpdatePattern) onUpdatePattern();
-                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
-            }
-        });
-    });
-
-    document.querySelectorAll('.zone-mask-mode-select').forEach(select => {
-        select.addEventListener('change', () => {
-            const zoneId = select.dataset.zoneId;
-            const zone = state.patternZones.find(z => z.id === zoneId);
-            if (zone) {
-                pushUndoState(gourdMesh);
-                zone.maskMode = select.value;
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
@@ -1864,7 +1842,7 @@ function generateAndShowBlueprint() {
             
             if (zone.type === 'custom-image' && zone.customSvgText) {
                 rawPaths = getSvgPaths(zone);
-            } else if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+            } else if (zone.fillType === 'concentric' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
                 rawPaths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
             } else {
                 const patLayout = zone.patternType || 'grid';

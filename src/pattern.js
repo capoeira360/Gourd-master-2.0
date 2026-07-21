@@ -260,16 +260,11 @@ export function isPointInZoneRaw(t, theta, zone) {
 export function isPointInZone(t, theta, zone) {
     if (!zone) return true;
 
-    // 1. Evaluate this zone's own clipping bounds (and handle exclusion mask inversion)
-    const inThisZoneRaw = isPointInZoneRaw(t, theta, zone);
-    let inThisZone = zone.maskMode === 'exclude' ? !inThisZoneRaw : inThisZoneRaw;
-    if (zone.type === 'full' && zone.maskMode === 'exclude') {
-        inThisZone = false;
-    }
-
+    // 1. Evaluate this zone's own clipping bounds
+    const inThisZone = isPointInZoneRaw(t, theta, zone);
     if (!inThisZone) return false;
 
-    // 2. Check cross-layer clipping (exclude background under this point if other localized shapes request it)
+    // 2. Check cross-layer clipping (exclude background under this point if other layers request it)
     const zones = (state && state.patternZones) ? state.patternZones : [];
     const idx = zones.indexOf(zone);
 
@@ -281,8 +276,7 @@ export function isPointInZone(t, theta, zone) {
         const otherIdx = zones.indexOf(otherZone);
         if (otherIdx > idx) continue; // Only clip by layers above this one in the stack
 
-        const isLocal = ['circular-patch', 'circle', 'square-patch', 'square', 'fish', 'star', 'flower', 'heart', 'triangle', 'custom-image'].includes(otherZone.type);
-        if (isLocal && otherZone.maskMode !== 'exclude') {
+        if (otherZone.type !== 'full') {
             // If the point is inside the other shape, clip it out!
             if (isPointInZoneRaw(t, theta, otherZone)) {
                 return false;
@@ -526,6 +520,10 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle
 function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, distMode, holeCount, holeDistance, dashSpacing = 0, zone = null) {
     if (paths.length === 0) return 0;
 
+    const idx = (zone && state && state.patternZones) ? state.patternZones.indexOf(zone) : -1;
+    const baseRenderOrder = 900;
+    const renderOrderVal = idx !== -1 ? baseRenderOrder + (state.patternZones.length - idx) : 900;
+
     if (style === 'lines') {
         const color = new THREE.Color(colorHex);
         const mat = new THREE.LineBasicMaterial({
@@ -562,6 +560,7 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
                         if (activeSegment.length >= 2) {
                             const geom = new THREE.BufferGeometry().setFromPoints(activeSegment);
                             const line = new THREE.Line(geom, mat);
+                            line.renderOrder = renderOrderVal;
                             group.add(line);
                             lineSegmentCount++;
                         }
@@ -571,6 +570,7 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
                 if (activeSegment.length >= 2) {
                     const geom = new THREE.BufferGeometry().setFromPoints(activeSegment);
                     const line = new THREE.Line(geom, mat);
+                    line.renderOrder = renderOrderVal;
                     group.add(line);
                     lineSegmentCount++;
                 }
@@ -578,6 +578,7 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
                 const pts = path.map(pt => getSurfacePoint(pt.t, pt.theta, 0.005, pt.rOffset || 0));
                 const geom = new THREE.BufferGeometry().setFromPoints(pts);
                 const line = new THREE.Line(geom, mat);
+                line.renderOrder = renderOrderVal;
                 group.add(line);
                 lineSegmentCount++;
             }
@@ -693,7 +694,7 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
         circleMat.userData = { originalOpacity: opacity };
 
         const instancedMesh = new THREE.InstancedMesh(circleGeom, circleMat, holePoints.length);
-        instancedMesh.renderOrder = 997;
+        instancedMesh.renderOrder = renderOrderVal;
 
         let idx = 0;
         const upVector = new THREE.Vector3(0, 0, 1);
@@ -1017,7 +1018,7 @@ export function updatePatternGroup(group, state) {
             continue;
         }
 
-        if (zone.fillType === 'concentric' && zone.maskMode !== 'exclude' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+        if (zone.fillType === 'concentric' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             const concentricLoops = generateConcentricLoops(zone);
             const validLoops = concentricLoops.map(loop => {
                 return loop.filter(pt => pt.t >= 0 && pt.t <= 1);
