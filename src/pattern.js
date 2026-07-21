@@ -264,7 +264,14 @@ export function isPointInZone(t, theta, zone) {
     const inThisZone = isPointInZoneRaw(t, theta, zone);
     if (!inThisZone) return false;
 
-    // 2. Check cross-layer clipping (exclude background under this point if other layers request it)
+    // 2. Check cross-layer clipping
+    // Local shape/image layers themselves are NEVER clipped by other layers (enabling stacking/overlaying)
+    const isBackgroundZone = ['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(zone.type);
+    if (!isBackgroundZone) {
+        return true;
+    }
+
+    // Background layers can be clipped by local shape layers above them in the stack
     const zones = (state && state.patternZones) ? state.patternZones : [];
     const idx = zones.indexOf(zone);
 
@@ -276,8 +283,9 @@ export function isPointInZone(t, theta, zone) {
         const otherIdx = zones.indexOf(otherZone);
         if (otherIdx > idx) continue; // Only clip by layers above this one in the stack
 
-        if (otherZone.type !== 'full') {
-            // If the point is inside the other shape, clip it out!
+        const isOtherLocal = !['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(otherZone.type);
+        if (isOtherLocal) {
+            // If the point is inside the local shape otherZone, clip it out of this background layer!
             if (isPointInZoneRaw(t, theta, otherZone)) {
                 return false;
             }
