@@ -102,14 +102,6 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             <div class="panel-section-title">Uneven Shape (Bending)</div>
             ${sliderRow('Lateral Bend (X)', 'gourd-bendX', -5.0, 5.0, 0.1, state.gourdBendX || 0.0, 'cm')}
             ${sliderRow('Lateral Bend (Z)', 'gourd-bendZ', -5.0, 5.0, 0.1, state.gourdBendZ || 0.0, 'cm')}
-            
-            <div class="panel-section-title">Artisan Blueprint Export</div>
-            <button id="btn-export-blueprint" class="btn-primary" style="width: 100%; margin-top: 5px; margin-bottom: 8px; justify-content: center;">
-                <i class="fas fa-print"></i> Generate Wrap Blueprint
-            </button>
-            <div class="info-badge-sub" style="font-size: 10px; line-height: 1.4; color: var(--color-tx-m);">
-                Generates a 1:1 scale flattened pattern wrapper template. Cut, wrap around your physical gourd, and drill/carve directly through!
-            </div>
         `;
     }
     
@@ -1017,53 +1009,7 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     }
 
-    // Blueprint Generator Events
-    const btnExportBlueprint = document.getElementById('btn-export-blueprint');
-    if (btnExportBlueprint) {
-        btnExportBlueprint.addEventListener('click', () => {
-            generateAndShowBlueprint();
-        });
-    }
 
-    const btnCloseBlueprint = document.getElementById('btn-close-blueprint');
-    if (btnCloseBlueprint) {
-        btnCloseBlueprint.addEventListener('click', () => {
-            const modal = document.getElementById('blueprint-modal');
-            if (modal) modal.style.display = 'none';
-        });
-    }
-
-    // Close blueprint modal when clicking background overlay
-    const blueprintModal = document.getElementById('blueprint-modal');
-    if (blueprintModal) {
-        blueprintModal.addEventListener('click', (e) => {
-            if (e.target === blueprintModal) {
-                blueprintModal.style.display = 'none';
-            }
-        });
-    }
-
-    const btnDownloadBlueprintPng = document.getElementById('btn-download-blueprint-png');
-    if (btnDownloadBlueprintPng) {
-        btnDownloadBlueprintPng.addEventListener('click', () => {
-            const canvas = document.getElementById('blueprint-canvas');
-            if (canvas) {
-                const url = canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.download = `kibuyu-artisan-blueprint-${Date.now()}.png`;
-                link.href = url;
-                link.click();
-                showToast('Artisan template downloaded as PNG', 'success');
-            }
-        });
-    }
-
-    const btnPrintBlueprint = document.getElementById('btn-print-blueprint');
-    if (btnPrintBlueprint) {
-        btnPrintBlueprint.addEventListener('click', () => {
-            window.print();
-        });
-    }
 }
 
 // Processes interactive form settings in real-time
@@ -1375,16 +1321,75 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         });
     });
     
-    // 3. Export PNG button
+    // 3. Take Snapshot button
+    let currentSnapshotDataUrl = null;
     document.getElementById('btn-export')?.addEventListener('click', () => {
-        // Temporarily hide lines helper if needed, or render as is
+        // Temporarily hide helpers to make it a clean viewpoint screenshot
+        const oldGridVis = gridHelper ? gridHelper.visible : true;
+        if (gridHelper) gridHelper.visible = false;
+        
+        const oldMeasureVis = measureGroup ? measureGroup.visible : true;
+        if (measureGroup) measureGroup.visible = false;
+        
+        // Re-render
         renderer.render(scene, camera);
-        const url = renderer.domElement.toDataURL('image/png');
+        
+        // Get snapshot data
+        currentSnapshotDataUrl = renderer.domElement.toDataURL('image/png');
+        
+        // Restore helpers and re-render
+        if (gridHelper) gridHelper.visible = oldGridVis;
+        if (measureGroup) measureGroup.visible = oldMeasureVis;
+        renderer.render(scene, camera);
+        
+        // Show snapshot preview modal
+        const modal = document.getElementById('screenshot-modal');
+        const img = document.getElementById('screenshot-preview-img');
+        if (modal && img) {
+            img.src = currentSnapshotDataUrl;
+            modal.style.display = 'flex';
+        }
+    });
+
+    // Close screenshot modal events
+    document.getElementById('btn-close-screenshot')?.addEventListener('click', () => {
+        const modal = document.getElementById('screenshot-modal');
+        if (modal) modal.style.display = 'none';
+    });
+
+    document.getElementById('screenshot-modal')?.addEventListener('click', (e) => {
+        const modal = document.getElementById('screenshot-modal');
+        if (e.target === modal && modal) {
+            modal.style.display = 'none';
+        }
+    });
+
+    // Download snapshot button
+    document.getElementById('btn-download-screenshot')?.addEventListener('click', () => {
+        if (!currentSnapshotDataUrl) return;
         const link = document.createElement('a');
         link.download = `kibuyu-custom-design-${Date.now()}.png`;
-        link.href = url;
+        link.href = currentSnapshotDataUrl;
         link.click();
-        showToast('Design exported as PNG image', 'success');
+        showToast('Snapshot saved as PNG', 'success');
+    });
+
+    // Copy to clipboard button
+    document.getElementById('btn-copy-screenshot')?.addEventListener('click', async () => {
+        if (!currentSnapshotDataUrl) return;
+        try {
+            const response = await fetch(currentSnapshotDataUrl);
+            const blob = await response.blob();
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'image/png': blob
+                })
+            ]);
+            showToast('Snapshot copied to clipboard!', 'success');
+        } catch (err) {
+            console.error('Failed to copy image to clipboard:', err);
+            showToast('Failed to copy to clipboard. Please save image instead.', 'error');
+        }
     });
     
     // 4. Undo and Redo Button bindings
@@ -1599,419 +1604,4 @@ export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpd
         if (onUpdatePattern) onUpdatePattern();
         if (onUpdateMeasure) onUpdateMeasure();
     }
-}
-
-function generateAndShowBlueprint() {
-    const modal = document.getElementById('blueprint-modal');
-    const canvas = document.getElementById('blueprint-canvas');
-    if (!modal || !canvas) return;
-
-    modal.style.display = 'flex';
-
-    const H_cm = state.gourdHeight || 30.0;
-    
-    // Compute max radius to define template width
-    const segments = 100;
-    let maxRadius_cm = 0;
-    for (let i = 0; i <= segments; i++) {
-        const t = i / segments;
-        const r = getGourdRadius(t);
-        const r_cm = r * (H_cm / 3.0);
-        if (r_cm > maxRadius_cm) maxRadius_cm = r_cm;
-    }
-    const maxCircumference = 2 * Math.PI * maxRadius_cm;
-
-    const scale = 20; // 20 pixels per cm (50 DPI)
-    const padding = 40;
-    const spacer = 80;
-    
-    const viewportHeight = Math.ceil(H_cm * scale + padding * 2);
-    const templateWidth = maxCircumference * scale;
-    
-    // Scan all active local shapes to extract unique design angles
-    const rawAngles = [];
-    for (const zone of state.patternZones) {
-        if (!zone.visible || zone.style === 'off') continue;
-        const isBackground = ['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(zone.type);
-        if (!isBackground) {
-            const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
-            for (let p = 0; p < patchCount; p++) {
-                const offsetTheta = (p / patchCount) * Math.PI * 2;
-                let currentTheta = zone.centerTheta + offsetTheta;
-                while (currentTheta < -Math.PI) currentTheta += Math.PI * 2;
-                while (currentTheta > Math.PI) currentTheta -= Math.PI * 2;
-                rawAngles.push(currentTheta);
-            }
-        }
-    }
-
-    // Cluster similar angles (within 30 degrees / Math.PI / 6 of each other) to avoid duplicate templates for same side
-    const uniqueAngles = [];
-    for (const angle of rawAngles) {
-        let found = false;
-        for (const existing of uniqueAngles) {
-            let diff = Math.abs(angle - existing);
-            diff = ((diff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-            if (Math.abs(diff) < Math.PI / 6) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            uniqueAngles.push(angle);
-        }
-    }
-
-    // If no local shapes exist, default to 1 template centered at 0 degrees
-    if (uniqueAngles.length === 0) {
-        uniqueAngles.push(0);
-    }
-
-    window.activeTemplateCenters = uniqueAngles;
-
-    const n = uniqueAngles.length;
-    const canvasWidth = Math.ceil(templateWidth * n + spacer * (n - 1) + padding * 2);
-    const canvasHeight = viewportHeight + 60; // Extra top space for labels
-    
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    
-    const ctx = canvas.getContext('2d');
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    
-    // Draw fine grid pattern across canvas
-    ctx.strokeStyle = '#f2f2f7';
-    ctx.lineWidth = 1;
-    for (let x = padding; x < canvasWidth - padding; x += scale * 5) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvasHeight);
-        ctx.stroke();
-    }
-    for (let y = padding + 50; y < canvasHeight - padding; y += scale * 5) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvasWidth, y);
-        ctx.stroke();
-    }
-    
-    // Draw title labels
-    ctx.fillStyle = '#111115';
-    ctx.font = 'bold 11px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    for (let i = 0; i < n; i++) {
-        const angle_deg = Math.round(uniqueAngles[i] * 180 / Math.PI);
-        const centerX = padding + i * (templateWidth + spacer) + templateWidth / 2;
-        ctx.fillText(`WRAP TEMPLATE SIDE VIEW (Centered at ${angle_deg}°)`, centerX, 25);
-    }
-    
-    function mapPt(t, theta, templateCenter, customCenterX) {
-        const r = getGourdRadius(t);
-        const r_cm = r * (H_cm / 3.0);
-        const y_cm = t * H_cm;
-        const y_canvas = viewportHeight - padding - y_cm * scale + 50;
-        
-        // Map theta to range [-PI, PI] relative to templateCenter
-        let dTheta = theta - templateCenter;
-        dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-        const adjustedTheta = dTheta;
-        
-        const x_canvas = customCenterX + adjustedTheta * r_cm * scale;
-        
-        return { x: x_canvas, y: y_canvas };
-    }
-
-    // Normalizes paths to domain and splits segments at periodic boundaries to prevent cross-over diagonal lines
-    function preparePathsForAlignment(paths, templateCenter) {
-        const prepared = [];
-        
-        for (const path of paths) {
-            if (path.length === 0) continue;
-            
-            let currentSegment = [];
-            currentSegment.centerTheta = path.centerTheta;
-
-            for (let i = 0; i < path.length; i++) {
-                const pt = path[i];
-                
-                let dTheta = pt.theta - templateCenter;
-                dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-                const normTheta = dTheta;
-                
-                const projectedPt = { t: pt.t, theta: normTheta };
-                
-                if (currentSegment.length > 0) {
-                    const prev = currentSegment[currentSegment.length - 1];
-                    if (Math.abs(projectedPt.theta - prev.theta) > Math.PI) {
-                        if (currentSegment.length >= 2) {
-                            prepared.push(currentSegment);
-                        }
-                        currentSegment = [];
-                        currentSegment.centerTheta = path.centerTheta;
-                    }
-                }
-                
-                currentSegment.push(projectedPt);
-            }
-            
-            if (currentSegment.length >= 2) {
-                prepared.push(currentSegment);
-            }
-        }
-        
-        return prepared;
-    }
-
-    function drawTemplate(centerX, templateCenter) {
-        const thetaMin = templateCenter - Math.PI;
-        const thetaMax = templateCenter + Math.PI;
-
-        // 1. Draw template boundary outline
-        ctx.strokeStyle = '#444455';
-        ctx.lineWidth = 1.8;
-        ctx.setLineDash([5, 5]);
-        
-        ctx.beginPath();
-        // Left silhouette edge
-        for (let i = 0; i <= segments; i++) {
-            const t = i / segments;
-            const pt = mapPt(t, thetaMin, templateCenter, centerX);
-            if (i === 0) ctx.moveTo(pt.x, pt.y);
-            else ctx.lineTo(pt.x, pt.y);
-        }
-        // Top boundary curve (t = 1.0)
-        for (let i = segments; i >= 0; i--) {
-            const t = 1.0;
-            const theta = thetaMin + (i / segments) * (thetaMax - thetaMin);
-            const pt = mapPt(t, theta, templateCenter, centerX);
-            ctx.lineTo(pt.x, pt.y);
-        }
-        // Right silhouette edge
-        for (let i = segments; i >= 0; i--) {
-            const t = i / segments;
-            const pt = mapPt(t, thetaMax, templateCenter, centerX);
-            ctx.lineTo(pt.x, pt.y);
-        }
-        // Bottom boundary curve (t = 0.0)
-        for (let i = 0; i <= segments; i++) {
-            const t = 0.0;
-            const theta = thetaMax - (i / segments) * (thetaMax - thetaMin);
-            const pt = mapPt(t, theta, templateCenter, centerX);
-            ctx.lineTo(pt.x, pt.y);
-        }
-        ctx.closePath();
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // 2. Render all pattern layers conformally projected
-        for (const zone of state.patternZones) {
-            if (!zone.visible || zone.style === 'off') continue;
-            
-            // Render custom image guide outline if loaded
-            if (zone.type === 'custom-image' && zone.customImageDataUrl) {
-                const cached = window.appImageCache && window.appImageCache[zone.customImageDataUrl];
-                if (cached && cached.status === 'loaded' && cached.img) {
-                    const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
-                    for (let p = 0; p < patchCount; p++) {
-                        const offsetTheta = (p / patchCount) * Math.PI * 2;
-                        let currentTheta = zone.centerTheta + offsetTheta;
-                        
-                        // Filter by hemisphere closest template center
-                        let cTheta = currentTheta;
-                        while (cTheta < -Math.PI) cTheta += Math.PI * 2;
-                        while (cTheta > Math.PI) cTheta -= Math.PI * 2;
-                        
-                        let closestCenter = uniqueAngles[0];
-                        let minDist = Infinity;
-                        for (const center of uniqueAngles) {
-                            let diff = Math.abs(cTheta - center);
-                            diff = ((diff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-                            if (Math.abs(diff) < minDist) {
-                                minDist = Math.abs(diff);
-                                closestCenter = center;
-                            }
-                        }
-                        if (Math.abs(closestCenter - templateCenter) > 0.0001) {
-                            continue;
-                        }
-
-                        const centerPt = mapPt(zone.centerT, currentTheta, templateCenter, centerX);
-                        const radius_px = zone.radius * (H_cm / 3.0) * scale;
-                        const size_px = radius_px * 2;
-                        
-                        ctx.save();
-                        ctx.translate(centerPt.x, centerPt.y);
-                        ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
-                        ctx.globalAlpha = 0.18;
-                        ctx.drawImage(cached.img, -radius_px, -radius_px, size_px, size_px);
-                        
-                        ctx.strokeStyle = '#aaaaaa';
-                        ctx.lineWidth = 0.8;
-                        ctx.setLineDash([4, 4]);
-                        ctx.strokeRect(-radius_px, -radius_px, size_px, size_px);
-                        ctx.restore();
-                    }
-                }
-            }
-            
-            let rawPaths = [];
-            const helpers = window.appPatternHelpers || {};
-            
-            if (zone.type === 'custom-image' && zone.customSvgText) {
-                rawPaths = getSvgPaths(zone);
-            } else if (zone.fillType === 'concentric' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
-                rawPaths = helpers.generateConcentricLoops ? helpers.generateConcentricLoops(zone) : [];
-            } else {
-                const patLayout = zone.patternType || 'grid';
-                const horPaths = helpers.generateHorizontalPaths ? helpers.generateHorizontalPaths(patLayout, zone.density, state.patTilt) : [];
-                const verPaths = helpers.generateVerticalPaths ? helpers.generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0) : [];
-                
-                const direction = zone.direction || 'both';
-                if (direction === 'both' || direction === 'horizontal') {
-                    for (const path of horPaths) {
-                        rawPaths.push(...helpers.clipPathToZone(path, zone, templateCenter));
-                    }
-                }
-                if (direction === 'both' || direction === 'vertical') {
-                    for (const path of verPaths) {
-                        rawPaths.push(...helpers.clipPathToZone(path, zone, templateCenter));
-                    }
-                }
-            }
-
-            // Clean paths and split at boundaries to avoid bleeding diagonal lines
-            const paths = preparePathsForAlignment(rawPaths, templateCenter);
-            
-            if (zone.style === 'lines') {
-                ctx.strokeStyle = '#111115';
-                ctx.lineWidth = 1.6;
-                for (const path of paths) {
-                    if (path.length < 2) continue;
-                    
-                    // Filter by hemisphere closest template center
-                    if (path.centerTheta !== undefined) {
-                        let closestCenter = uniqueAngles[0];
-                        let minDist = Infinity;
-                        for (const center of uniqueAngles) {
-                            let diff = Math.abs(path.centerTheta - center);
-                            diff = ((diff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-                            if (Math.abs(diff) < minDist) {
-                                minDist = Math.abs(diff);
-                                closestCenter = center;
-                            }
-                        }
-                        if (Math.abs(closestCenter - templateCenter) > 0.0001) {
-                            continue;
-                        }
-                    }
-
-                    ctx.beginPath();
-                    const start = mapPt(path[0].t, path[0].theta, templateCenter, centerX);
-                    ctx.moveTo(start.x, start.y);
-                    for (let k = 1; k < path.length; k++) {
-                        const pt = mapPt(path[k].t, path[k].theta, templateCenter, centerX);
-                        ctx.lineTo(pt.x, pt.y);
-                    }
-                    ctx.stroke();
-                }
-            } else if (zone.style === 'holes') {
-                ctx.fillStyle = '#22222b';
-                ctx.strokeStyle = '#111115';
-                ctx.lineWidth = 0.8;
-
-                for (const path of paths) {
-                    if (path.length === 0) continue;
-
-                    // Filter by hemisphere closest template center
-                    if (path.centerTheta !== undefined) {
-                        let closestCenter = uniqueAngles[0];
-                        let minDist = Infinity;
-                        for (const center of uniqueAngles) {
-                            let diff = Math.abs(path.centerTheta - center);
-                            diff = ((diff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-                            if (Math.abs(diff) < minDist) {
-                                minDist = Math.abs(diff);
-                                closestCenter = center;
-                            }
-                        }
-                        if (Math.abs(closestCenter - templateCenter) > 0.0001) {
-                            continue;
-                        }
-                    }
-
-                    const holeCount = zone.distMode === 'count' ? zone.holeCount : Math.max(2, Math.round(path.length * zone.density));
-                    const holeSize_px = (zone.holeSize !== undefined ? zone.holeSize : 0.03) * (H_cm / 3.0) * scale;
-                    
-                    const count = Math.max(1, Math.round(holeCount));
-                    const drawHoleShape = (canvasPt) => {
-                        const hShape = zone.holeShape || 'round';
-                        ctx.beginPath();
-                        if (hShape === 'round') {
-                            ctx.arc(canvasPt.x, canvasPt.y, holeSize_px, 0, Math.PI * 2);
-                        } else if (hShape === 'square') {
-                            ctx.rect(canvasPt.x - holeSize_px, canvasPt.y - holeSize_px, holeSize_px * 2, holeSize_px * 2);
-                        } else if (hShape === 'triangle') {
-                            ctx.moveTo(canvasPt.x, canvasPt.y - holeSize_px);
-                            ctx.lineTo(canvasPt.x + holeSize_px * 0.866, canvasPt.y + holeSize_px * 0.5);
-                            ctx.lineTo(canvasPt.x - holeSize_px * 0.866, canvasPt.y + holeSize_px * 0.5);
-                            ctx.closePath();
-                        } else if (hShape === 'wobbly') {
-                            const wobbleFreq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
-                            const wobbleAmp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
-                            for (let w = 0; w <= 32; w++) {
-                                const angle = (w / 32) * Math.PI * 2;
-                                const radiusFactor = 1.0 + wobbleAmp * Math.cos(angle * wobbleFreq);
-                                const px = canvasPt.x + Math.cos(angle) * holeSize_px * radiusFactor;
-                                const py = canvasPt.y + Math.sin(angle) * holeSize_px * radiusFactor;
-                                if (w === 0) ctx.moveTo(px, py);
-                                else ctx.lineTo(px, py);
-                            }
-                            ctx.closePath();
-                        }
-                        ctx.fill();
-                        ctx.stroke();
-                    };
-
-                    if (count === 1) {
-                        const pt = path[Math.floor(path.length / 2)];
-                        const canvasPt = mapPt(pt.t, pt.theta, templateCenter, centerX);
-                        drawHoleShape(canvasPt);
-                    } else {
-                        for (let k = 0; k < count; k++) {
-                            const idx = Math.min(path.length - 1, Math.floor((k / (count - 1)) * (path.length - 1)));
-                            const pt = path[idx];
-                            const canvasPt = mapPt(pt.t, pt.theta, templateCenter, centerX);
-                            drawHoleShape(canvasPt);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Draw all templates side-by-side
-    for (let i = 0; i < n; i++) {
-        const centerX = padding + i * (templateWidth + spacer) + templateWidth / 2;
-        drawTemplate(centerX, uniqueAngles[i]);
-    }
-
-    // Draw 5 x 5 cm print scale validation helper box (Left side)
-    ctx.fillStyle = '#111115';
-    ctx.fillRect(padding, padding + 50, 5 * scale, 5 * scale);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '8px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('5 cm', padding + 2.5 * scale, padding + 50 + 1.8 * scale);
-    ctx.fillText('Calibration', padding + 2.5 * scale, padding + 50 + 2.8 * scale);
-    ctx.fillText('Square', padding + 2.5 * scale, padding + 50 + 3.8 * scale);
-    
-    ctx.fillStyle = '#111115';
-    ctx.font = '9px system-ui, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('📏 5 x 5 cm calibration square', padding, padding + 50 + 6.2 * scale);
 }
