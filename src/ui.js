@@ -1523,39 +1523,23 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         }
     });
     
-    // Mobile sheet close gestures
-    const sheet = document.getElementById('mobile-sheet');
-    const handle = document.getElementById('sheet-handle');
-    let startY = 0, startTransform = 0;
-    
-    handle?.addEventListener('pointerdown', (e) => {
-        startY = e.clientY;
-        startTransform = sheet.classList.contains('open') ? 0 : 1;
-        handle.setPointerCapture(e.pointerId);
-        
-        const onMove = (ev) => {
-            const dy = ev.clientY - startY;
-            const progress = Math.max(0, Math.min(1, startTransform + dy / (window.innerHeight * 0.4)));
-            sheet.style.transform = `translateY(${progress * 110}%)`;
-        };
-        
-        const onUp = () => {
-            handle.removeEventListener('pointermove', onMove);
-            handle.removeEventListener('pointerup', onUp);
-            sheet.style.transform = '';
-            
-            // Check threshold to snap open or close
-            const clientHeight = window.innerHeight;
-            const threshold = clientHeight * 0.15;
-            if (sheet.getBoundingClientRect().top > clientHeight - threshold) {
-                sheet.classList.remove('open');
-            } else {
-                sheet.classList.add('open');
-            }
-        };
-        
-        handle.addEventListener('pointermove', onMove);
-        handle.addEventListener('pointerup', onUp);
+    // Mobile hotspot click listeners
+    document.querySelectorAll('.gourd-hotspot').forEach(btn => {
+        btn.addEventListener('click', () => {
+            openMobileAdjustments(btn.dataset.section, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    });
+
+    // Mobile adjustments bar close button
+    document.getElementById('btn-close-adjustments')?.addEventListener('click', () => {
+        const bar = document.getElementById('mobile-adjustments-bar');
+        if (bar) {
+            bar.classList.remove('open');
+            setTimeout(() => {
+                bar.style.display = 'none';
+            }, 300);
+        }
+        document.querySelectorAll('.gourd-hotspot').forEach(btn => btn.classList.remove('active'));
     });
 }
 
@@ -1603,5 +1587,237 @@ export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpd
         updatePatternGroup(patternGroup, state);
         if (onUpdatePattern) onUpdatePattern();
         if (onUpdateMeasure) onUpdateMeasure();
+    }
+}
+
+export function openMobileAdjustments(section, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure) {
+    const bar = document.getElementById('mobile-adjustments-bar');
+    const title = document.getElementById('adjustments-bar-title');
+    const content = document.getElementById('adjustments-bar-body');
+    if (!bar || !title || !content) return;
+
+    // Highlight current active hotspot button
+    document.querySelectorAll('.gourd-hotspot').forEach(btn => {
+        if (btn.dataset.section === section) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    bar.style.display = 'block';
+    setTimeout(() => bar.classList.add('open'), 10);
+
+    let html = '';
+
+    if (section === 'neck') {
+        title.innerText = 'Adjust Gourd Neck';
+        const hasNeck = state.gourdHasNeck !== false;
+        html = `
+            ${sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm')}
+            ${sliderRow('Neck Height', 'gourd-neckPosition', 0.4, 0.75, 0.01, state.gourdNeckPosition || 0.55)}
+            ${sliderRow('Neck Roundness', 'gourd-neckRoundness', 0.5, 3.0, 0.05, state.gourdNeckRoundness || 1.0)}
+            
+            <div class="control-row" style="margin: 10px 0 6px 0; justify-content: flex-start; gap: 8px;">
+                <input type="checkbox" id="gourd-hasNeck" ${hasNeck ? 'checked' : ''} style="width: auto;">
+                <label for="gourd-hasNeck" style="font-size: 11px; cursor: pointer; color: var(--color-tx);">Has Upper Neck Curvature</label>
+            </div>
+            
+            ${hasNeck ? `
+                ${sliderRow('Upper Neck Width', 'gourd-upperNeckWidth', 1.0, 12.0, 0.1, state.gourdUpperNeckWidth || 3.24, 'cm')}
+                ${sliderRow('Upper Neck Height', 'gourd-upperNeckPosition', 0.6, 0.95, 0.01, state.gourdUpperNeckPosition || 0.78)}
+            ` : ''}
+        `;
+    } else if (section === 'bend') {
+        title.innerText = 'Adjust Shape Bending';
+        html = `
+            ${sliderRow('Lateral Bend (X)', 'gourd-bendX', -5.0, 5.0, 0.1, state.gourdBendX || 0.0, 'cm')}
+            ${sliderRow('Lateral Bend (Z)', 'gourd-bendZ', -5.0, 5.0, 0.1, state.gourdBendZ || 0.0, 'cm')}
+        `;
+    } else if (section === 'body') {
+        title.innerText = 'Adjust Gourd Body';
+        html = `
+            ${sliderRow('Gourd Height', 'gourd-height', 10.0, 60.0, 0.5, state.gourdHeight || 30.0, 'cm')}
+            ${sliderRow('Base Width', 'gourd-baseRadius', 1.0, 10.0, 0.1, state.gourdBaseRadius || 3.5, 'cm')}
+            ${sliderRow('Rim Width', 'gourd-rimRadius', 1.0, 10.0, 0.1, state.gourdRimRadius || 2.7, 'cm')}
+            ${sliderRow('Bulb Width', 'gourd-bulbRadius', 3.0, 20.0, 0.1, state.gourdBulbRadius || 9.0, 'cm')}
+            ${sliderRow('Bulb Height', 'gourd-bulbPosition', 0.1, 0.4, 0.01, state.gourdBulbPosition || 0.25)}
+            ${sliderRow('Bulb Roundness', 'gourd-bulbRoundness', 0.5, 4.0, 0.05, state.gourdBulbRoundness || 1.0)}
+        `;
+    } else if (section === 'pattern') {
+        title.innerText = 'Adjust Surface Patterns';
+        
+        // Find or default selected zone
+        if (!state.activeMobileZoneId && state.patternZones.length > 0) {
+            state.activeMobileZoneId = state.patternZones[0].id;
+        }
+        
+        const zoneOptions = state.patternZones.map(z => {
+            const label = z.name || `${z.type.toUpperCase()} Zone`;
+            return `<option value="${z.id}" ${state.activeMobileZoneId === z.id ? 'selected' : ''}>${label}</option>`;
+        }).join('');
+
+        const activeZone = state.patternZones.find(z => z.id === state.activeMobileZoneId);
+        
+        if (activeZone) {
+            const isLocalShape = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle', 'custom-image'].includes(activeZone.type);
+            const densityProx = Math.max(0, Math.min(100, Math.round(100 * (3.0 - (1.0 / activeZone.density)) / 2.96)));
+            const dashProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - activeZone.dashSpacing) / 0.30)));
+            const holeDistProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - activeZone.holeDistance) / 0.298)));
+            const holeCountProx = Math.max(0, Math.min(100, Math.round(100 * (activeZone.holeCount - 1) / 799)));
+            const leanAngleVal = activeZone.leanAngle !== undefined ? activeZone.leanAngle : 0.0;
+            const hasVertical = activeZone.direction === 'both' || activeZone.direction === 'vertical';
+            const showLean = hasVertical && (!isLocalShape || activeZone.fillType !== 'concentric');
+            const wobbleAmpProx = Math.max(0, Math.min(100, Math.round(100 * (activeZone.holeWobbleAmp || 0) / 0.4)));
+
+            let styleControls = '';
+            if (activeZone.style === 'lines') {
+                styleControls = `
+                    ${activeZone.type !== 'custom-image' ? sliderRow('Spacing', `pat-zone-density-${activeZone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${activeZone.type !== 'custom-image' ? sliderRow('Dash Gap', `pat-zone-dashSpacing-${activeZone.id}`, 0, 100, 1, dashProx) : ''}
+                    ${showLean && activeZone.type !== 'custom-image' ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${activeZone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
+                `;
+            } else if (activeZone.style === 'holes') {
+                styleControls = `
+                    ${activeZone.type !== 'custom-image' ? sliderRow('Row Spacing', `pat-zone-density-${activeZone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${showLean && activeZone.type !== 'custom-image' ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${activeZone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
+                    ${sliderRow('Hole Size', `pat-zone-holeSize-${activeZone.id}`, 0.01, 0.10, 0.005, activeZone.holeSize, 'cm')}
+                    ${activeZone.distMode === 'count' ? `
+                        ${sliderRow('Hole Count', `pat-zone-holeCount-${activeZone.id}`, 0, 100, 1, holeCountProx)}
+                    ` : `
+                        ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${activeZone.id}`, 0, 100, 1, holeDistProx)}
+                    `}
+                `;
+            } else {
+                styleControls = `<p style="color: var(--color-tx-m); font-size: 11px; font-style: italic; margin: 5px 0;">Layer disabled</p>`;
+            }
+
+            let boundsSliders = '';
+            if (activeZone.type === 'hor-band') {
+                boundsSliders = `
+                    ${sliderRow('Height Min', `pat-zone-tMin-${activeZone.id}`, 0.0, 1.0, 0.01, activeZone.tMin)}
+                    ${sliderRow('Height Max', `pat-zone-tMax-${activeZone.id}`, 0.0, 1.0, 0.01, activeZone.tMax)}
+                `;
+            } else if (activeZone.type === 'ver-strip') {
+                boundsSliders = `
+                    ${sliderRow('Angle Min', `pat-zone-thetaMin-${activeZone.id}`, -180, 180, 1, Math.round(activeZone.thetaMin * 180 / Math.PI), '°')}
+                    ${sliderRow('Angle Max', `pat-zone-thetaMax-${activeZone.id}`, -180, 180, 1, Math.round(activeZone.thetaMax * 180 / Math.PI), '°')}
+                `;
+            } else if (activeZone.type === 'diagonal-stripe') {
+                boundsSliders = `
+                    ${sliderRow('Center Height', `pat-zone-centerT-${activeZone.id}`, 0.0, 1.0, 0.01, activeZone.centerT)}
+                    ${sliderRow('Stripe Width', `pat-zone-width-${activeZone.id}`, 0.02, 0.5, 0.01, activeZone.width, 'cm')}
+                    ${sliderRow('Slant Angle', `pat-zone-slantAngle-${activeZone.id}`, -90, 90, 1, activeZone.slantAngle, '°')}
+                `;
+            } else if (activeZone.type === 'circular-patch') {
+                boundsSliders = `
+                    ${sliderRow('Center Height', `pat-zone-centerT-${activeZone.id}`, 0.0, 1.0, 0.01, activeZone.centerT)}
+                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${activeZone.id}`, -180, 180, 1, Math.round(activeZone.centerTheta * 180 / Math.PI), '°')}
+                    ${sliderRow('Patch Radius', `pat-zone-radius-${activeZone.id}`, 0.02, 0.5, 0.01, activeZone.radius, 'cm')}
+                `;
+            } else if (activeZone.type === 'square-patch' || activeZone.type === 'square') {
+                boundsSliders = `
+                    ${sliderRow('Center Height', `pat-zone-centerT-${activeZone.id}`, 0.0, 1.0, 0.01, activeZone.centerT)}
+                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${activeZone.id}`, -180, 180, 1, Math.round(activeZone.centerTheta * 180 / Math.PI), '°')}
+                    ${sliderRow('Patch Size', `pat-zone-radius-${activeZone.id}`, 0.02, 0.5, 0.01, activeZone.radius, 'cm')}
+                    ${sliderRow('Rotation', `pat-zone-shapeRotation-${activeZone.id}`, 0, 360, 1, activeZone.shapeRotation || 0, '°')}
+                `;
+            } else if (['circle', 'custom-image', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(activeZone.type)) {
+                boundsSliders = `
+                    ${sliderRow('Center Height', `pat-zone-centerT-${activeZone.id}`, 0.0, 1.0, 0.01, activeZone.centerT)}
+                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${activeZone.id}`, -180, 180, 1, Math.round(activeZone.centerTheta * 180 / Math.PI), '°')}
+                    ${sliderRow('Shape Size', `pat-zone-radius-${activeZone.id}`, 0.02, 0.6, 0.01, activeZone.radius, 'cm')}
+                    ${sliderRow('Rotation', `pat-zone-shapeRotation-${activeZone.id}`, 0, 360, 1, activeZone.shapeRotation || 0, '°')}
+                `;
+            }
+
+            html = `
+                <div class="control-row" style="margin-bottom: 8px;">
+                    <label class="control-label" style="width: 35%;">Select Layer</label>
+                    <select id="mobile-zone-selector" style="flex: 1; margin-bottom: 0;">
+                        ${zoneOptions}
+                    </select>
+                </div>
+                <div class="control-row" style="margin-bottom: 8px;">
+                    <label class="control-label" style="width: 35%;">Layer Mode</label>
+                    <select id="pat-zone-style-${activeZone.id}" class="mobile-zone-style-select" style="flex: 1; margin-bottom: 0;">
+                        <option value="off" ${activeZone.style === 'off' ? 'selected' : ''}>Disabled / Off</option>
+                        <option value="lines" ${activeZone.style === 'lines' ? 'selected' : ''}>Lines / Grids</option>
+                        <option value="holes" ${activeZone.style === 'holes' ? 'selected' : ''}>Holes / Beads</option>
+                    </select>
+                </div>
+                ${styleControls}
+                ${boundsSliders}
+            `;
+        } else {
+            html = `<p style="color: var(--color-tx-m); font-size: 11px; font-style: italic; text-align: center; margin: 10px 0;">No layers created yet. Create a layer on desktop style viewport.</p>`;
+        }
+    }
+
+    content.innerHTML = html;
+
+    // Attach real-time event handlers to mobile sliders
+    content.querySelectorAll('input[type="range"]').forEach(slider => {
+        const numInput = content.querySelector(`#${slider.id}-num`);
+        
+        const syncValue = (val) => {
+            if (numInput) numInput.value = parseFloat(val).toFixed(2);
+            applyInputChanges(slider.id, val, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        };
+        
+        slider.addEventListener('input', () => syncValue(slider.value));
+        slider.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            syncValue(slider.value);
+        });
+    });
+
+    content.querySelectorAll('input[type="number"]').forEach(numInput => {
+        const slider = content.querySelector(`#${numInput.id.replace('-num', '')}`);
+        
+        const syncValue = (val) => {
+            if (slider) slider.value = val;
+            applyInputChanges(numInput.id.replace('-num', ''), val, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        };
+        
+        numInput.addEventListener('input', () => syncValue(numInput.value));
+        numInput.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            syncValue(numInput.value);
+        });
+    });
+
+    // Special checkbox sync for hasNeck
+    const hasNeckCheck = content.querySelector('#gourd-hasNeck');
+    if (hasNeckCheck) {
+        hasNeckCheck.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            state.gourdHasNeck = hasNeckCheck.checked;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            openMobileAdjustments(section, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    }
+
+    // Special select sync for mobile-zone-selector
+    const zoneSelector = content.querySelector('#mobile-zone-selector');
+    if (zoneSelector) {
+        zoneSelector.addEventListener('change', () => {
+            state.activeMobileZoneId = zoneSelector.value;
+            openMobileAdjustments(section, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    }
+
+    // Special select sync for mobile-zone-style-select
+    const styleSelector = content.querySelector('.mobile-zone-style-select');
+    if (styleSelector) {
+        styleSelector.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            const activeZone = state.patternZones.find(z => z.id === state.activeMobileZoneId);
+            if (activeZone) {
+                activeZone.style = styleSelector.value;
+                onUpdatePattern();
+                openMobileAdjustments(section, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
     }
 }

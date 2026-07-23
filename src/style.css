@@ -831,82 +831,92 @@ input[type="color"]::-webkit-color-swatch {
     display: none !important;
 }
 
-.mobile-bottom-nav {
+.mobile-adjustments-bar {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 56px;
-    background: var(--color-panel);
-    backdrop-filter: blur(16px);
-    border-top: 1px solid var(--color-bdr);
+    background: rgba(26, 26, 29, 0.93);
+    backdrop-filter: blur(20px) saturate(160%);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 8px;
+    padding: 14px 18px 24px;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.65);
+    transform: translateY(105%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+    opacity: 0;
 }
 
-.mobile-nav-btn {
-    flex: 1;
-    height: 100%;
-    background: transparent;
-    border: none;
+.mobile-adjustments-bar.open {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.gourd-hotspot {
+    background: rgba(26, 26, 29, 0.7);
+    border: 1.5px solid var(--color-acc);
+    border-radius: 50%;
+    color: var(--color-acc);
+    width: 32px;
+    height: 32px;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    color: var(--color-tx-m);
+    font-size: 12px;
     cursor: pointer;
-    transition: var(--transition-fast);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 0 10px rgba(214, 168, 67, 0.25);
+    position: relative;
 }
 
-.mobile-nav-btn i {
-    font-size: 15px;
+.gourd-hotspot:hover, .gourd-hotspot:active {
+    transform: translate(-50%, -50%) scale(1.12);
 }
 
-.mobile-nav-btn span {
+.gourd-hotspot.active {
+    background: var(--color-acc);
+    color: var(--color-bg);
+    box-shadow: 0 0 20px var(--color-acc);
+}
+
+.hotspot-pulse {
+    position: absolute;
+    inset: -5px;
+    border: 1.5px solid var(--color-acc);
+    border-radius: 50%;
+    opacity: 0;
+    animation: hotspotPulse 2s infinite;
+    pointer-events: none;
+}
+
+.hotspot-label {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(17, 17, 18, 0.85);
+    color: #fff;
     font-size: 9px;
-    font-family: var(--font-body);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    pointer-events: none;
 }
 
-.mobile-nav-btn:hover {
-    color: var(--color-tx);
-}
-
-.mobile-nav-btn.active {
-    color: var(--color-acc);
-}
-
-.mobile-sheet {
-    position: fixed;
-    bottom: 56px;
-    left: 0;
-    right: 0;
-    max-height: 50vh;
-    background: var(--color-panel);
-    backdrop-filter: blur(16px);
-    border-top: 1px solid var(--color-bdr);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    z-index: 900;
-    transform: translateY(110%);
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-    overflow-y: auto;
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
-}
-
-.mobile-sheet.open {
-    transform: translateY(0);
-}
-
-.mobile-sheet-handle {
-    width: 36px;
-    height: 4px;
-    background: var(--color-panel-hi);
-    border-radius: 2px;
-    margin: 12px auto 8px;
-    cursor: grab;
+@keyframes hotspotPulse {
+    0% {
+        transform: scale(0.9);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.4);
+        opacity: 0;
+    }
 }
 
 /* Animations */
@@ -920,10 +930,10 @@ input[type="color"]::-webkit-color-swatch {
         display: none !important;
     }
     .mobile-only {
-        display: flex !important;
+        display: block !important;
     }
     .app-main {
-        height: calc(100% - 40px - 56px); /* Header: 40px, Mobile Nav: 56px */
+        height: calc(100% - 40px); /* Header: 40px, Sidebar hidden, viewport takes full remaining height */
     }
 }
 @media (prefers-reduced-motion: reduce) {
