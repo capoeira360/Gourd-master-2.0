@@ -459,11 +459,11 @@ export function renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patte
     const parentContainer = document.getElementById('panel-content');
     const mobileContainer = document.getElementById('mobile-sheet-content');
     
-    if (!parentContainer || !mobileContainer) return;
+    if (!parentContainer) return;
     
     const html = getPanelHTML(state.activeTab, gourdMesh, carveGroup, measureGroup);
     parentContainer.innerHTML = html;
-    mobileContainer.innerHTML = html;
+    if (mobileContainer) mobileContainer.innerHTML = html;
     
     // Bind all form controllers inside the generated HTML
     wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
@@ -1270,13 +1270,7 @@ export function selectTool(tool, gourdMesh, carveGroup, measureGroup, patternGro
         });
         renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
         
-        // Show sheet on mobile size
-        if (window.innerWidth <= 768) {
-            document.getElementById('mobile-sheet')?.classList.add('open');
-        }
-    } else {
-        // Close sheet on camera or select tool
-        document.getElementById('mobile-sheet')?.classList.remove('open');
+
     }
     
     // Tool-specific visual actions
