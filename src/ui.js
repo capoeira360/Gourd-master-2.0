@@ -158,6 +158,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'spiral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="spiral" style="padding: 4px; font-size: 10px;">Spiral</button>
                             <button class="option-btn ${zone.patternType === 'flower' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flower" style="padding: 4px; font-size: 10px;">Flower</button>
                             <button class="option-btn ${zone.patternType === 'star' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="star" style="padding: 4px; font-size: 10px;">Star</button>
+                            <button class="option-btn ${zone.patternType === 'organic' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="organic" style="padding: 4px; font-size: 10px;">Organic</button>
                         </div>
                     </div>
                 `;
@@ -210,7 +211,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             if (zone.style === 'lines') {
                 styleControls = `
                     ${zone.type !== 'custom-image' ? sliderRow('Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
-                    ${['flower', 'star'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
+                    ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
                     ${zone.type !== 'custom-image' ? sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx) : ''}
                     ${showLean && zone.type !== 'custom-image' ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
                     <div class="control-row" style="margin-bottom: 10px;">
@@ -225,7 +226,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
                 styleControls = `
                     ${zone.type !== 'custom-image' ? sliderRow('Row Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
-                    ${['flower', 'star'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
+                    ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
                     ${showLean && zone.type !== 'custom-image' ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Hole Shape</label>
