@@ -444,25 +444,23 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
             }
             paths.push(path);
         }
-    } else if (type === 'diamond') {
-        const wraps = 3 * density;
-        const lineCount = Math.round(density * 10);
-        for (let i = 0; i < lineCount; i++) {
-            const startAngle = (i / lineCount) * Math.PI * 2;
+    } else if (type === 'flower') {
+        const ringCount = Math.round(density * 14);
+        for (let i = 1; i < ringCount; i++) {
+            const tBase = i / ringCount;
+            const rBase = getGourdRadius(tBase);
+            if (rBase < 0.04) continue;
             const path = [];
-            for (let j = 0; j <= 100; j++) {
-                const t = 0.03 + (j / 100) * 0.94;
-                const r = getGourdRadius(t);
-                if (r < 0.04) {
-                    if (path.length > 1) paths.push(path);
-                    path.length = 0;
-                    continue;
-                }
-                const a = startAngle + t * Math.PI * wraps;
-                const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
-                path.push({ t, theta: a + twist, rOffset: 0 });
+            const segs = 120;
+            for (let j = 0; j <= segs; j++) {
+                const a = (j / segs) * Math.PI * 2;
+                const waveAmp = 0.02 * density;
+                const wave = Math.sin(6 * a) * waveAmp; // 6 waves around representing 6 petals
+                const tTilt = tBase + wave + (rBase * tanGamma / getGourdHeight()) * Math.cos(a);
+                const t = Math.max(0.01, Math.min(0.99, tTilt));
+                path.push({ t, theta: a, rOffset: 0 });
             }
-            if (path.length > 1) paths.push(path);
+            paths.push(path);
         }
     } else if (type === 'spiral') {
         const spirals = Math.round(density * 6);
@@ -484,30 +482,6 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
             }
             if (path.length > 1) paths.push(path);
         }
-    }
-
-    // Include the horizontal zigzag wave if zigzag type selected
-    if (type === 'zigzag') {
-        const pathsZig = [];
-        const ringCount = Math.round(density * 12);
-        const teeth = Math.round(density * 24);
-        const amp = 0.02 * density;
-        for (let i = 1; i < ringCount; i++) {
-            const tBase = i / ringCount;
-            const rBase = getGourdRadius(tBase);
-            if (rBase < 0.04) continue;
-            const path = [];
-            for (let j = 0; j <= teeth * 2; j++) {
-                const a = (j / (teeth * 2)) * Math.PI * 2;
-                const zigOffset = ((j % 2 === 0) ? amp : -amp);
-                const tTilt = tBase + (rBase * tanGamma / getGourdHeight()) * Math.cos(a);
-                const t = Math.max(0.01, Math.min(0.99, tTilt));
-                path.push({ t, theta: a, rOffset: zigOffset });
-            }
-            path.push({ ...path[0] });
-            pathsZig.push(path);
-        }
-        return pathsZig;
     }
 
     return paths;
@@ -538,43 +512,25 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle
             }
             if (path.length > 1) paths.push(path);
         }
-    } else if (type === 'diamond') {
-        const wraps = 3 * density;
-        const lineCount = Math.round(density * 10);
-        for (let i = 0; i < lineCount; i++) {
-            const startAngle = (i / lineCount) * Math.PI * 2;
+    } else if (type === 'flower') {
+        const merCount = Math.round(density * 10);
+        for (let i = 0; i < merCount; i++) {
+            const baseAngle = (i / merCount) * Math.PI * 2;
             const path = [];
-            for (let j = 0; j <= 100; j++) {
-                const t = 0.03 + (j / 100) * 0.94;
+            for (let j = 0; j <= 120; j++) {
+                const t = 0.03 + (j / 120) * 0.94;
                 const r = getGourdRadius(t);
                 if (r < 0.04) {
                     if (path.length > 1) paths.push(path);
                     path.length = 0;
                     continue;
                 }
-                const a = startAngle - t * Math.PI * wraps;
+                // Serpentine waves climbing up the gourd (6 wave cycles along the height)
+                const waveAmp = 0.05 / Math.max(0.1, r);
+                const wave = Math.sin(t * Math.PI * 6) * waveAmp;
                 const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
                 const leanOffset = (t * getGourdHeight() * leanTan) / Math.max(0.05, r);
-                path.push({ t, theta: a + twist + leanOffset, rOffset: 0 });
-            }
-            if (path.length > 1) paths.push(path);
-        }
-    } else if (type === 'zigzag') {
-        const vCount = Math.round(density * 6);
-        for (let i = 0; i < vCount; i++) {
-            const a = (i / vCount) * Math.PI * 2;
-            const path = [];
-            for (let j = 0; j <= 80; j++) {
-                const t = 0.03 + (j / 80) * 0.94;
-                const r = getGourdRadius(t);
-                if (r < 0.04) {
-                    if (path.length > 1) paths.push(path);
-                    path.length = 0;
-                    continue;
-                }
-                const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
-                const leanOffset = (t * getGourdHeight() * leanTan) / Math.max(0.05, r);
-                path.push({ t, theta: a + twist + leanOffset, rOffset: 0 });
+                path.push({ t, theta: baseAngle + wave + twist + leanOffset, rOffset: 0 });
             }
             if (path.length > 1) paths.push(path);
         }

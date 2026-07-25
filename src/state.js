@@ -5,7 +5,7 @@ export const state = {
     activeTab: 'pattern',
     
     // Pattern parameters
-    patternType: 'grid', // 'grid', 'diamond', 'zigzag', 'spiral'
+    patternType: 'grid', // 'grid', 'spiral', 'flower'
     patternVisible: true,
     gridVisible: true,
     patRotation: 0,

@@ -141,8 +141,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         <label class="control-label" style="width: 35%;">Orientation</label>
                         <select class="zone-direction-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
                             <option value="both" ${zone.direction === 'both' ? 'selected' : ''}>Both Directions</option>
-                            <option value="horizontal" ${zone.direction === 'horizontal' ? 'selected' : ''}>${zone.patternType === 'diamond' ? 'Clockwise' : 'Horizontal'} Only</option>
-                            <option value="vertical" ${zone.direction === 'vertical' ? 'selected' : ''}>${zone.patternType === 'diamond' ? 'Counter-CW' : 'Vertical'} Only</option>
+                            <option value="horizontal" ${zone.direction === 'horizontal' ? 'selected' : ''}>Horizontal Only</option>
+                            <option value="vertical" ${zone.direction === 'vertical' ? 'selected' : ''}>Vertical Only</option>
                         </select>
                     </div>
                 `;
@@ -155,9 +155,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         <label class="control-label" style="margin-bottom: 6px;">Pattern Layout</label>
                         <div class="btn-grid-options" style="width: 100%; margin-bottom: 0;">
                             <button class="option-btn ${zone.patternType === 'grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="grid" style="padding: 4px; font-size: 10px;">Grid</button>
-                            <button class="option-btn ${zone.patternType === 'diamond' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="diamond" style="padding: 4px; font-size: 10px;">Diamond</button>
-                            <button class="option-btn ${zone.patternType === 'zigzag' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="zigzag" style="padding: 4px; font-size: 10px;">Zigzag</button>
                             <button class="option-btn ${zone.patternType === 'spiral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="spiral" style="padding: 4px; font-size: 10px;">Spiral</button>
+                            <button class="option-btn ${zone.patternType === 'flower' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flower" style="padding: 4px; font-size: 10px;">Flower</button>
                         </div>
                     </div>
                 `;
