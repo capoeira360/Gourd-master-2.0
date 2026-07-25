@@ -959,6 +959,11 @@ input[type="color"]::-webkit-color-swatch {
     .mobile-only {
         display: block !important;
     }
+    #mobile-hotspots-overlay {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 18px !important;
+    }
     .app-main {
         height: calc(100% - 40px); /* Header: 40px, Sidebar hidden, viewport takes full remaining height */
     }
