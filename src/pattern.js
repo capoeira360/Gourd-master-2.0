@@ -424,7 +424,7 @@ export function samplePathUniformly(path, stepSize) {
 }
 
 // Generates primary/horizontal paths (rings, CW spirals) with tilt shear
-export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
+export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = null) {
     const paths = [];
     const tanGamma = Math.tan(tiltAngleDeg * Math.PI / 180);
 
