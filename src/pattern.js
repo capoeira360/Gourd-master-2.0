@@ -829,7 +829,14 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
         // Drilled holes
         const holePoints = [];
 
-        if (distMode === 'distance') {
+        if (zone && zone.patternType === 'box-grid') {
+            for (const path of paths) {
+                for (const pt of path) {
+                    if (zone && !isPointInZone(pt.t, pt.theta, zone)) continue;
+                    holePoints.push(pt);
+                }
+            }
+        } else if (distMode === 'distance') {
             const stepSize = holeDistance;
             for (const path of paths) {
                 const sampled = samplePathUniformly(path, stepSize);
