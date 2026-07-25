@@ -208,7 +208,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
             let styleControls = '';
             const leanAngleVal = zone.leanAngle !== undefined ? zone.leanAngle : 0.0;
-            const hasVertical = zone.direction === 'both' || zone.direction === 'vertical';
+            const direction = zone.direction || 'both';
+            const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
             if (zone.style === 'lines') {
