@@ -2,6 +2,16 @@ import * as THREE from 'three';
 import { getGourdRadius, getGourdHeight } from './gourd.js';
 import { state } from './state.js';
 
+function starWave(x, points = 5) {
+    const anglePerPoint = (2 * Math.PI) / points;
+    const phase = (x % anglePerPoint) / anglePerPoint;
+    if (phase < 0.5) {
+        return -1 + phase * 4;
+    } else {
+        return 3 - phase * 4;
+    }
+}
+
 // Calculates a 3D coordinate directly wrapped on the gourd's surface with an offset
 export function getSurfacePoint(t, angle, offset = 0.006, rOffset = 0) {
     const H_three = getGourdHeight();
@@ -463,6 +473,25 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = 
             }
             paths.push(path);
         }
+    } else if (type === 'star') {
+        const ringCount = Math.round(density * 14);
+        for (let i = 1; i < ringCount; i++) {
+            const tBase = i / ringCount;
+            const rBase = getGourdRadius(tBase);
+            if (rBase < 0.04) continue;
+            const path = [];
+            const segs = 120;
+            for (let j = 0; j <= segs; j++) {
+                const a = (j / segs) * Math.PI * 2;
+                const depthVal = zone && zone.flowerDepth !== undefined ? zone.flowerDepth : 0.02;
+                const waveAmp = depthVal * density;
+                const wave = starWave(a, 5) * waveAmp; // 5-pointed star wave
+                const tTilt = tBase + wave + (rBase * tanGamma / getGourdHeight()) * Math.cos(a);
+                const t = Math.max(0.01, Math.min(0.99, tTilt));
+                path.push({ t, theta: a, rOffset: 0 });
+            }
+            paths.push(path);
+        }
     } else if (type === 'spiral') {
         const spirals = Math.round(density * 6);
         const wraps = 5 * density;
@@ -530,6 +559,29 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle
                 const depthVal = zone && zone.flowerDepth !== undefined ? zone.flowerDepth : 0.02;
                 const waveAmp = (depthVal * 2.5) / Math.max(0.1, r);
                 const wave = Math.sin(t * Math.PI * 6) * waveAmp;
+                const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
+                const leanOffset = (t * getGourdHeight() * leanTan) / Math.max(0.05, r);
+                path.push({ t, theta: baseAngle + wave + twist + leanOffset, rOffset: 0 });
+            }
+            if (path.length > 1) paths.push(path);
+        }
+    } else if (type === 'star') {
+        const merCount = Math.round(density * 10);
+        for (let i = 0; i < merCount; i++) {
+            const baseAngle = (i / merCount) * Math.PI * 2;
+            const path = [];
+            for (let j = 0; j <= 120; j++) {
+                const t = 0.03 + (j / 120) * 0.94;
+                const r = getGourdRadius(t);
+                if (r < 0.04) {
+                    if (path.length > 1) paths.push(path);
+                    path.length = 0;
+                    continue;
+                }
+                // Star zig-zag waves climbing up the gourd
+                const depthVal = zone && zone.flowerDepth !== undefined ? zone.flowerDepth : 0.02;
+                const waveAmp = (depthVal * 2.5) / Math.max(0.1, r);
+                const wave = starWave(t * Math.PI, 5) * waveAmp; // 5-pointed star wave
                 const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
                 const leanOffset = (t * getGourdHeight() * leanTan) / Math.max(0.05, r);
                 path.push({ t, theta: baseAngle + wave + twist + leanOffset, rOffset: 0 });
