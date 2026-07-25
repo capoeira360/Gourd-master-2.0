@@ -273,13 +273,6 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
                                 <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
                                 <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}>Square Patch</option>
-                                <option value="circle" ${zone.type === 'circle' ? 'selected' : ''}>Circle Frame</option>
-                                <option value="square" ${zone.type === 'square' ? 'selected' : ''}>Square Frame</option>
-                                <option value="fish" ${zone.type === 'fish' ? 'selected' : ''}>Fish Silhouette</option>
-                                <option value="star" ${zone.type === 'star' ? 'selected' : ''}>5-Point Star</option>
-                                <option value="flower" ${zone.type === 'flower' ? 'selected' : ''}>Flower Rosette</option>
-                                <option value="heart" ${zone.type === 'heart' ? 'selected' : ''}>Heart Shape</option>
-                                <option value="triangle" ${zone.type === 'triangle' ? 'selected' : ''}>Triangle Shape</option>
                                 <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
                             </select>
                         </div>
