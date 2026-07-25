@@ -126,11 +126,17 @@
                     </button>
 
                     <!-- Hotspot for Patterns & Holes -->
-                    <button class="gourd-hotspot hotspot-pattern" data-section="pattern" style="position: absolute; top: 78%; left: 50%; transform: translate(-50%, -50%); pointer-events: auto;" title="Adjust Patterns">
-                        <span class="hotspot-pulse"></span>
-                        <i class="fas fa-shapes"></i>
-                        <span class="hotspot-label">Pattern</span>
-                    </button>
+                    <div class="hotspot-pattern-wrapper" style="position: absolute; top: 78%; left: 50%; transform: translate(-50%, -50%); pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 6;">
+                        <button class="gourd-hotspot hotspot-pattern" data-section="pattern" style="position: static; transform: none;" title="Adjust Patterns">
+                            <span class="hotspot-pulse"></span>
+                            <i class="fas fa-shapes"></i>
+                            <span class="hotspot-label">Pattern</span>
+                        </button>
+                        <!-- Horizontal row of layer indicators -->
+                        <div id="mobile-layer-indicators" class="mobile-layer-indicators" style="display: flex; gap: 6px; justify-content: center; pointer-events: auto;">
+                            <!-- Dynamically generated numbered buttons go here -->
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Viewport Preset Options HUD -->

@@ -478,6 +478,35 @@ export function renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patte
     if (state.activeMobileSection) {
         openMobileAdjustments(state.activeMobileSection, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, true);
     }
+
+    // Refresh mobile layer indicators
+    updateMobileLayerIndicators(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+}
+
+export function updateMobileLayerIndicators(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure) {
+    const container = document.getElementById('mobile-layer-indicators');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    state.patternZones.forEach((zone, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'layer-indicator-btn';
+        if (zone.id === state.activeZoneId) {
+            btn.classList.add('active');
+        }
+        btn.innerText = idx + 1;
+        btn.title = zone.name || `Layer ${idx + 1}`;
+        
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            state.activeZoneId = zone.id;
+            openMobileAdjustments('pattern', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            // Re-render indicators to update active state
+            updateMobileLayerIndicators(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+        
+        container.appendChild(btn);
+    });
 }
 
 // Binds handlers to form inputs and ensures number and range sync
