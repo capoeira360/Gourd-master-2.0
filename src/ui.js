@@ -51,6 +51,11 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
         const photoOpacityProx = Math.round((state.gourdPhotoOpacity || 0.4) * 100);
         const hasNeck = state.gourdHasNeck !== false;
         
+        const neckPos = state.gourdNeckPosition !== undefined ? state.gourdNeckPosition : 0.55;
+        const H = state.gourdHeight || 30.0;
+        const defaultNeckHeight = (1.0 - neckPos) * H;
+        const neckHVal = state.gourdNeckHeight !== undefined ? state.gourdNeckHeight : defaultNeckHeight;
+        
         return `
             <div class="panel-section-title">Photo Guide Scanner</div>
             <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: stretch; gap: 8px;">
@@ -91,7 +96,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             ${hasNeck ? `
                 <div class="panel-section-title">Neck Curvature</div>
                 ${sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm')}
-                ${sliderRow('Neck Height', 'gourd-neckPosition', 0.4, 0.75, 0.01, state.gourdNeckPosition || 0.55)}
+                ${sliderRow('Neck Junction', 'gourd-neckPosition', 0.4, 0.75, 0.01, state.gourdNeckPosition || 0.55)}
+                ${sliderRow('Neck Height', 'gourd-neckHeight', 2.0, 40.0, 0.1, neckHVal, 'cm')}
                 ${sliderRow('Neck Roundness', 'gourd-neckRoundness', 0.5, 3.0, 0.05, state.gourdNeckRoundness || 1.0)}
 
                 <div class="panel-section-title">Upper Neck Curvature</div>
@@ -1049,6 +1055,9 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
         } else if (param === 'neckPosition') {
             state.gourdNeckPosition = valFloat;
             updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+        } else if (param === 'neckHeight') {
+            state.gourdNeckHeight = valFloat;
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
         } else if (param === 'neckRoundness') {
             state.gourdNeckRoundness = valFloat;
             updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
@@ -1617,9 +1626,14 @@ export function openMobileAdjustments(section, gourdMesh, carveGroup, measureGro
     if (section === 'neck') {
         title.innerText = 'Adjust Gourd Neck';
         const hasNeck = state.gourdHasNeck !== false;
+        const neckPos = state.gourdNeckPosition !== undefined ? state.gourdNeckPosition : 0.55;
+        const H = state.gourdHeight || 30.0;
+        const defaultNeckHeight = (1.0 - neckPos) * H;
+        const neckHVal = state.gourdNeckHeight !== undefined ? state.gourdNeckHeight : defaultNeckHeight;
         html = `
             ${sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm')}
-            ${sliderRow('Neck Height', 'gourd-neckPosition', 0.4, 0.75, 0.01, state.gourdNeckPosition || 0.55)}
+            ${sliderRow('Neck Junction', 'gourd-neckPosition', 0.4, 0.75, 0.01, state.gourdNeckPosition || 0.55)}
+            ${sliderRow('Neck Height', 'gourd-neckHeight', 2.0, 40.0, 0.1, neckHVal, 'cm')}
             ${sliderRow('Neck Roundness', 'gourd-neckRoundness', 0.5, 3.0, 0.05, state.gourdNeckRoundness || 1.0)}
             
             <div class="control-row" style="margin: 10px 0 6px 0; justify-content: flex-start; gap: 8px;">

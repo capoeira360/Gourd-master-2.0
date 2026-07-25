@@ -3,7 +3,22 @@ import { state } from './state.js';
 
 export const GOURD_HEIGHT = 3.0;
 export function getGourdHeight() {
-    return (state.gourdHeight || 30.0) * 0.1;
+    const H = state.gourdHeight || 30.0;
+    const neckPos = state.gourdNeckPosition !== undefined ? state.gourdNeckPosition : 0.55;
+    const hasNeck = state.gourdHasNeck !== false;
+    const scaleFactor = 0.1;
+    const H_three = H * scaleFactor;
+    
+    if (!hasNeck) {
+        return H_three;
+    }
+    
+    const H_bulb_three = neckPos * H_three;
+    const defaultNeckHeight = (1.0 - neckPos) * H;
+    const neckH = state.gourdNeckHeight !== undefined ? state.gourdNeckHeight : defaultNeckHeight;
+    const H_neck_three = neckH * scaleFactor;
+    
+    return H_bulb_three + H_neck_three;
 }
 export const PROFILE_SEGS = 80;
 export const RADIAL_SEGS = 64;
@@ -14,8 +29,8 @@ function smoothstep(e0, e1, x) {
     return t * t * (3 - 2 * t);
 }
 
-// Computes profile radius at height t (0 bottom, 1 top)
-export function gourdRadius(t) {
+// Computes raw profile radius at height t (0 bottom, 1 top)
+function gourdRadiusRaw(t) {
     const H = state.gourdHeight || 30.0;
     const rBase = state.gourdBaseRadius || 3.5;
     const rBulb = state.gourdBulbRadius || 9.0;
@@ -66,6 +81,38 @@ export function gourdRadius(t) {
     return Math.max(EPS, r_three);
 }
 
+// Computes stretched profile radius taking gourdNeckHeight into account
+export function gourdRadius(t) {
+    const H = state.gourdHeight || 30.0;
+    const neckPos = state.gourdNeckPosition !== undefined ? state.gourdNeckPosition : 0.55;
+    const hasNeck = state.gourdHasNeck !== false;
+    const scaleFactor = 0.1;
+    const H_three = H * scaleFactor;
+    
+    if (!hasNeck) {
+        return gourdRadiusRaw(t);
+    }
+    
+    const H_bulb_three = neckPos * H_three;
+    const defaultNeckHeight = (1.0 - neckPos) * H;
+    const neckH = state.gourdNeckHeight !== undefined ? state.gourdNeckHeight : defaultNeckHeight;
+    const H_neck_three = neckH * scaleFactor;
+    
+    const H_total_three = H_bulb_three + H_neck_three;
+    if (H_total_three <= 0) return 0;
+    
+    const t_transition = H_bulb_three / H_total_three;
+    
+    let t_profile;
+    if (t < t_transition) {
+        t_profile = (t / Math.max(EPS, t_transition)) * neckPos;
+    } else {
+        t_profile = neckPos + ((t - t_transition) / Math.max(EPS, 1.0 - t_transition)) * (1.0 - neckPos);
+    }
+    
+    return gourdRadiusRaw(t_profile);
+}
+
 // Pre-compute profile for fast interpolation lookups
 const profileCache = [];
 for (let i = 0; i <= PROFILE_SEGS; i++) {
@@ -88,20 +135,19 @@ export function createGourdGeometry() {
         profileCache.push(gourdRadius(i / PROFILE_SEGS));
     }
 
-    const H = state.gourdHeight || 30.0;
+    const H_total_three = getGourdHeight();
     const scaleFactor = 0.1;
-    const H_three = H * scaleFactor;
 
     const points = [];
     for (let i = 0; i <= PROFILE_SEGS; i++) {
         const t = i / PROFILE_SEGS;
         const r = getGourdRadius(t);
-        const y = t * H_three;
+        const y = t * H_total_three;
         points.push(new THREE.Vector2(Math.max(EPS, r), y));
     }
 
     const geometry = new THREE.LatheGeometry(points, RADIAL_SEGS);
-    geometry.translate(0, -H_three / 2, 0);
+    geometry.translate(0, -H_total_three / 2, 0);
 
     // Apply lateral shift (X and Z bending offsets) for uneven gourds
     const bendX = state.gourdBendX || 0;
@@ -110,7 +156,7 @@ export function createGourdGeometry() {
         const posAttr = geometry.attributes.position;
         for (let i = 0; i < posAttr.count; i++) {
             const y = posAttr.getY(i);
-            const t = (y + H_three / 2) / H_three;
+            const t = (y + H_total_three / 2) / H_total_three;
             const factor = Math.pow(t, 2); // straight base, bending towards neck
             const dx = bendX * scaleFactor * factor;
             const dz = bendZ * scaleFactor * factor;
