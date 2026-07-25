@@ -1035,10 +1035,22 @@ input[type="color"]::-webkit-color-swatch {
     border-color: var(--color-acc);
     background: rgba(212, 168, 67, 0.05);
 }
+.zone-action-btn:active {
+    transform: scale(0.92);
+    background: rgba(214, 168, 67, 0.15) !important;
+    border-color: var(--color-acc) !important;
+    box-shadow: 0 0 10px rgba(214, 168, 67, 0.3);
+}
 .zone-action-btn.delete:hover {
     color: #ff5252;
     border-color: #ff5252;
     background: rgba(255, 82, 82, 0.05);
+}
+.zone-action-btn.delete:active {
+    transform: scale(0.92);
+    background: rgba(255, 82, 82, 0.15) !important;
+    border-color: #ff5252 !important;
+    box-shadow: 0 0 10px rgba(255, 82, 82, 0.3);
 }
 .zone-shape-select {
     background: var(--color-bg);

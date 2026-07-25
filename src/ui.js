@@ -513,7 +513,8 @@ export function updateMobileLayerIndicators(gourdMesh, carveGroup, measureGroup,
 function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure) {
     // 1. Sync slider range inputs with number textboxes
     document.querySelectorAll('input[type="range"]').forEach(slider => {
-        const numberField = document.getElementById(slider.id + '-num');
+        const parentRow = slider.closest('.control-row');
+        const numberField = parentRow ? parentRow.querySelector('input[type="number"]') : document.getElementById(slider.id + '-num');
         if (!numberField) return;
         
         slider.addEventListener('input', () => {
@@ -552,9 +553,8 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
     });
     
     // 3. Pattern Zone Management Buttons & Inputs
-    const btnAddZone = document.getElementById('btn-add-zone');
-    if (btnAddZone) {
-        btnAddZone.addEventListener('click', () => {
+    document.querySelectorAll('#btn-add-zone').forEach(btn => {
+        btn.addEventListener('click', () => {
             pushUndoState(gourdMesh);
             const newZone = addPatternZone();
             if (newZone) {
@@ -564,7 +564,7 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (onUpdatePattern) onUpdatePattern();
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
         });
-    }
+    });
 
     document.querySelectorAll('.btn-delete-zone').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -907,13 +907,15 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
     });
 
     // 4. Pattern display toggle
-    const patVis = document.getElementById('pat-visible');
-    if (patVis) {
+    document.querySelectorAll('#pat-visible').forEach(patVis => {
         patVis.addEventListener('change', () => {
             state.patternVisible = patVis.checked;
             patternGroup.visible = state.patternVisible;
+            document.querySelectorAll('#pat-visible').forEach(chk => {
+                chk.checked = state.patternVisible;
+            });
         });
-    }
+    });
     
     // 5. Material color picker
     const matColorPicker = document.getElementById('mat-color');
