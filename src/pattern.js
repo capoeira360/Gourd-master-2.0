@@ -63,13 +63,35 @@ export function isPointInZoneRaw(t, theta, zone) {
     if (!zone) return true;
     if (zone.type === 'full') return true;
 
+    const depthVal = zone.flowerDepth !== undefined ? zone.flowerDepth : 0.02;
+
     if (zone.type === 'hor-band') {
-        return t >= zone.tMin && t <= zone.tMax;
+        let wave = 0;
+        const waveAmp = depthVal * (zone.density || 1.0);
+        if (zone.patternType === 'flower') {
+            wave = Math.sin(6 * theta) * waveAmp;
+        } else if (zone.patternType === 'star') {
+            wave = starWave(theta, 5) * waveAmp;
+        } else if (zone.patternType === 'organic') {
+            wave = organicWave(theta, 3) * waveAmp;
+        }
+        return t >= (zone.tMin + wave) && t <= (zone.tMax + wave);
     }
 
     if (zone.type === 'ver-strip') {
-        let min = zone.thetaMin;
-        let max = zone.thetaMax;
+        let wave = 0;
+        const r = getGourdRadius(t);
+        const waveAmp = (depthVal * 2.5) / Math.max(0.1, r);
+        if (zone.patternType === 'flower') {
+            wave = Math.sin(t * Math.PI * 6) * waveAmp;
+        } else if (zone.patternType === 'star') {
+            wave = starWave(t * Math.PI, 5) * waveAmp;
+        } else if (zone.patternType === 'organic') {
+            wave = organicWave(t * Math.PI, 3) * waveAmp;
+        }
+
+        let min = zone.thetaMin + wave;
+        let max = zone.thetaMax + wave;
         if (min > max) {
             const tmp = min;
             min = max;
@@ -209,9 +231,19 @@ export function isPointInZoneRaw(t, theta, zone) {
         const x = r * theta;
         const slantRad = (zone.slantAngle || 0) * Math.PI / 180;
 
+        let wave = 0;
+        const waveAmp = depthVal * 5.0; // Scale factor matching Three.js scene dimensions
+        if (zone.patternType === 'flower') {
+            wave = Math.sin(6 * theta) * waveAmp;
+        } else if (zone.patternType === 'star') {
+            wave = starWave(theta, 5) * waveAmp;
+        } else if (zone.patternType === 'organic') {
+            wave = organicWave(theta, 3) * waveAmp;
+        }
+
         const proj = y * Math.cos(slantRad) - x * Math.sin(slantRad);
         const centerProj = (zone.centerT * getGourdHeight() - getGourdHeight() / 2) * Math.cos(slantRad);
-        return Math.abs(proj - centerProj) <= (zone.width || 0.15);
+        return Math.abs(proj - centerProj - wave) <= (zone.width || 0.15);
     }
 
     const localShapes = ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'];
