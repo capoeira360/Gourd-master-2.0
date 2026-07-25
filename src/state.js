@@ -48,7 +48,8 @@ export const state = {
             holeWobbleAmp: 0.15,
             flowerDepth: 0.02,
             draftMode: false,
-            tiltSkew: 0.0
+            tiltSkew: 0.0,
+            verDensity: 1.0
         }
     ],
     activeZoneId: 'zone-base',
@@ -331,7 +332,8 @@ export function addPatternZone() {
         customImageDataUrl: null,
         customSvgText: null,
         draftMode: false,
-        tiltSkew: 0.0
+        tiltSkew: 0.0,
+        verDensity: 1.0
     };
     state.patternZones.push(newZone);
     return newZone;

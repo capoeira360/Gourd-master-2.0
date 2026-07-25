@@ -661,8 +661,7 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = 
 // Generates secondary/vertical paths (meridians, CCW spirals) with tilt shear
 export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle = 0, zone = null) {
     const paths = [];
-    const localTilt = zone && zone.tiltSkew !== undefined ? zone.tiltSkew : 0;
-    const tanGamma = Math.tan((tiltAngleDeg + localTilt) * Math.PI / 180);
+    const tanGamma = Math.tan(tiltAngleDeg * Math.PI / 180);
     const leanTan = Math.tan(leanAngle * Math.PI / 180);
 
     if (type === 'box-grid') {
@@ -1329,7 +1328,8 @@ export function updatePatternGroup(group, state) {
 
         const patLayout = zone.patternType || 'grid';
         const horPaths = generateHorizontalPaths(patLayout, zone.density, state.patTilt, zone);
-        const verPaths = generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0, zone);
+        const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
+        const verPaths = generateVerticalPaths(patLayout, verDensityVal, state.patTilt, zone.leanAngle || 0, zone);
 
         const renderLines = zone.style === 'lines' || zone.style === 'both';
         const renderHoles = zone.style === 'holes' || zone.style === 'both';

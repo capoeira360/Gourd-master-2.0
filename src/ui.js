@@ -115,6 +115,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
         const zoneCards = state.patternZones.map((zone, idx) => {
             const s = 1.0 / zone.density;
             const densityProx = Math.max(0, Math.min(100, Math.round(100 * (3.0 - s) / 2.96)));
+            const verS = 1.0 / (zone.verDensity !== undefined ? zone.verDensity : zone.density);
+            const verDensityProx = Math.max(0, Math.min(100, Math.round(100 * (3.0 - verS) / 2.96)));
             const dashProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - zone.dashSpacing) / 0.30)));
             const holeDistProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - zone.holeDistance) / 0.298)));
             const holeCountProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeCount - 1) / 799)));
@@ -211,7 +213,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
             if (zone.style === 'lines') {
                 styleControls = `
-                    ${zone.type !== 'custom-image' ? sliderRow('Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
                     ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
                     ${zone.type !== 'custom-image' ? sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx) : ''}
                     ${zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
@@ -227,7 +230,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 const wobbleAmpProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeWobbleAmp || 0) / 0.4)));
 
                 styleControls = `
-                    ${zone.type !== 'custom-image' ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Row Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
                     ${zone.patternType === 'box-grid' ? sliderRow('Holes per Box', `pat-zone-patchCount-${zone.id}`, 1, 9, 1, zone.patchCount || 1) : ''}
                     ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
                     ${zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
@@ -269,7 +273,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 const wobbleAmpProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeWobbleAmp || 0) / 0.4)));
 
                 styleControls = `
-                    ${zone.type !== 'custom-image' ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Spacing (Density)', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
                     ${zone.patternType === 'box-grid' ? sliderRow('Holes per Box', `pat-zone-patchCount-${zone.id}`, 1, 9, 1, zone.patchCount || 1) : ''}
                     ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
                     ${zone.type !== 'custom-image' ? sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx) : ''}
@@ -1215,6 +1220,9 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
             if (param === 'density') {
                 const s = 3.0 - (valFloat / 100.0) * 2.96;
                 zone.density = 1.0 / s;
+            } else if (param === 'verDensity') {
+                const s = 3.0 - (valFloat / 100.0) * 2.96;
+                zone.verDensity = 1.0 / s;
             } else if (param === 'dashSpacing') {
                 zone.dashSpacing = 0.30 - (valFloat / 100.0) * 0.30;
             } else if (param === 'holeCount') {
