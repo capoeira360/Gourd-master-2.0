@@ -556,7 +556,10 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
     if (btnAddZone) {
         btnAddZone.addEventListener('click', () => {
             pushUndoState(gourdMesh);
-            addPatternZone();
+            const newZone = addPatternZone();
+            if (newZone) {
+                state.activeZoneId = newZone.id;
+            }
             updatePatternGroup(patternGroup, state);
             if (onUpdatePattern) onUpdatePattern();
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
@@ -566,7 +569,12 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
     document.querySelectorAll('.btn-delete-zone').forEach(btn => {
         btn.addEventListener('click', () => {
             pushUndoState(gourdMesh);
-            removePatternZone(btn.dataset.zoneId);
+            const deletedId = btn.dataset.zoneId;
+            const wasActive = (state.activeZoneId === deletedId);
+            removePatternZone(deletedId);
+            if (wasActive) {
+                state.activeZoneId = state.patternZones.length > 0 ? state.patternZones[0].id : null;
+            }
             updatePatternGroup(patternGroup, state);
             if (onUpdatePattern) onUpdatePattern();
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
@@ -598,7 +606,10 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
     document.querySelectorAll('.btn-duplicate-zone').forEach(btn => {
         btn.addEventListener('click', () => {
             pushUndoState(gourdMesh);
-            duplicatePatternZone(btn.dataset.zoneId);
+            const copy = duplicatePatternZone(btn.dataset.zoneId);
+            if (copy) {
+                state.activeZoneId = copy.id;
+            }
             updatePatternGroup(patternGroup, state);
             if (onUpdatePattern) onUpdatePattern();
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);

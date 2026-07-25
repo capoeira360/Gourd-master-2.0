@@ -337,11 +337,12 @@ export function removePatternZone(id) {
 
 export function duplicatePatternZone(id) {
     const zoneToCopy = state.patternZones.find(z => z.id === id);
-    if (!zoneToCopy) return;
+    if (!zoneToCopy) return null;
     const clone = JSON.parse(JSON.stringify(zoneToCopy));
     clone.id = 'zone-' + Math.random().toString(36).substr(2, 9);
     clone.name = clone.name + ' (Copy)';
     state.patternZones.push(clone);
+    return clone;
 }
 
 export function movePatternZoneUp(id) {
