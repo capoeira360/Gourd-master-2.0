@@ -153,12 +153,13 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 patternTypeSelector = `
                     <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: flex-start;">
                         <label class="control-label" style="margin-bottom: 6px;">Pattern Layout</label>
-                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0;">
+                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(3, 1fr);">
                             <button class="option-btn ${zone.patternType === 'grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="grid" style="padding: 4px; font-size: 10px;">Grid</button>
                             <button class="option-btn ${zone.patternType === 'spiral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="spiral" style="padding: 4px; font-size: 10px;">Spiral</button>
                             <button class="option-btn ${zone.patternType === 'flower' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flower" style="padding: 4px; font-size: 10px;">Flower</button>
                             <button class="option-btn ${zone.patternType === 'star' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="star" style="padding: 4px; font-size: 10px;">Star</button>
                             <button class="option-btn ${zone.patternType === 'organic' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="organic" style="padding: 4px; font-size: 10px;">Organic</button>
+                            <button class="option-btn ${zone.patternType === 'box-grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="box-grid" style="padding: 4px; font-size: 10px;">Box Grid</button>
                         </div>
                     </div>
                 `;
@@ -221,11 +222,12 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     </div>
                 `;
             } else if (zone.style === 'holes') {
-                const isWobbly = zone.holeShape === 'wobbly';
+                const showWobble = zone.holeShape === 'wobbly' || zone.holeShape === 'star';
                 const wobbleAmpProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeWobbleAmp || 0) / 0.4)));
 
                 styleControls = `
-                    ${zone.type !== 'custom-image' ? sliderRow('Row Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Row Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.patternType === 'box-grid' ? sliderRow('Holes per Box', `pat-zone-patchCount-${zone.id}`, 1, 9, 1, zone.patchCount || 1) : ''}
                     ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
                     ${showLean && zone.type !== 'custom-image' ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
                     <div class="control-row" style="margin-bottom: 8px;">
@@ -233,24 +235,31 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
                             <option value="round" ${zone.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
                             <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                            <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
                         </select>
                     </div>
                     ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize, 'cm')}
-                    ${isWobbly ? `
-                        ${sliderRow('Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
-                        ${sliderRow('Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
+                    ${showWobble ? `
+                        ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
+                        ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
                     ` : ''}
                     <div class="control-row" style="margin-bottom: 8px;">
-                        <label class="control-label">Layout Mode</label>
-                        <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-cols: 1fr 1fr;">
-                            <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
-                            <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
-                        </div>
+                        <label class="control-label" style="width: 50%;">Draft (Outline Only)</label>
+                        <input type="checkbox" class="zone-draft-checkbox" data-zone-id="${zone.id}" ${zone.draftMode ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
                     </div>
-                    ${zone.distMode === 'count' ? `
-                        ${sliderRow('Hole Count', `pat-zone-holeCount-${zone.id}`, 0, 100, 1, holeCountProx)}
-                    ` : `
-                        ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${zone.id}`, 0, 100, 1, holeDistProx)}
+                    ${zone.patternType === 'box-grid' ? '' : `
+                        <div class="control-row" style="margin-bottom: 8px;">
+                            <label class="control-label">Layout Mode</label>
+                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-cols: 1fr 1fr;">
+                                <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
+                                <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
+                            </div>
+                        </div>
+                        ${zone.distMode === 'count' ? `
+                            ${sliderRow('Hole Count', `pat-zone-holeCount-${zone.id}`, 0, 100, 1, holeCountProx)}
+                        ` : `
+                            ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${zone.id}`, 0, 100, 1, holeDistProx)}
+                        `}
                     `}
                 `;
             } else {
@@ -787,6 +796,20 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (zone) {
                 pushUndoState(gourdMesh);
                 zone.clipBackground = cb.checked;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-draft-checkbox').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const zoneId = cb.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.draftMode = cb.checked;
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);

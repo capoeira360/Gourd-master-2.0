@@ -19,6 +19,62 @@ function organicWave(x, baseFreq = 3) {
          + 0.25 * Math.sin(baseFreq * 3 * x + 0.8);
 }
 
+function getBoxPoints(N) {
+    if (N <= 1) return [{ u: 0.5, v: 0.5 }];
+    if (N === 2) {
+        return [
+            { u: 0.33, v: 0.5 },
+            { u: 0.67, v: 0.5 }
+        ];
+    }
+    if (N === 3) {
+        return [
+            { u: 0.25, v: 0.5 },
+            { u: 0.5, v: 0.5 },
+            { u: 0.75, v: 0.5 }
+        ];
+    }
+    if (N === 4) {
+        return [
+            { u: 0.33, v: 0.33 },
+            { u: 0.67, v: 0.33 },
+            { u: 0.33, v: 0.67 },
+            { u: 0.67, v: 0.67 }
+        ];
+    }
+    if (N === 5) {
+        return [
+            { u: 0.25, v: 0.25 },
+            { u: 0.75, v: 0.25 },
+            { u: 0.5, v: 0.5 },
+            { u: 0.25, v: 0.75 },
+            { u: 0.75, v: 0.75 }
+        ];
+    }
+    if (N === 6) {
+        return [
+            { u: 0.33, v: 0.25 },
+            { u: 0.67, v: 0.25 },
+            { u: 0.33, v: 0.5 },
+            { u: 0.67, v: 0.5 },
+            { u: 0.33, v: 0.75 },
+            { u: 0.67, v: 0.75 }
+        ];
+    }
+    // Default fallback to a grid or ring
+    const pts = [];
+    const side = Math.ceil(Math.sqrt(N));
+    for (let r = 0; r < side; r++) {
+        for (let c = 0; c < side; c++) {
+            if (pts.length >= N) break;
+            const u = side > 1 ? 0.25 + (r / (side - 1)) * 0.5 : 0.5;
+            const v = side > 1 ? 0.25 + (c / (side - 1)) * 0.5 : 0.5;
+            pts.push({ u, v });
+        }
+    }
+    return pts;
+}
+
 // Calculates a 3D coordinate directly wrapped on the gourd's surface with an offset
 export function getSurfacePoint(t, angle, offset = 0.006, rOffset = 0) {
     const H_three = getGourdHeight();
@@ -477,7 +533,29 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = 
     const paths = [];
     const tanGamma = Math.tan(tiltAngleDeg * Math.PI / 180);
 
-    if (type === 'grid') {
+    if (type === 'box-grid') {
+        const ringCount = Math.round(density * 10);
+        const merCount = Math.round(density * 8);
+        const N = zone && zone.patchCount !== undefined ? zone.patchCount : 1;
+        for (let i = 0; i < ringCount; i++) {
+            const t_min = i / ringCount;
+            const t_max = (i + 1) / ringCount;
+            for (let j = 0; j < merCount; j++) {
+                const theta_min = j * (2 * Math.PI) / merCount;
+                const theta_max = (j + 1) * (2 * Math.PI) / merCount;
+                
+                const t_w = t_max - t_min;
+                const theta_w = theta_max - theta_min;
+                const relPoints = getBoxPoints(N);
+                
+                for (const p of relPoints) {
+                    const t = t_min + p.u * t_w;
+                    const theta = theta_min + p.v * theta_w;
+                    paths.push([{ t, theta, rOffset: 0 }]);
+                }
+            }
+        }
+    } else if (type === 'grid') {
         const ringCount = Math.round(density * 14);
         for (let i = 1; i < ringCount; i++) {
             const tBase = i / ringCount;
@@ -580,6 +658,10 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle
     const paths = [];
     const tanGamma = Math.tan(tiltAngleDeg * Math.PI / 180);
     const leanTan = Math.tan(leanAngle * Math.PI / 180);
+
+    if (type === 'box-grid') {
+        return [];
+    }
 
     if (type === 'grid' || type === 'spiral') {
         const merCount = Math.round(density * 10);
@@ -820,29 +902,79 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
         if (holePoints.length === 0) return 0;
 
         let circleGeom;
+        const isDraft = zone && zone.draftMode;
+        
         if (zone && zone.holeShape === 'wobbly') {
             const shape = new THREE.Shape();
-            const segments = 32;
+            const segments = 48;
             const amp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
             const freq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
-            for (let i = 0; i < segments; i++) {
+            
+            for (let i = 0; i <= segments; i++) {
                 const phi = (i / segments) * Math.PI * 2;
                 const r = holeSize * (1.0 + amp * Math.cos(freq * phi));
                 const x = r * Math.cos(phi);
                 const y = r * Math.sin(phi);
-                if (i === 0) {
-                    shape.moveTo(x, y);
-                } else {
-                    shape.lineTo(x, y);
-                }
+                if (i === 0) shape.moveTo(x, y);
+                else shape.lineTo(x, y);
             }
-            shape.closePath();
+            
+            if (isDraft) {
+                const innerPath = new THREE.Path();
+                for (let i = segments; i >= 0; i--) {
+                    const phi = (i / segments) * Math.PI * 2;
+                    const r = holeSize * 0.8 * (1.0 + amp * Math.cos(freq * phi));
+                    const x = r * Math.cos(phi);
+                    const y = r * Math.sin(phi);
+                    if (i === segments) innerPath.moveTo(x, y);
+                    else innerPath.lineTo(x, y);
+                }
+                shape.holes.push(innerPath);
+            } else {
+                shape.closePath();
+            }
+            circleGeom = new THREE.ShapeGeometry(shape);
+        } else if (zone && zone.holeShape === 'star') {
+            const shape = new THREE.Shape();
+            const segments = 60;
+            const amp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
+            const freq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
+            
+            for (let i = 0; i <= segments; i++) {
+                const phi = (i / segments) * Math.PI * 2;
+                const r = holeSize * (1.0 + amp * starWave(phi, freq));
+                const x = r * Math.cos(phi);
+                const y = r * Math.sin(phi);
+                if (i === 0) shape.moveTo(x, y);
+                else shape.lineTo(x, y);
+            }
+            
+            if (isDraft) {
+                const innerPath = new THREE.Path();
+                for (let i = segments; i >= 0; i--) {
+                    const phi = (i / segments) * Math.PI * 2;
+                    const r = holeSize * 0.8 * (1.0 + amp * starWave(phi, freq));
+                    const x = r * Math.cos(phi);
+                    const y = r * Math.sin(phi);
+                    if (i === segments) innerPath.moveTo(x, y);
+                    else innerPath.lineTo(x, y);
+                }
+                shape.holes.push(innerPath);
+            } else {
+                shape.closePath();
+            }
             circleGeom = new THREE.ShapeGeometry(shape);
         } else {
-            circleGeom = new THREE.CircleGeometry(holeSize, 14);
+            if (isDraft) {
+                circleGeom = new THREE.RingGeometry(holeSize * 0.85, holeSize, 32);
+            } else {
+                circleGeom = new THREE.CircleGeometry(holeSize, 14);
+            }
         }
+        
+        const colorVal = isDraft ? new THREE.Color(zone.color || '#000000') : new THREE.Color(0x090706);
         const circleMat = new THREE.MeshBasicMaterial({
-            color: 0x090706,
+            color: colorVal,
             side: THREE.DoubleSide,
             transparent: true,
             opacity: opacity,
