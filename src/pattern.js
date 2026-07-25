@@ -1080,6 +1080,7 @@ export function updatePatternGroup(group, state) {
 
         const direction = zone.direction || 'both';
 
+        const patLayout = zone.patternType || 'grid';
         const horPaths = generateHorizontalPaths(patLayout, zone.density, state.patTilt, zone);
         const verPaths = generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0, zone);
 
