@@ -244,7 +244,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
                     ` : ''}
                     <div class="control-row" style="margin-bottom: 8px;">
-                        <label class="control-label" style="width: 50%;">Draft (Outline Only)</label>
+                        <label class="control-label" style="width: 50%;">Draughts (Checkerboard)</label>
                         <input type="checkbox" class="zone-draft-checkbox" data-zone-id="${zone.id}" ${zone.draftMode ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
                     </div>
                     ${zone.patternType === 'box-grid' ? '' : `

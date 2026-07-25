@@ -537,10 +537,14 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = 
         const ringCount = Math.round(density * 10);
         const merCount = Math.round(density * 8);
         const N = zone && zone.patchCount !== undefined ? zone.patchCount : 1;
+        const isDraughts = zone && zone.draftMode;
         for (let i = 0; i < ringCount; i++) {
             const t_min = i / ringCount;
             const t_max = (i + 1) / ringCount;
             for (let j = 0; j < merCount; j++) {
+                if (isDraughts && (i + j) % 2 !== 0) {
+                    continue;
+                }
                 const theta_min = j * (2 * Math.PI) / merCount;
                 const theta_max = (j + 1) * (2 * Math.PI) / merCount;
                 
@@ -909,15 +913,12 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
         if (holePoints.length === 0) return 0;
 
         let circleGeom;
-        const isDraft = zone && zone.draftMode;
-        
         if (zone && zone.holeShape === 'wobbly') {
             const shape = new THREE.Shape();
             const segments = 48;
             const amp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
             const freq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
-            
-            for (let i = 0; i <= segments; i++) {
+            for (let i = 0; i < segments; i++) {
                 const phi = (i / segments) * Math.PI * 2;
                 const r = holeSize * (1.0 + amp * Math.cos(freq * phi));
                 const x = r * Math.cos(phi);
@@ -925,29 +926,14 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
                 if (i === 0) shape.moveTo(x, y);
                 else shape.lineTo(x, y);
             }
-            
-            if (isDraft) {
-                const innerPath = new THREE.Path();
-                for (let i = segments; i >= 0; i--) {
-                    const phi = (i / segments) * Math.PI * 2;
-                    const r = holeSize * 0.8 * (1.0 + amp * Math.cos(freq * phi));
-                    const x = r * Math.cos(phi);
-                    const y = r * Math.sin(phi);
-                    if (i === segments) innerPath.moveTo(x, y);
-                    else innerPath.lineTo(x, y);
-                }
-                shape.holes.push(innerPath);
-            } else {
-                shape.closePath();
-            }
+            shape.closePath();
             circleGeom = new THREE.ShapeGeometry(shape);
         } else if (zone && zone.holeShape === 'star') {
             const shape = new THREE.Shape();
             const segments = 60;
             const amp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
             const freq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
-            
-            for (let i = 0; i <= segments; i++) {
+            for (let i = 0; i < segments; i++) {
                 const phi = (i / segments) * Math.PI * 2;
                 const r = holeSize * (1.0 + amp * starWave(phi, freq));
                 const x = r * Math.cos(phi);
@@ -955,33 +941,14 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
                 if (i === 0) shape.moveTo(x, y);
                 else shape.lineTo(x, y);
             }
-            
-            if (isDraft) {
-                const innerPath = new THREE.Path();
-                for (let i = segments; i >= 0; i--) {
-                    const phi = (i / segments) * Math.PI * 2;
-                    const r = holeSize * 0.8 * (1.0 + amp * starWave(phi, freq));
-                    const x = r * Math.cos(phi);
-                    const y = r * Math.sin(phi);
-                    if (i === segments) innerPath.moveTo(x, y);
-                    else innerPath.lineTo(x, y);
-                }
-                shape.holes.push(innerPath);
-            } else {
-                shape.closePath();
-            }
+            shape.closePath();
             circleGeom = new THREE.ShapeGeometry(shape);
         } else {
-            if (isDraft) {
-                circleGeom = new THREE.RingGeometry(holeSize * 0.85, holeSize, 32);
-            } else {
-                circleGeom = new THREE.CircleGeometry(holeSize, 14);
-            }
+            circleGeom = new THREE.CircleGeometry(holeSize, 14);
         }
         
-        const colorVal = isDraft ? new THREE.Color(zone.color || '#000000') : new THREE.Color(0x090706);
         const circleMat = new THREE.MeshBasicMaterial({
-            color: colorVal,
+            color: 0x090706,
             side: THREE.DoubleSide,
             transparent: true,
             opacity: opacity,
