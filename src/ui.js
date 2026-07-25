@@ -214,7 +214,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     ${zone.type !== 'custom-image' ? sliderRow('Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
                     ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
                     ${zone.type !== 'custom-image' ? sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx) : ''}
-                    ${showLean && zone.type !== 'custom-image' ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°') : ''}
                     <div class="control-row" style="margin-bottom: 10px;">
                         <label class="control-label">Line Color</label>
                         <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
@@ -229,7 +230,60 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     ${zone.type !== 'custom-image' ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Row Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
                     ${zone.patternType === 'box-grid' ? sliderRow('Holes per Box', `pat-zone-patchCount-${zone.id}`, 1, 9, 1, zone.patchCount || 1) : ''}
                     ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
-                    ${showLean && zone.type !== 'custom-image' ? sliderRow('Line Lean Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, leanAngleVal, '°') : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°') : ''}
+                    <div class="control-row" style="margin-bottom: 8px;">
+                        <label class="control-label" style="width: 35%;">Hole Shape</label>
+                        <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                            <option value="round" ${zone.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
+                            <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                            <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                        </select>
+                    </div>
+                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize, 'cm')}
+                    ${showWobble ? `
+                        ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
+                        ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
+                    ` : ''}
+                    <div class="control-row" style="margin-bottom: 8px;">
+                        <label class="control-label" style="width: 50%;">Draughts (Checkerboard)</label>
+                        <input type="checkbox" class="zone-draft-checkbox" data-zone-id="${zone.id}" ${zone.draftMode ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                    </div>
+                    ${zone.patternType === 'box-grid' ? '' : `
+                        <div class="control-row" style="margin-bottom: 8px;">
+                            <label class="control-label">Layout Mode</label>
+                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-cols: 1fr 1fr;">
+                                <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
+                                <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
+                            </div>
+                        </div>
+                        ${zone.distMode === 'count' ? `
+                            ${sliderRow('Hole Count', `pat-zone-holeCount-${zone.id}`, 0, 100, 1, holeCountProx)}
+                        ` : `
+                            ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${zone.id}`, 0, 100, 1, holeDistProx)}
+                        `}
+                    `}
+                `;
+            } else if (zone.style === 'both') {
+                const showWobble = zone.holeShape === 'wobbly' || zone.holeShape === 'star';
+                const wobbleAmpProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeWobbleAmp || 0) / 0.4)));
+
+                styleControls = `
+                    ${zone.type !== 'custom-image' ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Spacing (Density)', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${zone.patternType === 'box-grid' ? sliderRow('Holes per Box', `pat-zone-patchCount-${zone.id}`, 1, 9, 1, zone.patchCount || 1) : ''}
+                    ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx) : ''}
+                    
+                    ${zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
+                    ${zone.type !== 'custom-image' ? sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°') : ''}
+                    
+                    <div class="control-row" style="margin-bottom: 10px;">
+                        <label class="control-label">Line Color</label>
+                        <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
+                        <span class="color-hex-text">${zone.color.toUpperCase()}</span>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--color-bg-border); margin: 12px 0 8px 0; padding-top: 8px; font-weight: 600; font-size: 11px; color: var(--color-tx-h);">Hole Configuration</div>
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Hole Shape</label>
                         <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
@@ -316,9 +370,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${patternTypeSelector}
                         ${boundsSliders}
                         
-                        <div class="btn-grid-options" style="grid-template-cols: repeat(3, 1fr); margin-top: 10px; margin-bottom: 8px;">
+                        <div class="btn-grid-options" style="grid-template-columns: repeat(4, 1fr); margin-top: 10px; margin-bottom: 8px;">
                             <button class="option-btn ${zone.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="lines">Lines</button>
                             <button class="option-btn ${zone.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="holes">Holes</button>
+                            <button class="option-btn ${zone.style === 'both' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="both">Both</button>
                             <button class="option-btn ${zone.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="off">Off</button>
                         </div>
                         

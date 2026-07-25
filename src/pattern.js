@@ -531,7 +531,8 @@ export function samplePathUniformly(path, stepSize) {
 // Generates primary/horizontal paths (rings, CW spirals) with tilt shear
 export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = null) {
     const paths = [];
-    const tanGamma = Math.tan(tiltAngleDeg * Math.PI / 180);
+    const localTilt = zone && zone.tiltSkew !== undefined ? zone.tiltSkew : 0;
+    const tanGamma = Math.tan((tiltAngleDeg + localTilt) * Math.PI / 180);
 
     if (type === 'box-grid') {
         const ringCount = Math.round(density * 10);
@@ -660,7 +661,8 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = 
 // Generates secondary/vertical paths (meridians, CCW spirals) with tilt shear
 export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle = 0, zone = null) {
     const paths = [];
-    const tanGamma = Math.tan(tiltAngleDeg * Math.PI / 180);
+    const localTilt = zone && zone.tiltSkew !== undefined ? zone.tiltSkew : 0;
+    const tanGamma = Math.tan((tiltAngleDeg + localTilt) * Math.PI / 180);
     const leanTan = Math.tan(leanAngle * Math.PI / 180);
 
     if (type === 'box-grid') {
@@ -1271,7 +1273,9 @@ export function updatePatternGroup(group, state) {
 
         if (zone.type === 'custom-image' && zone.customSvgText) {
             const svgPaths = getSvgPaths(zone);
-            if (zone.style === 'lines') {
+            const renderLines = zone.style === 'lines' || zone.style === 'both';
+            const renderHoles = zone.style === 'holes' || zone.style === 'both';
+            if (renderLines) {
                 hasLines = true;
                 const count = renderPatternLayer(
                     group, svgPaths, 'lines', zone.color, zone.opacity,
@@ -1279,7 +1283,8 @@ export function updatePatternGroup(group, state) {
                     zone.dashSpacing, zone
                 );
                 totalCount += count;
-            } else if (zone.style === 'holes') {
+            }
+            if (renderHoles) {
                 hasHoles = true;
                 const count = renderPatternLayer(
                     group, svgPaths, 'holes', zone.color, zone.opacity,
@@ -1297,7 +1302,9 @@ export function updatePatternGroup(group, state) {
                 return loop.filter(pt => pt.t >= 0 && pt.t <= 1);
             }).filter(loop => loop.length >= 2);
 
-            if (zone.style === 'lines') {
+            const renderLines = zone.style === 'lines' || zone.style === 'both';
+            const renderHoles = zone.style === 'holes' || zone.style === 'both';
+            if (renderLines) {
                 hasLines = true;
                 const count = renderPatternLayer(
                     group, validLoops, 'lines', zone.color, zone.opacity,
@@ -1305,7 +1312,8 @@ export function updatePatternGroup(group, state) {
                     zone.dashSpacing, zone
                 );
                 totalCount += count;
-            } else if (zone.style === 'holes') {
+            }
+            if (renderHoles) {
                 hasHoles = true;
                 const count = renderPatternLayer(
                     group, validLoops, 'holes', zone.color, zone.opacity,
@@ -1323,7 +1331,10 @@ export function updatePatternGroup(group, state) {
         const horPaths = generateHorizontalPaths(patLayout, zone.density, state.patTilt, zone);
         const verPaths = generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0, zone);
 
-        if (zone.style === 'lines') {
+        const renderLines = zone.style === 'lines' || zone.style === 'both';
+        const renderHoles = zone.style === 'holes' || zone.style === 'both';
+
+        if (renderLines) {
             hasLines = true;
             
             if (direction === 'both' || direction === 'horizontal') {
@@ -1351,7 +1362,9 @@ export function updatePatternGroup(group, state) {
                 );
                 totalCount += countVer;
             }
-        } else if (zone.style === 'holes') {
+        }
+        
+        if (renderHoles) {
             hasHoles = true;
 
             if (direction === 'both' || direction === 'horizontal') {
