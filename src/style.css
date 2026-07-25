@@ -880,15 +880,6 @@ input[type="color"]::-webkit-color-swatch {
     box-shadow: 0 0 20px var(--color-acc);
 }
 
-.hotspot-pulse {
-    position: absolute;
-    inset: -5px;
-    border: 1.5px solid var(--color-acc);
-    border-radius: 50%;
-    opacity: 0;
-    animation: hotspotPulse 2s infinite;
-    pointer-events: none;
-}
 
 .hotspot-label-tag {
     background: rgba(17, 17, 18, 0.85);
@@ -935,16 +926,6 @@ input[type="color"]::-webkit-color-swatch {
     box-shadow: 0 0 8px rgba(214, 168, 67, 0.4);
 }
 
-@keyframes hotspotPulse {
-    0% {
-        transform: scale(0.9);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(1.4);
-        opacity: 0;
-    }
-}
 
 /* Animations */
 @keyframes spin {
