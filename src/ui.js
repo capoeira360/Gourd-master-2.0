@@ -1398,6 +1398,8 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         if (modal && img) {
             img.src = currentSnapshotDataUrl;
             modal.style.display = 'flex';
+            const overlay = document.getElementById('mobile-hotspots-overlay');
+            if (overlay) overlay.style.display = 'none';
         }
     });
 
@@ -1405,12 +1407,16 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
     document.getElementById('btn-close-screenshot')?.addEventListener('click', () => {
         const modal = document.getElementById('screenshot-modal');
         if (modal) modal.style.display = 'none';
+        const overlay = document.getElementById('mobile-hotspots-overlay');
+        if (overlay) overlay.style.display = 'flex';
     });
 
     document.getElementById('screenshot-modal')?.addEventListener('click', (e) => {
         const modal = document.getElementById('screenshot-modal');
         if (e.target === modal && modal) {
             modal.style.display = 'none';
+            const overlay = document.getElementById('mobile-hotspots-overlay');
+            if (overlay) overlay.style.display = 'flex';
         }
     });
 

@@ -890,11 +890,7 @@ input[type="color"]::-webkit-color-swatch {
     pointer-events: none;
 }
 
-.hotspot-label {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 50%;
-    transform: translateX(-50%);
+.hotspot-label-tag {
     background: rgba(17, 17, 18, 0.85);
     color: #fff;
     font-size: 9px;
@@ -906,6 +902,7 @@ input[type="color"]::-webkit-color-swatch {
     white-space: nowrap;
     border: 1px solid rgba(255, 255, 255, 0.05);
     pointer-events: none;
+    transition: opacity 0.2s ease;
 }
 
 .layer-indicator-btn {

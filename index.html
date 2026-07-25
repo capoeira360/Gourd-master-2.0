@@ -103,39 +103,45 @@
                 <div class="viewport-vignette" style="z-index: 2;"></div>
 
                 <!-- ===== MOBILE HOTSPOTS OVERLAY ===== -->
-                <div id="mobile-hotspots-overlay" class="mobile-only" style="position: absolute; inset: 0; pointer-events: none; z-index: 5;">
+                <div id="mobile-hotspots-overlay" class="mobile-only" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; align-items: flex-end; pointer-events: none; z-index: 5;">
                     <!-- Hotspot for Mouth / Upper Neck -->
-                    <button class="gourd-hotspot hotspot-mouth" data-section="neck" style="position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%); pointer-events: auto;" title="Adjust Neck">
-                        <span class="hotspot-pulse"></span>
-                        <i class="fas fa-arrows-alt-v"></i>
-                        <span class="hotspot-label">Neck</span>
-                    </button>
+                    <div class="hotspot-container" style="pointer-events: auto; display: flex; align-items: center; gap: 8px;">
+                        <span class="hotspot-label-tag">Neck</span>
+                        <button class="gourd-hotspot hotspot-mouth" data-section="neck" style="position: static; transform: none;" title="Adjust Neck">
+                            <span class="hotspot-pulse"></span>
+                            <i class="fas fa-arrows-alt-v"></i>
+                        </button>
+                    </div>
 
                     <!-- Hotspot for Bend / Neck Curvature -->
-                    <button class="gourd-hotspot hotspot-bend" data-section="bend" style="position: absolute; top: 43%; left: 63%; transform: translate(-50%, -50%); pointer-events: auto;" title="Adjust Bending">
-                        <span class="hotspot-pulse"></span>
-                        <i class="fas fa-compress-arrows-alt"></i>
-                        <span class="hotspot-label">Bend</span>
-                    </button>
+                    <div class="hotspot-container" style="pointer-events: auto; display: flex; align-items: center; gap: 8px;">
+                        <span class="hotspot-label-tag">Bend</span>
+                        <button class="gourd-hotspot hotspot-bend" data-section="bend" style="position: static; transform: none;" title="Adjust Bending">
+                            <span class="hotspot-pulse"></span>
+                            <i class="fas fa-compress-arrows-alt"></i>
+                        </button>
+                    </div>
 
                     <!-- Hotspot for Gourd Bulb / Body -->
-                    <button class="gourd-hotspot hotspot-bulb" data-section="body" style="position: absolute; top: 62%; left: 35%; transform: translate(-50%, -50%); pointer-events: auto;" title="Adjust Body">
-                        <span class="hotspot-pulse"></span>
-                        <i class="fas fa-expand-arrows-alt"></i>
-                        <span class="hotspot-label">Body</span>
-                    </button>
+                    <div class="hotspot-container" style="pointer-events: auto; display: flex; align-items: center; gap: 8px;">
+                        <span class="hotspot-label-tag">Body</span>
+                        <button class="gourd-hotspot hotspot-bulb" data-section="body" style="position: static; transform: none;" title="Adjust Body">
+                            <span class="hotspot-pulse"></span>
+                            <i class="fas fa-expand-arrows-alt"></i>
+                        </button>
+                    </div>
 
                     <!-- Hotspot for Patterns & Holes -->
-                    <div class="hotspot-pattern-wrapper" style="position: absolute; top: 78%; left: 50%; transform: translate(-50%, -50%); pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 6;">
+                    <div class="hotspot-container" style="pointer-events: auto; display: flex; align-items: center; gap: 8px;">
+                        <!-- Horizontal row of layer indicators protruding leftwards -->
+                        <div id="mobile-layer-indicators" class="mobile-layer-indicators" style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; margin-right: 4px; pointer-events: auto;">
+                            <!-- Dynamically generated numbered buttons go here -->
+                        </div>
+                        <span class="hotspot-label-tag">Pattern</span>
                         <button class="gourd-hotspot hotspot-pattern" data-section="pattern" style="position: static; transform: none;" title="Adjust Patterns">
                             <span class="hotspot-pulse"></span>
                             <i class="fas fa-shapes"></i>
-                            <span class="hotspot-label">Pattern</span>
                         </button>
-                        <!-- Horizontal row of layer indicators -->
-                        <div id="mobile-layer-indicators" class="mobile-layer-indicators" style="display: flex; gap: 6px; justify-content: center; pointer-events: auto;">
-                            <!-- Dynamically generated numbered buttons go here -->
-                        </div>
                     </div>
                 </div>
 
