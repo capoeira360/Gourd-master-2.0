@@ -454,7 +454,8 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
             const segs = 120;
             for (let j = 0; j <= segs; j++) {
                 const a = (j / segs) * Math.PI * 2;
-                const waveAmp = 0.02 * density;
+                const depthVal = zone && zone.flowerDepth !== undefined ? zone.flowerDepth : 0.02;
+                const waveAmp = depthVal * density;
                 const wave = Math.sin(6 * a) * waveAmp; // 6 waves around representing 6 petals
                 const tTilt = tBase + wave + (rBase * tanGamma / getGourdHeight()) * Math.cos(a);
                 const t = Math.max(0.01, Math.min(0.99, tTilt));
@@ -488,7 +489,7 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0) {
 }
 
 // Generates secondary/vertical paths (meridians, CCW spirals) with tilt shear
-export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle = 0) {
+export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle = 0, zone = null) {
     const paths = [];
     const tanGamma = Math.tan(tiltAngleDeg * Math.PI / 180);
     const leanTan = Math.tan(leanAngle * Math.PI / 180);
@@ -526,7 +527,8 @@ export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle
                     continue;
                 }
                 // Serpentine waves climbing up the gourd (6 wave cycles along the height)
-                const waveAmp = 0.05 / Math.max(0.1, r);
+                const depthVal = zone && zone.flowerDepth !== undefined ? zone.flowerDepth : 0.02;
+                const waveAmp = (depthVal * 2.5) / Math.max(0.1, r);
                 const wave = Math.sin(t * Math.PI * 6) * waveAmp;
                 const twist = ((t - 0.5) * getGourdHeight() / Math.max(0.1, r)) * tanGamma;
                 const leanOffset = (t * getGourdHeight() * leanTan) / Math.max(0.05, r);
@@ -1078,9 +1080,8 @@ export function updatePatternGroup(group, state) {
 
         const direction = zone.direction || 'both';
 
-        const patLayout = zone.patternType || 'grid';
-        const horPaths = generateHorizontalPaths(patLayout, zone.density, state.patTilt);
-        const verPaths = generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0);
+        const horPaths = generateHorizontalPaths(patLayout, zone.density, state.patTilt, zone);
+        const verPaths = generateVerticalPaths(patLayout, zone.density, state.patTilt, zone.leanAngle || 0, zone);
 
         if (zone.style === 'lines') {
             hasLines = true;

@@ -45,7 +45,8 @@ export const state = {
             patternType: 'grid',
             holeShape: 'round',
             holeWobbleFreq: 5,
-            holeWobbleAmp: 0.15
+            holeWobbleAmp: 0.15,
+            flowerDepth: 0.02
         }
     ],
     activeZoneId: 'zone-base',
@@ -320,6 +321,7 @@ export function addPatternZone() {
         holeShape: 'round',
         holeWobbleFreq: 5,
         holeWobbleAmp: 0.15,
+        flowerDepth: 0.02,
         leanAngle: 0.0,
         maskMode: 'include',
         patchCount: 1,
