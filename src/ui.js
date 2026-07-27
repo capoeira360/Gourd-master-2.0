@@ -184,6 +184,13 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     ${sliderRow('Stripe Width', `pat-zone-width-${zone.id}`, 0.02, 0.5, 0.01, zone.width, 'cm')}
                     ${sliderRow('Slant Angle', `pat-zone-slantAngle-${zone.id}`, -90, 90, 1, zone.slantAngle, '°')}
                 `;
+            } else if (zone.type === 'diagonal-frame') {
+                boundsSliders = `
+                    ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
+                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
+                    ${sliderRow('Stripe Width', `pat-zone-width-${zone.id}`, 0.02, 0.5, 0.01, zone.width, 'cm')}
+                    ${sliderRow('Slant Angle', `pat-zone-slantAngle-${zone.id}`, -90, 90, 1, zone.slantAngle, '°')}
+                `;
             } else if (zone.type === 'circular-patch') {
                 boundsSliders = `
                     ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
@@ -340,6 +347,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <option value="hor-band" ${zone.type === 'hor-band' ? 'selected' : ''}>Horizontal Band</option>
                                 <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
                                 <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
+                                <option value="diagonal-frame" ${zone.type === 'diagonal-frame' ? 'selected' : ''}>Diagonal Frame</option>
                                 <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
                                 <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}>Square Patch</option>
                                 <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
@@ -820,6 +828,7 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         'hor-band': 'Height Band',
         'ver-strip': 'Vertical Strip',
         'diagonal-stripe': 'Diagonal Stripe',
+        'diagonal-frame': 'Diagonal Frame',
         'circular-patch': 'Circular Patch',
         'square-patch': 'Square Patch',
         'circle': 'Circle Frame',

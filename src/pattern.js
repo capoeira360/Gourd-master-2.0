@@ -302,6 +302,33 @@ export function isPointInZoneRaw(t, theta, zone) {
         return Math.abs(proj - centerProj - wave) <= (zone.width || 0.15);
     }
 
+    if (zone.type === 'diagonal-frame') {
+        const y = t * getGourdHeight() - getGourdHeight() / 2;
+        const r = getGourdRadius(t);
+        const slantRad = (zone.slantAngle || 0) * Math.PI / 180;
+        
+        const centerT = zone.centerT !== undefined ? zone.centerT : 0.5;
+        const centerT_y = centerT * getGourdHeight() - getGourdHeight() / 2;
+        
+        const amp = r * Math.tan(slantRad);
+        const centerTheta = zone.centerTheta !== undefined ? zone.centerTheta : 0;
+        const targetY = centerT_y + amp * Math.cos(theta - centerTheta);
+        
+        let wave = 0;
+        const waveAmp = depthVal * 5.0;
+        if (zone.patternType === 'flower') {
+            wave = Math.sin(6 * theta) * waveAmp;
+        } else if (zone.patternType === 'star') {
+            wave = starWave(theta, 5) * waveAmp;
+        } else if (zone.patternType === 'organic') {
+            wave = organicWave(theta, 3) * waveAmp;
+        }
+        
+        const dy = Math.abs(y - targetY - wave);
+        const thickness = zone.width || 0.15;
+        return dy <= thickness / 2;
+    }
+
     const localShapes = ['circle', 'fish', 'star', 'flower', 'heart', 'triangle'];
     if (localShapes.includes(zone.type)) {
         const dt = t - zone.centerT;
@@ -371,7 +398,7 @@ export function isPointInZone(t, theta, zone, templateCenter = null) {
 
     // 2. Check cross-layer clipping
     // Local shape/image layers themselves are NEVER clipped by other layers (enabling stacking/overlaying)
-    const isBackgroundZone = ['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(zone.type);
+    const isBackgroundZone = ['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type);
     if (!isBackgroundZone) {
         return true;
     }
@@ -384,7 +411,7 @@ export function isPointInZone(t, theta, zone, templateCenter = null) {
         if (otherZone.style === 'off' || otherZone.visible === false) continue;
         if (otherZone.clipBackground === false) continue;
 
-        const isOtherLocal = !['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(otherZone.type);
+        const isOtherLocal = !['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(otherZone.type);
         if (isOtherLocal) {
             // Check if this otherZone instance belongs to the current templateCenter
             if (templateCenter !== null && window.activeTemplateCenters && window.activeTemplateCenters.length > 0) {
@@ -441,7 +468,7 @@ export function clipPathToZone(path, zone, templateCenter = null) {
     const subPaths = [];
     let currentSubPath = [];
 
-    const isLocalZone = zone && !['full', 'hor-band', 'ver-strip', 'diagonal-stripe'].includes(zone.type);
+    const isLocalZone = zone && !['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type);
 
     const finalizeSubPath = (sub) => {
         if (sub.length >= 2) {
