@@ -250,7 +250,6 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <option value="round" ${zone.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
                             <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
                             <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
-                            <option value="numbered" ${zone.holeShape === 'numbered' ? 'selected' : ''}>Numbered Drill</option>
                         </select>
                     </div>
                     ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 1, 6, 1, zone.holeSize || 3, 'mm')}
@@ -258,6 +257,11 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
                     ` : ''}
+                    <div class="control-row" style="margin-bottom: 10px;">
+                        <label class="control-label">Hole Color</label>
+                        <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
+                        <span class="color-hex-text">${zone.color.toUpperCase()}</span>
+                    </div>
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 50%;">Draughts (Checkerboard)</label>
                         <input type="checkbox" class="zone-draft-checkbox" data-zone-id="${zone.id}" ${zone.draftMode ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
@@ -304,7 +308,6 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <option value="round" ${zone.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
                             <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
                             <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
-                            <option value="numbered" ${zone.holeShape === 'numbered' ? 'selected' : ''}>Numbered Drill</option>
                         </select>
                     </div>
                     ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 1, 6, 1, zone.holeSize || 3, 'mm')}

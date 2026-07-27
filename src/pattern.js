@@ -19,61 +19,6 @@ function organicWave(x, baseFreq = 3) {
          + 0.25 * Math.sin(baseFreq * 3 * x + 0.8);
 }
 
-function isDarkColor(hex) {
-    const color = hex.replace('#', '');
-    if (color.length !== 6) return false;
-    const r = parseInt(color.substring(0, 2), 16);
-    const g = parseInt(color.substring(2, 4), 16);
-    const b = parseInt(color.substring(4, 6), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness < 135;
-}
-
-const numberedTextureCache = {};
-function getNumberedHoleTexture(number, colorHex) {
-    const key = `${number}_${colorHex}`;
-    if (numberedTextureCache[key]) {
-        return numberedTextureCache[key];
-    }
-    
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, 128, 128);
-    
-    // Draw solid background circle
-    const bgCol = colorHex || '#ffffff';
-    ctx.beginPath();
-    ctx.arc(64, 64, 58, 0, Math.PI * 2);
-    ctx.fillStyle = bgCol;
-    ctx.fill();
-    
-    // Draw high-contrast border and text
-    const useWhiteText = isDarkColor(bgCol);
-    const strokeCol = useWhiteText ? '#ffffff' : '#090706';
-    
-    // Draw border ring
-    ctx.beginPath();
-    ctx.arc(64, 64, 52, 0, Math.PI * 2);
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = strokeCol;
-    ctx.stroke();
-    
-    // Draw text number
-    ctx.fillStyle = strokeCol;
-    ctx.font = 'bold 74px "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(number), 64, 64);
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.LinearFilter;
-    texture.needsUpdate = true;
-    numberedTextureCache[key] = texture;
-    return texture;
-}
-
 function getBoxPoints(N) {
     if (N <= 1) return [{ u: 0.5, v: 0.5 }];
     if (N === 2) {
@@ -1026,68 +971,50 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
         const actualHoleSize = mmSize * 0.015;
 
         let circleGeom;
-        let circleMat;
-        const isNumbered = zone && zone.holeShape === 'numbered';
-
-        if (isNumbered) {
-            circleGeom = new THREE.PlaneGeometry(2 * actualHoleSize, 2 * actualHoleSize);
-            const textureNum = Math.round(mmSize);
-            const textTex = getNumberedHoleTexture(textureNum, zone.color || '#090706');
-            
-            circleMat = new THREE.MeshBasicMaterial({
-                map: textTex,
-                side: THREE.DoubleSide,
-                transparent: true,
-                alphaTest: 0.5,
-                opacity: opacity,
-                depthTest: true,
-                depthWrite: true
-            });
-            circleMat.userData = { originalOpacity: opacity };
-        } else {
-            if (zone && zone.holeShape === 'wobbly') {
-                const shape = new THREE.Shape();
-                const segments = 48;
-                const amp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
-                const freq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
-                for (let i = 0; i < segments; i++) {
-                    const phi = (i / segments) * Math.PI * 2;
-                    const r = actualHoleSize * (1.0 + amp * Math.cos(freq * phi));
-                    const x = r * Math.cos(phi);
-                    const y = r * Math.sin(phi);
-                    if (i === 0) shape.moveTo(x, y);
-                    else shape.lineTo(x, y);
-                }
-                shape.closePath();
-                circleGeom = new THREE.ShapeGeometry(shape);
-            } else if (zone && zone.holeShape === 'star') {
-                const shape = new THREE.Shape();
-                const segments = 60;
-                const amp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
-                const freq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
-                for (let i = 0; i < segments; i++) {
-                    const phi = (i / segments) * Math.PI * 2;
-                    const r = actualHoleSize * (1.0 + amp * starWave(phi, freq));
-                    const x = r * Math.cos(phi);
-                    const y = r * Math.sin(phi);
-                    if (i === 0) shape.moveTo(x, y);
-                    else shape.lineTo(x, y);
-                }
-                shape.closePath();
-                circleGeom = new THREE.ShapeGeometry(shape);
-            } else {
-                circleGeom = new THREE.CircleGeometry(actualHoleSize, 14);
+        if (zone && zone.holeShape === 'wobbly') {
+            const shape = new THREE.Shape();
+            const segments = 48;
+            const amp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
+            const freq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
+            for (let i = 0; i < segments; i++) {
+                const phi = (i / segments) * Math.PI * 2;
+                const r = actualHoleSize * (1.0 + amp * Math.cos(freq * phi));
+                const x = r * Math.cos(phi);
+                const y = r * Math.sin(phi);
+                if (i === 0) shape.moveTo(x, y);
+                else shape.lineTo(x, y);
             }
-            
-            circleMat = new THREE.MeshBasicMaterial({
-                color: 0x090706,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: opacity,
-                depthTest: true,
-                depthWrite: false
-            });
+            shape.closePath();
+            circleGeom = new THREE.ShapeGeometry(shape);
+        } else if (zone && zone.holeShape === 'star') {
+            const shape = new THREE.Shape();
+            const segments = 60;
+            const amp = zone.holeWobbleAmp !== undefined ? zone.holeWobbleAmp : 0.15;
+            const freq = zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5;
+            for (let i = 0; i < segments; i++) {
+                const phi = (i / segments) * Math.PI * 2;
+                const r = actualHoleSize * (1.0 + amp * starWave(phi, freq));
+                const x = r * Math.cos(phi);
+                const y = r * Math.sin(phi);
+                if (i === 0) shape.moveTo(x, y);
+                else shape.lineTo(x, y);
+            }
+            shape.closePath();
+            circleGeom = new THREE.ShapeGeometry(shape);
+        } else {
+            circleGeom = new THREE.CircleGeometry(actualHoleSize, 14);
         }
+        
+        const color = new THREE.Color(colorHex);
+        const circleMat = new THREE.MeshBasicMaterial({
+            color: color,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: opacity,
+            depthTest: true,
+            depthWrite: false
+        });
+        circleMat.userData = { originalOpacity: opacity };
 
         const instancedMesh = new THREE.InstancedMesh(circleGeom, circleMat, holePoints.length);
         instancedMesh.renderOrder = renderOrderVal;
@@ -1096,8 +1023,7 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
         const upVector = new THREE.Vector3(0, 0, 1);
 
         for (const pt of holePoints) {
-            const hOffset = isNumbered ? 0.004 : 0.002;
-            const pos = getSurfacePoint(pt.t, pt.theta, hOffset, pt.rOffset || 0);
+            const pos = getSurfacePoint(pt.t, pt.theta, 0.002, pt.rOffset || 0);
             const norm = getSurfaceNormal(pt.t, pt.theta);
 
             const quaternion = new THREE.Quaternion();
