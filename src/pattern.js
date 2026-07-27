@@ -529,13 +529,26 @@ export function samplePathUniformly(path, stepSize) {
 }
 
 // Generates primary/horizontal paths (rings, CW spirals) with tilt shear
-export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = null) {
+export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = null, forHoles = false) {
     const paths = [];
     const localTilt = zone && zone.tiltSkew !== undefined ? zone.tiltSkew : 0;
     const tanGamma = Math.tan((tiltAngleDeg + localTilt) * Math.PI / 180);
 
     if (type === 'box-grid') {
         const ringCount = Math.round(density * 10);
+        if (!forHoles) {
+            for (let i = 0; i <= ringCount; i++) {
+                const t = i / ringCount;
+                const path = [];
+                const steps = 120;
+                for (let j = 0; j <= steps; j++) {
+                    const a = (j / steps) * Math.PI * 2;
+                    path.push({ t, theta: a, rOffset: 0 });
+                }
+                paths.push(path);
+            }
+            return paths;
+        }
         const merCount = Math.round(density * 8);
         const N = zone && zone.patchCount !== undefined ? zone.patchCount : 1;
         const isDraughts = zone && zone.draftMode;
@@ -659,13 +672,27 @@ export function generateHorizontalPaths(type, density, tiltAngleDeg = 0, zone = 
 }
 
 // Generates secondary/vertical paths (meridians, CCW spirals) with tilt shear
-export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle = 0, zone = null) {
+export function generateVerticalPaths(type, density, tiltAngleDeg = 0, leanAngle = 0, zone = null, forHoles = false) {
     const paths = [];
     const tanGamma = Math.tan(tiltAngleDeg * Math.PI / 180);
     const leanTan = Math.tan(leanAngle * Math.PI / 180);
 
     if (type === 'box-grid') {
-        return [];
+        if (forHoles) {
+            return [];
+        }
+        const merCount = Math.round(density * 8);
+        for (let i = 0; i < merCount; i++) {
+            const a = (i / merCount) * Math.PI * 2;
+            const path = [];
+            const steps = 60;
+            for (let j = 0; j <= steps; j++) {
+                const t = j / steps;
+                path.push({ t, theta: a, rOffset: 0 });
+            }
+            paths.push(path);
+        }
+        return paths;
     }
 
     if (type === 'grid' || type === 'spiral') {
@@ -1327,19 +1354,18 @@ export function updatePatternGroup(group, state) {
         const direction = zone.direction || 'both';
 
         const patLayout = zone.patternType || 'grid';
-        const horPaths = generateHorizontalPaths(patLayout, zone.density, state.patTilt, zone);
-        const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
-        const verPaths = generateVerticalPaths(patLayout, verDensityVal, state.patTilt, zone.leanAngle || 0, zone);
-
         const renderLines = zone.style === 'lines' || zone.style === 'both';
         const renderHoles = zone.style === 'holes' || zone.style === 'both';
 
         if (renderLines) {
             hasLines = true;
+            const horPathsLines = generateHorizontalPaths(patLayout, zone.density, state.patTilt, zone, false);
+            const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
+            const verPathsLines = generateVerticalPaths(patLayout, verDensityVal, state.patTilt, zone.leanAngle || 0, zone, false);
             
             if (direction === 'both' || direction === 'horizontal') {
                 const clippedHor = [];
-                for (const path of horPaths) {
+                for (const path of horPathsLines) {
                     clippedHor.push(...clipPathToZone(path, zone));
                 }
                 const countHor = renderPatternLayer(
@@ -1352,7 +1378,7 @@ export function updatePatternGroup(group, state) {
 
             if (direction === 'both' || direction === 'vertical') {
                 const clippedVer = [];
-                for (const path of verPaths) {
+                for (const path of verPathsLines) {
                     clippedVer.push(...clipPathToZone(path, zone));
                 }
                 const countVer = renderPatternLayer(
@@ -1366,10 +1392,13 @@ export function updatePatternGroup(group, state) {
         
         if (renderHoles) {
             hasHoles = true;
+            const horPathsHoles = generateHorizontalPaths(patLayout, zone.density, state.patTilt, zone, true);
+            const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
+            const verPathsHoles = generateVerticalPaths(patLayout, verDensityVal, state.patTilt, zone.leanAngle || 0, zone, true);
 
             if (direction === 'both' || direction === 'horizontal') {
                 const countHor = renderPatternLayer(
-                    group, horPaths, 'holes', zone.color, zone.opacity,
+                    group, horPathsHoles, 'holes', zone.color, zone.opacity,
                     zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
                     zone.dashSpacing, zone
                 );
@@ -1378,7 +1407,7 @@ export function updatePatternGroup(group, state) {
 
             if (direction === 'both' || direction === 'vertical') {
                 const countVer = renderPatternLayer(
-                    group, verPaths, 'holes', zone.color, zone.opacity,
+                    group, verPathsHoles, 'holes', zone.color, zone.opacity,
                     zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
                     zone.dashSpacing, zone
                 );
