@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getGourdRadius, getGourdHeight } from './gourd.js';
+import { getGourdRadius, getGourdHeight, createGourdGeometry } from './gourd.js';
 import { state } from './state.js';
 
 function starWave(x, points = 5) {
@@ -1299,6 +1299,78 @@ export function getSvgPaths(zone) {
     return paths;
 }
 
+function renderClipBackground(group, zone) {
+    if (!zone || zone.type === 'full') return;
+    
+    // 1. Generate an alpha map canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    
+    // Clear to transparent
+    ctx.clearRect(0, 0, 256, 256);
+    
+    const imgData = ctx.createImageData(256, 256);
+    const data = imgData.data;
+    
+    for (let y = 0; y < 256; y++) {
+        // v coordinate goes from 0.0 at bottom to 1.0 at top
+        const v = (255 - y) / 255;
+        const t = v;
+        
+        for (let x = 0; x < 256; x++) {
+            // u coordinate goes from 0.0 to 1.0
+            const u = x / 255;
+            const theta = u * 2 * Math.PI - Math.PI; // map to [-PI, PI]
+            
+            // Check if the point (t, theta) is inside the zone
+            const inZone = isPointInZoneRaw(t, theta, zone);
+            
+            const pixelIdx = (y * 256 + x) * 4;
+            if (inZone) {
+                data[pixelIdx] = 255;
+                data[pixelIdx + 1] = 255;
+                data[pixelIdx + 2] = 255;
+                data[pixelIdx + 3] = 255;
+            } else {
+                data[pixelIdx] = 0;
+                data[pixelIdx + 1] = 0;
+                data[pixelIdx + 2] = 0;
+                data[pixelIdx + 3] = 0;
+            }
+        }
+    }
+    
+    ctx.putImageData(imgData, 0, 0);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
+    
+    const geom = createGourdGeometry();
+    
+    const bgOpacity = zone.bgOpacity !== undefined ? zone.bgOpacity : 0.35;
+    const mat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(zone.color),
+        alphaMap: texture,
+        transparent: true,
+        opacity: (zone.opacity !== undefined ? zone.opacity : 1.0) * bgOpacity,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -0.5,
+        polygonOffsetUnits: -0.5
+    });
+    
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.renderOrder = 850;
+    group.add(mesh);
+}
+
 // Rebuilds pattern inside a parent THREE.Group (handles lines and instanced holes)
 export function updatePatternGroup(group, state) {
     // Clear old children
@@ -1326,6 +1398,11 @@ export function updatePatternGroup(group, state) {
     // Render each pattern zone individually
     for (const zone of state.patternZones) {
         if (zone.style === 'off' || zone.visible === false) continue;
+
+        // Render solid shape background if configured
+        if (zone.type !== 'full' && zone.showBgFill) {
+            renderClipBackground(group, zone);
+        }
 
         if (zone.type === 'custom-image' && zone.customSvgText) {
             const svgPaths = getSvgPaths(zone);

@@ -393,6 +393,14 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             </div>
                             ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
                         ` : ''}
+
+                        ${zone.type !== 'full' ? `
+                            <div class="control-row" style="margin-bottom: 8px;">
+                                <label class="control-label" style="width: 50%;">Show Background Fill</label>
+                                <input type="checkbox" class="zone-show-bg-fill-checkbox" data-zone-id="${zone.id}" ${zone.showBgFill ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                            </div>
+                            ${zone.showBgFill ? sliderRow('Background Opacity', `pat-zone-bgOpacity-${zone.id}`, 0.0, 1.0, 0.05, zone.bgOpacity !== undefined ? zone.bgOpacity : 0.35) : ''}
+                        ` : ''}
                         
                         ${fillTypeSelect}
                         ${orientationSelect}
@@ -887,6 +895,20 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (zone) {
                 pushUndoState(gourdMesh);
                 zone.clipBackground = cb.checked;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-show-bg-fill-checkbox').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const zoneId = cb.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.showBgFill = cb.checked;
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
