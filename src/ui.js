@@ -35,6 +35,16 @@ function sliderRow(label, id, min, max, step, value, unit = '') {
     </div>`;
 }
 
+function isDarkColor(hex) {
+    const color = hex.replace('#', '');
+    if (color.length !== 6) return false;
+    const r = parseInt(color.substring(0, 2), 16);
+    const g = parseInt(color.substring(2, 4), 16);
+    const b = parseInt(color.substring(4, 6), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness < 135;
+}
+
 // Helper to convert hex string to THREE.Color
 function setMeshColor(gourdMesh, hex) {
     if (gourdMesh) {
@@ -410,7 +420,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <span style="margin-right: 8px; font-size: 10px; color: var(--color-tx-m); display: flex; align-items: center;">
                                 <i class="fas ${isActive ? 'fa-chevron-down' : 'fa-chevron-right'}"></i>
                             </span>
-                            <input type="text" class="zone-name-input" data-zone-id="${zone.id}" value="${zone.name}" style="font-weight: ${isActive ? '600' : 'normal'};">
+                            <input type="text" class="zone-name-input" data-zone-id="${zone.id}" value="${zone.name}" style="color: ${zone.color}; font-weight: ${isActive ? '600' : 'normal'};">
                         </div>
                         <div class="zone-card-actions">
                             <button class="zone-action-btn btn-move-up-zone" data-zone-id="${zone.id}" title="Move Up" ${idx === 0 ? 'disabled style="opacity: 0.35; cursor: not-allowed;"' : ''}>▲</button>
@@ -570,8 +580,14 @@ export function updateMobileLayerIndicators(gourdMesh, carveGroup, measureGroup,
     state.patternZones.forEach((zone, idx) => {
         const btn = document.createElement('button');
         btn.className = 'layer-indicator-btn';
+        btn.style.borderColor = zone.color;
         if (zone.id === state.activeZoneId) {
             btn.classList.add('active');
+            btn.style.backgroundColor = zone.color;
+            btn.style.color = isDarkColor(zone.color) ? '#ffffff' : '#090706';
+        } else {
+            btn.style.color = zone.color;
+            btn.style.backgroundColor = 'transparent';
         }
         btn.innerText = idx + 1;
         btn.title = zone.name || `Layer ${idx + 1}`;
