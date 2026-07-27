@@ -1485,6 +1485,128 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
     });
     
     // 3. Take Snapshot button
+    function generateSnapshotDefaultNotes() {
+        let notes = "";
+        
+        // Camera angle details if OrbitControls is active
+        const controls = window.appControls;
+        if (controls && controls.object) {
+            const cam = controls.object;
+            const target = controls.target || new THREE.Vector3(0, 0, 0);
+            const dir = new THREE.Vector3().subVectors(cam.position, target).normalize();
+            
+            // Calculate spherical polar coordinates (theta: azimuth, phi: polar)
+            const polarRad = Math.acos(Math.max(-1, Math.min(1, dir.y)));
+            const azimuthRad = Math.atan2(dir.x, dir.z);
+            
+            const polarDeg = Math.round(polarRad * (180 / Math.PI));
+            const azimuthDeg = Math.round(azimuthRad * (180 / Math.PI));
+            
+            notes += `View Angle: Pitch ${90 - polarDeg}°, Yaw ${azimuthDeg}°\n`;
+        }
+        
+        // Active design layers
+        if (state && state.patternZones && state.patternZones.length > 0) {
+            notes += "Active Layers:\n";
+            state.patternZones.forEach((zone, idx) => {
+                if (zone.style !== 'off') {
+                    const name = zone.name || `Layer ${idx + 1}`;
+                    const styleName = zone.style.charAt(0).toUpperCase() + zone.style.slice(1);
+                    const patName = zone.patternType ? zone.patternType.replace('-', ' ') : 'default';
+                    notes += `• ${name}: ${styleName} (${patName})\n`;
+                }
+            });
+        }
+        
+        return notes;
+    }
+
+    function generateCompositeScreenshot(base64Image, noteText, callback) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            const w = img.width;
+            const h = img.height;
+            
+            // Create offscreen canvas with extra height at the bottom for the spec card
+            const footerHeight = 160;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h + footerHeight;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // 1. Draw original WebGL screenshot
+            ctx.drawImage(img, 0, 0);
+            
+            // 2. Draw footer card background
+            ctx.fillStyle = "#1e1e24"; // Match modal content background
+            ctx.fillRect(0, h, w, footerHeight);
+            
+            // 3. Draw border separator
+            ctx.fillStyle = "#2a2a30";
+            ctx.fillRect(0, h, w, 2);
+            
+            // 4. Draw Branding logo
+            ctx.fillStyle = "#D4A843";
+            ctx.font = "bold 18px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+            ctx.fillText("KIBUYU DESIGN STUDIO", 30, h + 35);
+            
+            // 5. Draw Note details (wrapped)
+            ctx.fillStyle = "#e0e0e5";
+            ctx.font = "12px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+            
+            const lines = noteText.split('\n');
+            let currentY = h + 60;
+            const lineHeight = 18;
+            
+            for (const line of lines) {
+                if (currentY > h + footerHeight - 12) break; // clip if overflowing
+                ctx.fillText(line, 30, currentY);
+                currentY += lineHeight;
+            }
+            
+            // Right Column: Color Swatches
+            const swatchesX = w - 240;
+            ctx.fillStyle = "#a0a0a5";
+            ctx.font = "bold 11px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+            ctx.fillText("ACTIVE COLOR PALETTE", swatchesX, h + 32);
+            
+            if (state && state.patternZones) {
+                const activeColors = [...new Set(
+                    state.patternZones
+                        .filter(zone => zone.style !== 'off')
+                        .map(zone => zone.color)
+                )];
+                
+                let swatchOffset = 0;
+                activeColors.forEach(colorHex => {
+                    const cx = swatchesX + swatchOffset * 36 + 12;
+                    const cy = h + 65;
+                    
+                    // Draw circle swatch background
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+                    ctx.fillStyle = colorHex;
+                    ctx.fill();
+                    
+                    // Draw circle border
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.stroke();
+                    
+                    swatchOffset++;
+                });
+            }
+            
+            callback(canvas.toDataURL('image/png'));
+        };
+        img.crossOrigin = "anonymous";
+        img.src = base64Image;
+    }
+
     let currentSnapshotDataUrl = null;
     document.getElementById('btn-export')?.addEventListener('click', () => {
         // Temporarily hide helpers to make it a clean viewpoint screenshot
@@ -1508,8 +1630,12 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         // Show snapshot preview modal
         const modal = document.getElementById('screenshot-modal');
         const img = document.getElementById('screenshot-preview-img');
+        const notesInput = document.getElementById('screenshot-notes-input');
         if (modal && img) {
             img.src = currentSnapshotDataUrl;
+            if (notesInput) {
+                notesInput.value = generateSnapshotDefaultNotes();
+            }
             modal.style.display = 'flex';
             const overlay = document.getElementById('mobile-hotspots-overlay');
             if (overlay) overlay.style.display = 'none';
@@ -1536,29 +1662,37 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
     // Download snapshot button
     document.getElementById('btn-download-screenshot')?.addEventListener('click', () => {
         if (!currentSnapshotDataUrl) return;
-        const link = document.createElement('a');
-        link.download = `kibuyu-custom-design-${Date.now()}.png`;
-        link.href = currentSnapshotDataUrl;
-        link.click();
-        showToast('Snapshot saved as PNG', 'success');
+        const notesText = document.getElementById('screenshot-notes-input')?.value || "";
+        
+        generateCompositeScreenshot(currentSnapshotDataUrl, notesText, (compositeUrl) => {
+            const link = document.createElement('a');
+            link.download = `kibuyu-custom-design-${Date.now()}.png`;
+            link.href = compositeUrl;
+            link.click();
+            showToast('Snapshot saved with design details & color palette!', 'success');
+        });
     });
 
     // Copy to clipboard button
     document.getElementById('btn-copy-screenshot')?.addEventListener('click', async () => {
         if (!currentSnapshotDataUrl) return;
-        try {
-            const response = await fetch(currentSnapshotDataUrl);
-            const blob = await response.blob();
-            await navigator.clipboard.write([
-                new ClipboardItem({
-                    'image/png': blob
-                })
-            ]);
-            showToast('Snapshot copied to clipboard!', 'success');
-        } catch (err) {
-            console.error('Failed to copy image to clipboard:', err);
-            showToast('Failed to copy to clipboard. Please save image instead.', 'error');
-        }
+        const notesText = document.getElementById('screenshot-notes-input')?.value || "";
+        
+        generateCompositeScreenshot(currentSnapshotDataUrl, notesText, async (compositeUrl) => {
+            try {
+                const response = await fetch(compositeUrl);
+                const blob = await response.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'image/png': blob
+                    })
+                ]);
+                showToast('Snapshot with design details copied to clipboard!', 'success');
+            } catch (err) {
+                console.error('Failed to copy image to clipboard:', err);
+                showToast('Failed to copy to clipboard. Please save image instead.', 'error');
+            }
+        });
     });
     
     // 4. Undo and Redo Button bindings
