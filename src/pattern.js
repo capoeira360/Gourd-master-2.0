@@ -967,8 +967,7 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
 
         if (holePoints.length === 0) return 0;
 
-        const mmSize = holeSize !== undefined ? holeSize : 3;
-        const actualHoleSize = mmSize * 0.015;
+        const actualHoleSize = holeSize !== undefined ? holeSize : 0.03;
 
         let circleGeom;
         if (zone && zone.holeShape === 'wobbly') {

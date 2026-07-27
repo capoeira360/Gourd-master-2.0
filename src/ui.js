@@ -252,7 +252,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
                         </select>
                     </div>
-                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 1, 6, 1, zone.holeSize || 3, 'mm')}
+                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize, 'cm')}
                     ${showWobble ? `
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
@@ -310,7 +310,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
                         </select>
                     </div>
-                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 1, 6, 1, zone.holeSize || 3, 'mm')}
+                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize, 'cm')}
                     ${showWobble ? `
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
