@@ -24,7 +24,7 @@ export const state = {
             distMode: 'count', // 'count' or 'distance'
             holeCount: 30,
             holeDistance: 0.06,
-            holeSize: 0.03,
+            holeSize: 3,
             dashSpacing: 0.0,
             
             // Bounds parameters (used depending on type)
@@ -303,7 +303,7 @@ export function addPatternZone() {
         distMode: 'count',
         holeCount: 30,
         holeDistance: 0.06,
-        holeSize: 0.03,
+        holeSize: 3,
         dashSpacing: 0.0,
         
         tMin: 0.0,

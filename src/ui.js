@@ -250,9 +250,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <option value="round" ${zone.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
                             <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
                             <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                            <option value="numbered" ${zone.holeShape === 'numbered' ? 'selected' : ''}>Numbered Drill</option>
                         </select>
                     </div>
-                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize, 'cm')}
+                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 1, 6, 1, zone.holeSize || 3, 'mm')}
                     ${showWobble ? `
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
@@ -303,9 +304,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <option value="round" ${zone.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
                             <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
                             <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                            <option value="numbered" ${zone.holeShape === 'numbered' ? 'selected' : ''}>Numbered Drill</option>
                         </select>
                     </div>
-                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize, 'cm')}
+                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 1, 6, 1, zone.holeSize || 3, 'mm')}
                     ${showWobble ? `
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
