@@ -19,6 +19,16 @@ function organicWave(x, baseFreq = 3) {
          + 0.25 * Math.sin(baseFreq * 3 * x + 0.8);
 }
 
+function isDarkColor(hex) {
+    const color = hex.replace('#', '');
+    if (color.length !== 6) return false;
+    const r = parseInt(color.substring(0, 2), 16);
+    const g = parseInt(color.substring(2, 4), 16);
+    const b = parseInt(color.substring(4, 6), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness < 135;
+}
+
 const numberedTextureCache = {};
 function getNumberedHoleTexture(number, colorHex) {
     const key = `${number}_${colorHex}`;
@@ -32,15 +42,26 @@ function getNumberedHoleTexture(number, colorHex) {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, 128, 128);
     
-    // Draw hollow circle
+    // Draw solid background circle
+    const bgCol = colorHex || '#ffffff';
     ctx.beginPath();
-    ctx.arc(64, 64, 54, 0, Math.PI * 2);
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = colorHex || '#090706';
+    ctx.arc(64, 64, 58, 0, Math.PI * 2);
+    ctx.fillStyle = bgCol;
+    ctx.fill();
+    
+    // Draw high-contrast border and text
+    const useWhiteText = isDarkColor(bgCol);
+    const strokeCol = useWhiteText ? '#ffffff' : '#090706';
+    
+    // Draw border ring
+    ctx.beginPath();
+    ctx.arc(64, 64, 52, 0, Math.PI * 2);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = strokeCol;
     ctx.stroke();
     
     // Draw text number
-    ctx.fillStyle = colorHex || '#090706';
+    ctx.fillStyle = strokeCol;
     ctx.font = 'bold 74px "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -48,6 +69,7 @@ function getNumberedHoleTexture(number, colorHex) {
     
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
+    texture.needsUpdate = true;
     numberedTextureCache[key] = texture;
     return texture;
 }
@@ -1016,9 +1038,10 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
                 map: textTex,
                 side: THREE.DoubleSide,
                 transparent: true,
+                alphaTest: 0.5,
                 opacity: opacity,
                 depthTest: true,
-                depthWrite: false
+                depthWrite: true
             });
             circleMat.userData = { originalOpacity: opacity };
         } else {
@@ -1073,7 +1096,8 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
         const upVector = new THREE.Vector3(0, 0, 1);
 
         for (const pt of holePoints) {
-            const pos = getSurfacePoint(pt.t, pt.theta, 0.002, pt.rOffset || 0);
+            const hOffset = isNumbered ? 0.004 : 0.002;
+            const pos = getSurfacePoint(pt.t, pt.theta, hOffset, pt.rOffset || 0);
             const norm = getSurfaceNormal(pt.t, pt.theta);
 
             const quaternion = new THREE.Quaternion();
