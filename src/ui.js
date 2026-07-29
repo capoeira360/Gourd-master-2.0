@@ -267,6 +267,9 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
                     ` : ''}
+                    ${sliderRow('Big Hole Frequency', `pat-zone-bigHoleFreq-${zone.id}`, 0, 10, 1, zone.bigHoleFreq || 0)}
+                    ${(zone.bigHoleFreq || 0) > 0 ? sliderRow('Big Line Frequency', `pat-zone-bigLineFreq-${zone.id}`, 1, 5, 1, zone.bigLineFreq || 1) : ''}
+                    ${(zone.bigHoleFreq || 0) > 0 ? sliderRow('Big Hole Scale', `pat-zone-bigHoleScale-${zone.id}`, 1.1, 3.0, 0.1, zone.bigHoleScale || 1.5, 'x') : ''}
                     <div class="control-row" style="margin-bottom: 10px;">
                         <label class="control-label">Hole Color</label>
                         <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
@@ -325,6 +328,9 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
                     ` : ''}
+                    ${sliderRow('Big Hole Frequency', `pat-zone-bigHoleFreq-${zone.id}`, 0, 10, 1, zone.bigHoleFreq || 0)}
+                    ${(zone.bigHoleFreq || 0) > 0 ? sliderRow('Big Line Frequency', `pat-zone-bigLineFreq-${zone.id}`, 1, 5, 1, zone.bigLineFreq || 1) : ''}
+                    ${(zone.bigHoleFreq || 0) > 0 ? sliderRow('Big Hole Scale', `pat-zone-bigHoleScale-${zone.id}`, 1.1, 3.0, 0.1, zone.bigHoleScale || 1.5, 'x') : ''}
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 50%;">Draughts (Checkerboard)</label>
                         <input type="checkbox" class="zone-draft-checkbox" data-zone-id="${zone.id}" ${zone.draftMode ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
@@ -1269,6 +1275,9 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 zone.holeWobbleFreq = Math.round(valFloat);
             } else if (param === 'patchCount') {
                 zone.patchCount = Math.round(valFloat);
+            } else if (param === 'bigHoleFreq' || param === 'bigLineFreq') {
+                zone[param] = Math.round(valFloat);
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {
                 zone[param] = valFloat * Math.PI / 180;
             } else {

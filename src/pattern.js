@@ -892,31 +892,60 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
     } else {
         // Drilled holes
         const holePoints = [];
+        
+        const holeFreq = zone && zone.bigHoleFreq !== undefined ? zone.bigHoleFreq : 0;
+        const lineFreq = zone && zone.bigLineFreq !== undefined ? zone.bigLineFreq : 1;
+        const bigHoleScale = zone && zone.bigHoleScale !== undefined ? zone.bigHoleScale : 1.5;
 
         if (zone && zone.patternType === 'box-grid') {
+            let pathIdx = 0;
             for (const path of paths) {
+                let ptIdx = 0;
                 for (const pt of path) {
                     if (zone && !isPointInZone(pt.t, pt.theta, zone)) continue;
+                    
+                    const isBigLine = (lineFreq > 0) && ((pathIdx + 1) % lineFreq === 0);
+                    const isBigHole = isBigLine && (holeFreq > 0) && ((ptIdx + 1) % holeFreq === 0);
+                    pt.scaleVal = isBigHole ? bigHoleScale : 1.0;
+                    
                     holePoints.push(pt);
+                    ptIdx++;
                 }
+                pathIdx++;
             }
         } else if (distMode === 'distance') {
             const stepSize = holeDistance;
+            let pathIdx = 0;
             for (const path of paths) {
                 const sampled = samplePathUniformly(path, stepSize);
+                let ptIdx = 0;
                 for (const pt of sampled) {
                     if (zone && !isPointInZone(pt.t, pt.theta, zone)) continue;
+                    
+                    const isBigLine = (lineFreq > 0) && ((pathIdx + 1) % lineFreq === 0);
+                    const isBigHole = isBigLine && (holeFreq > 0) && ((ptIdx + 1) % holeFreq === 0);
+                    pt.scaleVal = isBigHole ? bigHoleScale : 1.0;
+                    
                     holePoints.push(pt);
+                    ptIdx++;
                 }
+                pathIdx++;
             }
         } else {
             // Count-based (Hole Count per path)
+            let pathIdx = 0;
             for (const path of paths) {
                 const count = Math.max(1, Math.round(holeCount));
+                const isBigLine = (lineFreq > 0) && ((pathIdx + 1) % lineFreq === 0);
+                
                 if (count === 1) {
                     const mid = Math.floor(path.length / 2);
                     const pt = path[mid];
                     if (zone && !isPointInZone(pt.t, pt.theta, zone)) continue;
+                    
+                    const isBigHole = isBigLine && (holeFreq > 0) && (1 % holeFreq === 0);
+                    pt.scaleVal = isBigHole ? bigHoleScale : 1.0;
+                    
                     holePoints.push(pt);
                 } else {
                     const pts3d = path.map(p => getSurfacePoint(p.t, p.theta, 0, p.rOffset || 0));
@@ -930,6 +959,8 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
 
                     const firstPt = path[0];
                     if (!zone || isPointInZone(firstPt.t, firstPt.theta, zone)) {
+                        const isBigHole = isBigLine && (holeFreq > 0) && (1 % holeFreq === 0);
+                        firstPt.scaleVal = isBigHole ? bigHoleScale : 1.0;
                         holePoints.push(firstPt);
                     }
 
@@ -964,9 +995,14 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
 
                         const pt = { t, theta, rOffset };
                         if (zone && !isPointInZone(pt.t, pt.theta, zone)) continue;
+                        
+                        const isBigHole = isBigLine && (holeFreq > 0) && ((k + 1) % holeFreq === 0);
+                        pt.scaleVal = isBigHole ? bigHoleScale : 1.0;
+                        
                         holePoints.push(pt);
                     }
                 }
+                pathIdx++;
             }
         }
 
@@ -1033,7 +1069,8 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
             const quaternion = new THREE.Quaternion();
             quaternion.setFromUnitVectors(upVector, norm);
 
-            const scale = new THREE.Vector3(1, 1, 1);
+            const sVal = pt.scaleVal !== undefined ? pt.scaleVal : 1.0;
+            const scale = new THREE.Vector3(sVal, sVal, sVal);
             const matrix = new THREE.Matrix4();
             matrix.compose(pos, quaternion, scale);
 
