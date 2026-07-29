@@ -1361,6 +1361,8 @@ export function generateSwirlPaths(zone) {
     const connected = zone.swirlConnected !== false;
     const centerT = zone.centerT !== undefined ? zone.centerT : 0.5;
     const centerTheta = zone.centerTheta !== undefined ? zone.centerTheta : 0.0;
+    const shapeRotation = zone.shapeRotation !== undefined ? zone.shapeRotation : 0;
+    const rotRad = (shapeRotation * Math.PI) / 180;
     
     const maxPhi = turns * 2 * Math.PI;
     
@@ -1377,8 +1379,9 @@ export function generateSwirlPaths(zone) {
             const phi = (i / 60) * maxPhi;
             const r = (i / 60) * size;
             
-            const t = Math.max(0.001, Math.min(0.999, t_c + r * Math.sin(windDir * phi)));
-            let theta = theta_c + r * Math.cos(windDir * phi);
+            const angle = windDir * phi + rotRad;
+            const t = Math.max(0.001, Math.min(0.999, t_c + r * Math.sin(angle)));
+            let theta = theta_c + r * Math.cos(angle);
             theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
             
             pts.push({ t, theta });

@@ -179,49 +179,53 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             }
 
             let boundsSliders = '';
-            if (zone.type === 'hor-band') {
-                boundsSliders = `
-                    ${sliderRow('Height Min', `pat-zone-tMin-${zone.id}`, 0.0, 1.0, 0.01, zone.tMin)}
-                    ${sliderRow('Height Max', `pat-zone-tMax-${zone.id}`, 0.0, 1.0, 0.01, zone.tMax)}
-                `;
-            } else if (zone.type === 'ver-strip') {
-                boundsSliders = `
-                    ${sliderRow('Angle Min', `pat-zone-thetaMin-${zone.id}`, -180, 180, 1, Math.round(zone.thetaMin * 180 / Math.PI), '°')}
-                    ${sliderRow('Angle Max', `pat-zone-thetaMax-${zone.id}`, -180, 180, 1, Math.round(zone.thetaMax * 180 / Math.PI), '°')}
-                `;
-            } else if (zone.type === 'diagonal-stripe') {
-                boundsSliders = `
-                    ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
-                    ${sliderRow('Stripe Width', `pat-zone-width-${zone.id}`, 0.02, 0.5, 0.01, zone.width, 'cm')}
-                    ${sliderRow('Slant Angle', `pat-zone-slantAngle-${zone.id}`, -90, 90, 1, zone.slantAngle, '°')}
-                `;
-            } else if (zone.type === 'diagonal-frame') {
-                boundsSliders = `
-                    ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
-                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
-                    ${sliderRow('Stripe Width', `pat-zone-width-${zone.id}`, 0.02, 0.5, 0.01, zone.width, 'cm')}
-                    ${sliderRow('Slant Angle', `pat-zone-slantAngle-${zone.id}`, -90, 90, 1, zone.slantAngle, '°')}
-                `;
-            } else if (zone.type === 'circular-patch') {
-                boundsSliders = `
-                    ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
-                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
-                    ${sliderRow('Patch Radius', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius, 'cm')}
-                `;
-            } else if (zone.type === 'square-patch' || zone.type === 'square') {
-                boundsSliders = `
-                    ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
-                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
-                    ${sliderRow('Patch Size', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius, 'cm')}
-                    ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
-                `;
-            } else if (['circle', 'custom-image', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
-                boundsSliders = `
-                    ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
-                    ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
-                    ${sliderRow('Shape Size', `pat-zone-radius-${zone.id}`, 0.02, 0.6, 0.01, zone.radius, 'cm')}
-                    ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
-                `;
+            const hideDuplicateBounds = zone.patternType === 'swirls' && ['circular-patch', 'square-patch', 'circle', 'square', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type);
+            
+            if (!hideDuplicateBounds) {
+                if (zone.type === 'hor-band') {
+                    boundsSliders = `
+                        ${sliderRow('Height Min', `pat-zone-tMin-${zone.id}`, 0.0, 1.0, 0.01, zone.tMin)}
+                        ${sliderRow('Height Max', `pat-zone-tMax-${zone.id}`, 0.0, 1.0, 0.01, zone.tMax)}
+                    `;
+                } else if (zone.type === 'ver-strip') {
+                    boundsSliders = `
+                        ${sliderRow('Angle Min', `pat-zone-thetaMin-${zone.id}`, -180, 180, 1, Math.round(zone.thetaMin * 180 / Math.PI), '°')}
+                        ${sliderRow('Angle Max', `pat-zone-thetaMax-${zone.id}`, -180, 180, 1, Math.round(zone.thetaMax * 180 / Math.PI), '°')}
+                    `;
+                } else if (zone.type === 'diagonal-stripe') {
+                    boundsSliders = `
+                        ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
+                        ${sliderRow('Stripe Width', `pat-zone-width-${zone.id}`, 0.02, 0.5, 0.01, zone.width, 'cm')}
+                        ${sliderRow('Slant Angle', `pat-zone-slantAngle-${zone.id}`, -90, 90, 1, zone.slantAngle, '°')}
+                    `;
+                } else if (zone.type === 'diagonal-frame') {
+                    boundsSliders = `
+                        ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
+                        ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
+                        ${sliderRow('Stripe Width', `pat-zone-width-${zone.id}`, 0.02, 0.5, 0.01, zone.width, 'cm')}
+                        ${sliderRow('Slant Angle', `pat-zone-slantAngle-${zone.id}`, -90, 90, 1, zone.slantAngle, '°')}
+                    `;
+                } else if (zone.type === 'circular-patch') {
+                    boundsSliders = `
+                        ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
+                        ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
+                        ${sliderRow('Patch Radius', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius, 'cm')}
+                    `;
+                } else if (zone.type === 'square-patch' || zone.type === 'square') {
+                    boundsSliders = `
+                        ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
+                        ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
+                        ${sliderRow('Patch Size', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius, 'cm')}
+                        ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
+                    `;
+                } else if (['circle', 'custom-image', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
+                    boundsSliders = `
+                        ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
+                        ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
+                        ${sliderRow('Shape Size', `pat-zone-radius-${zone.id}`, 0.02, 0.6, 0.01, zone.radius, 'cm')}
+                        ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
+                    `;
+                }
             }
 
             let styleControls = '';
@@ -399,16 +403,25 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <input type="checkbox" class="zone-clip-bg-checkbox" data-zone-id="${zone.id}" ${zone.clipBackground !== false ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
                             </div>
                         ` : ''}
-                        ${!['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type) ? `
+                        ${(!['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type) && zone.patternType !== 'swirls') ? `
                             ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
                         ` : ''}
                         
                         ${zone.patternType === 'swirls' ? `
-                            <div class="control-row" style="margin-bottom: 8px;">
-                                <label class="control-label" style="width: 50%;">Connected Swirls</label>
-                                <input type="checkbox" class="zone-swirl-connected-checkbox" data-zone-id="${zone.id}" ${zone.swirlConnected ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px;">
+                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 8px;">Swirl Configuration</div>
+                                
+                                <div class="control-row" style="margin-bottom: 8px;">
+                                    <label class="control-label" style="width: 50%;">Connected Swirls</label>
+                                    <input type="checkbox" class="zone-swirl-connected-checkbox" data-zone-id="${zone.id}" ${zone.swirlConnected ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                                </div>
+                                ${sliderRow('Swirl Tightness', `pat-zone-swirlFreq-${zone.id}`, 1.0, 5.0, 0.25, zone.swirlFreq || 2.5, 'turns')}
+                                ${sliderRow('Swirl Size', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius !== undefined ? zone.radius : 0.2, 'cm')}
+                                ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 36, 1, zone.patchCount !== undefined ? zone.patchCount : 3)}
+                                ${sliderRow('Height Offset', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT !== undefined ? zone.centerT : 0.5)}
+                                ${sliderRow('Rotation Offset', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round((zone.centerTheta !== undefined ? zone.centerTheta : 0.0) * 180 / Math.PI), '°')}
+                                ${sliderRow('Rotation Angle', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
                             </div>
-                            ${sliderRow('Swirl Tightness', `pat-zone-swirlFreq-${zone.id}`, 1.0, 5.0, 0.25, zone.swirlFreq || 2.5, 'turns')}
                         ` : ''}
                         
                         ${fillTypeSelect}
