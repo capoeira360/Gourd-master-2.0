@@ -131,7 +131,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const holeDistProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - zone.holeDistance) / 0.298)));
             const holeCountProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeCount - 1) / 799)));
 
-            const isLocalShape = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle', 'custom-image', 'swirls'].includes(zone.type);
+            const isLocalShape = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle', 'custom-image'].includes(zone.type);
             
             let fillTypeSelect = '';
             if (isLocalShape && zone.type !== 'custom-image') {
@@ -165,13 +165,14 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 patternTypeSelector = `
                     <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: flex-start;">
                         <label class="control-label" style="margin-bottom: 6px;">Pattern Layout</label>
-                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(3, 1fr);">
+                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(4, 1fr);">
                             <button class="option-btn ${zone.patternType === 'grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="grid" style="padding: 4px; font-size: 10px;">Grid</button>
                             <button class="option-btn ${zone.patternType === 'spiral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="spiral" style="padding: 4px; font-size: 10px;">Spiral</button>
                             <button class="option-btn ${zone.patternType === 'flower' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flower" style="padding: 4px; font-size: 10px;">Flower</button>
                             <button class="option-btn ${zone.patternType === 'star' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="star" style="padding: 4px; font-size: 10px;">Star</button>
                             <button class="option-btn ${zone.patternType === 'organic' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="organic" style="padding: 4px; font-size: 10px;">Organic</button>
                             <button class="option-btn ${zone.patternType === 'box-grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="box-grid" style="padding: 4px; font-size: 10px;">Box Grid</button>
+                            <button class="option-btn ${zone.patternType === 'swirls' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="swirls" style="padding: 4px; font-size: 10px;">Swirls</button>
                         </div>
                     </div>
                 `;
@@ -369,10 +370,9 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
                                 <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
                                 <option value="diagonal-frame" ${zone.type === 'diagonal-frame' ? 'selected' : ''}>Diagonal Frame</option>
-                                <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}\u003eCircular Patch\u003c/option\u003e
-                                <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}\u003eSquare Patch\u003c/option\u003e
-                                <option value="swirls" ${zone.type === 'swirls' ? 'selected' : ''}\u003eSwirls\u003c/option\u003e
-                                <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}\u003eCustom Image (SVG/PNG)\u003c/option\u003e
+                                <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
+                                <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}>Square Patch</option>
+                                <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
                             </select>
                         </div>
 
@@ -402,7 +402,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${!['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type) ? `
                             ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
                         ` : ''}
-                        ${zone.type === 'swirls' ? `
+                        
+                        ${zone.patternType === 'swirls' ? `
                             <div class="control-row" style="margin-bottom: 8px;">
                                 <label class="control-label" style="width: 50%;">Connected Swirls</label>
                                 <input type="checkbox" class="zone-swirl-connected-checkbox" data-zone-id="${zone.id}" ${zone.swirlConnected ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
@@ -868,7 +869,6 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         'diagonal-frame': 'Diagonal Frame',
         'circular-patch': 'Circular Patch',
         'square-patch': 'Square Patch',
-        'swirls': 'Swirls Pattern',
         'circle': 'Circle Frame',
         'square': 'Square Frame',
         'fish': 'Fish Silhouette',

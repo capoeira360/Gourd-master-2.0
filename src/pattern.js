@@ -1464,32 +1464,6 @@ export function updatePatternGroup(group, state) {
             }
             continue;
         }
-
-        if (zone.type === 'swirls') {
-            const swirlPaths = generateSwirlPaths(zone);
-            const renderLines = zone.style === 'lines' || zone.style === 'both';
-            const renderHoles = zone.style === 'holes' || zone.style === 'both';
-            if (renderLines) {
-                hasLines = true;
-                const count = renderPatternLayer(
-                    group, swirlPaths, 'lines', zone.color, zone.opacity,
-                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                    zone.dashSpacing, zone
-                );
-                totalCount += count;
-            }
-            if (renderHoles) {
-                hasHoles = true;
-                const count = renderPatternLayer(
-                    group, swirlPaths, 'holes', zone.color, zone.opacity,
-                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                    zone.dashSpacing, zone
-                );
-                totalCount += count;
-            }
-            continue;
-        }
-
         if (zone.fillType === 'concentric' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             const concentricLoops = generateConcentricLoops(zone);
             const validLoops = concentricLoops.map(loop => {
@@ -1524,6 +1498,36 @@ export function updatePatternGroup(group, state) {
         const patLayout = zone.patternType || 'grid';
         const renderLines = zone.style === 'lines' || zone.style === 'both';
         const renderHoles = zone.style === 'holes' || zone.style === 'both';
+
+        if (patLayout === 'swirls') {
+            let swirlPaths = generateSwirlPaths(zone);
+            if (zone.type !== 'full') {
+                const clipped = [];
+                for (const path of swirlPaths) {
+                    clipped.push(...clipPathToZone(path, zone));
+                }
+                swirlPaths = clipped;
+            }
+            if (renderLines) {
+                hasLines = true;
+                const count = renderPatternLayer(
+                    group, swirlPaths, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            if (renderHoles) {
+                hasHoles = true;
+                const count = renderPatternLayer(
+                    group, swirlPaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            continue;
+        }
 
         if (renderLines) {
             hasLines = true;
