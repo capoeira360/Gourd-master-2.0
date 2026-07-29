@@ -1320,9 +1320,9 @@ function renderClipBackground(group, zone) {
         const t = v;
         
         for (let x = 0; x < 256; x++) {
-            // u coordinate goes from 0.0 to 1.0
             const u = x / 255;
-            const theta = u * 2 * Math.PI - Math.PI; // map to [-PI, PI]
+            let theta = u * 2 * Math.PI;
+            if (theta > Math.PI) theta -= 2 * Math.PI;
             
             // Check if the point (t, theta) is inside the zone
             const inZone = isPointInZoneRaw(t, theta, zone);
