@@ -25,8 +25,6 @@ export const state = {
             holeCount: 30,
             holeDistance: 0.06,
             dashSpacing: 0.0,
-            showBgFill: false,
-            bgOpacity: 0.35,
             
             // Bounds parameters (used depending on type)
             tMin: 0.0,
@@ -305,8 +303,6 @@ export function addPatternZone() {
         holeCount: 30,
         holeDistance: 0.06,
         dashSpacing: 0.0,
-        showBgFill: false,
-        bgOpacity: 0.35,
         
         tMin: 0.0,
         tMax: 1.0,

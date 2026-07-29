@@ -397,19 +397,20 @@ export function isPointInZone(t, theta, zone, templateCenter = null) {
     if (!inThisZone) return false;
 
     // 2. Check cross-layer clipping
-    // Local shape/image layers themselves are NEVER clipped by other layers (enabling stacking/overlaying)
-    const isBackgroundZone = ['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type);
-    if (!isBackgroundZone) {
-        return true;
-    }
-
-    // Background layers can be clipped by local shape layers in the stack
     const zones = (state && state.patternZones) ? state.patternZones : [];
+    const idx = zones.indexOf(zone);
 
-    for (const otherZone of zones) {
+    for (let i = 0; i < zones.length; i++) {
+        const otherZone = zones[i];
         if (otherZone.id === zone.id) continue;
         if (otherZone.style === 'off' || otherZone.visible === false) continue;
         if (otherZone.clipBackground === false) continue;
+
+        // Stacking order: only clip if otherZone is rendered on top (earlier in the list, i.e., i < idx)
+        if (idx !== -1 && i > idx) continue;
+
+        // 'full' layers never clip other layers
+        if (otherZone.type === 'full') continue;
 
         const isOtherLocal = !['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(otherZone.type);
         if (isOtherLocal) {
@@ -429,12 +430,10 @@ export function isPointInZone(t, theta, zone, templateCenter = null) {
                     }
                 }
                 
-                // Normalize closestInstanceTheta relative to [-PI, PI]
                 let cTheta = closestInstanceTheta;
                 while (cTheta < -Math.PI) cTheta += Math.PI * 2;
                 while (cTheta > Math.PI) cTheta -= Math.PI * 2;
 
-                // Find which template center cTheta is closest to
                 let closestCenter = window.activeTemplateCenters[0];
                 let minDist = Infinity;
                 for (const center of window.activeTemplateCenters) {
@@ -452,10 +451,14 @@ export function isPointInZone(t, theta, zone, templateCenter = null) {
                     }
                 }
             } else {
-                // Default global behavior (like on the 3D model viewport where templateCenter is null)
                 if (isPointInZoneRaw(t, theta, otherZone)) {
                     return false;
                 }
+            }
+        } else {
+            // Non-local shapes (like bands/stripes) clip globally if they are above this layer
+            if (isPointInZoneRaw(t, theta, otherZone)) {
+                return false;
             }
         }
     }
@@ -1299,78 +1302,6 @@ export function getSvgPaths(zone) {
     return paths;
 }
 
-function renderClipBackground(group, zone) {
-    if (!zone || zone.type === 'full') return;
-    
-    // 1. Generate an alpha map canvas
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    
-    // Clear to transparent
-    ctx.clearRect(0, 0, 256, 256);
-    
-    const imgData = ctx.createImageData(256, 256);
-    const data = imgData.data;
-    
-    for (let y = 0; y < 256; y++) {
-        // v coordinate goes from 0.0 at bottom to 1.0 at top
-        const v = (255 - y) / 255;
-        const t = v;
-        
-        for (let x = 0; x < 256; x++) {
-            const u = x / 255;
-            let theta = u * 2 * Math.PI;
-            if (theta > Math.PI) theta -= 2 * Math.PI;
-            
-            // Check if the point (t, theta) is inside the zone
-            const inZone = isPointInZoneRaw(t, theta, zone);
-            
-            const pixelIdx = (y * 256 + x) * 4;
-            if (inZone) {
-                data[pixelIdx] = 255;
-                data[pixelIdx + 1] = 255;
-                data[pixelIdx + 2] = 255;
-                data[pixelIdx + 3] = 255;
-            } else {
-                data[pixelIdx] = 0;
-                data[pixelIdx + 1] = 0;
-                data[pixelIdx + 2] = 0;
-                data[pixelIdx + 3] = 0;
-            }
-        }
-    }
-    
-    ctx.putImageData(imgData, 0, 0);
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.needsUpdate = true;
-    
-    const geom = createGourdGeometry();
-    
-    const bgOpacity = zone.bgOpacity !== undefined ? zone.bgOpacity : 0.35;
-    const mat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(zone.color),
-        alphaMap: texture,
-        transparent: true,
-        opacity: (zone.opacity !== undefined ? zone.opacity : 1.0) * bgOpacity,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        polygonOffset: true,
-        polygonOffsetFactor: -0.5,
-        polygonOffsetUnits: -0.5
-    });
-    
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.renderOrder = 850;
-    group.add(mesh);
-}
-
 // Rebuilds pattern inside a parent THREE.Group (handles lines and instanced holes)
 export function updatePatternGroup(group, state) {
     // Clear old children
@@ -1398,11 +1329,6 @@ export function updatePatternGroup(group, state) {
     // Render each pattern zone individually
     for (const zone of state.patternZones) {
         if (zone.style === 'off' || zone.visible === false) continue;
-
-        // Render solid shape background if configured
-        if (zone.type !== 'full' && zone.showBgFill) {
-            renderClipBackground(group, zone);
-        }
 
         if (zone.type === 'custom-image' && zone.customSvgText) {
             const svgPaths = getSvgPaths(zone);
