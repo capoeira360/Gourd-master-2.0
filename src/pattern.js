@@ -240,6 +240,18 @@ export function isPointInZoneRaw(t, theta, zone) {
         return false;
     }
 
+    if (zone.type === 'swirls') {
+        const dt = t - zone.centerT;
+        let dTheta = mappedTheta - zone.centerTheta;
+        dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+        const r = getGourdRadius(t);
+        const dy = dt * getGourdHeight();
+        const dx = r * dTheta;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        return dist <= (zone.radius !== undefined ? zone.radius : 0.2);
+    }
+
     if (zone.type === 'circular-patch') {
         const dt = t - zone.centerT;
         let dTheta = mappedTheta - zone.centerTheta;
@@ -1341,6 +1353,65 @@ export function getSvgPaths(zone) {
     return paths;
 }
 
+export function generateSwirlPaths(zone) {
+    const paths = [];
+    const patchCount = zone.patchCount !== undefined ? zone.patchCount : 3;
+    const size = zone.radius !== undefined ? zone.radius : 0.2;
+    const turns = zone.swirlFreq !== undefined ? zone.swirlFreq : 2.5;
+    const connected = zone.swirlConnected !== false;
+    const centerT = zone.centerT !== undefined ? zone.centerT : 0.5;
+    const centerTheta = zone.centerTheta !== undefined ? zone.centerTheta : 0.0;
+    
+    const maxPhi = turns * 2 * Math.PI;
+    
+    // Generate separate spiral paths first
+    const spirals = [];
+    for (let p = 0; p < patchCount; p++) {
+        const offsetTheta = (p / patchCount) * Math.PI * 2;
+        const theta_c = centerTheta + offsetTheta;
+        const t_c = centerT;
+        const windDir = (p % 2 === 0) ? 1 : -1;
+        
+        const pts = [];
+        for (let i = 0; i <= 60; i++) {
+            const phi = (i / 60) * maxPhi;
+            const r = (i / 60) * size;
+            
+            const t = Math.max(0.001, Math.min(0.999, t_c + r * Math.sin(windDir * phi)));
+            let theta = theta_c + r * Math.cos(windDir * phi);
+            theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+            
+            pts.push({ t, theta });
+        }
+        spirals.push(pts);
+    }
+    
+    if (connected) {
+        for (let p = 0; p < patchCount; p += 2) {
+            if (p + 1 < patchCount) {
+                const spiralA = spirals[p];         // center to tail
+                const spiralB = spirals[p + 1];     // center to tail
+                
+                // Reverse spiralB so it goes from tail to center
+                const reversedB = [...spiralB].reverse();
+                
+                // Combine: spiralA + reversedB
+                const combined = [...spiralA, ...reversedB];
+                paths.push(combined);
+            } else {
+                // If odd count, add the last one as independent
+                paths.push(spirals[p]);
+            }
+        }
+    } else {
+        for (let p = 0; p < patchCount; p++) {
+            paths.push(spirals[p]);
+        }
+    }
+    
+    return paths;
+}
+
 // Rebuilds pattern inside a parent THREE.Group (handles lines and instanced holes)
 export function updatePatternGroup(group, state) {
     // Clear old children
@@ -1386,6 +1457,31 @@ export function updatePatternGroup(group, state) {
                 hasHoles = true;
                 const count = renderPatternLayer(
                     group, svgPaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            continue;
+        }
+
+        if (zone.type === 'swirls') {
+            const swirlPaths = generateSwirlPaths(zone);
+            const renderLines = zone.style === 'lines' || zone.style === 'both';
+            const renderHoles = zone.style === 'holes' || zone.style === 'both';
+            if (renderLines) {
+                hasLines = true;
+                const count = renderPatternLayer(
+                    group, swirlPaths, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            if (renderHoles) {
+                hasHoles = true;
+                const count = renderPatternLayer(
+                    group, swirlPaths, 'holes', zone.color, zone.opacity,
                     zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
                     zone.dashSpacing, zone
                 );

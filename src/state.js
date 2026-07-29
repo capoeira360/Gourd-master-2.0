@@ -28,6 +28,8 @@ export const state = {
             bigHoleFreq: 0,
             bigLineFreq: 1,
             bigHoleScale: 1.5,
+            swirlFreq: 2.5,
+            swirlConnected: false,
             
             // Bounds parameters (used depending on type)
             tMin: 0.0,
@@ -309,6 +311,8 @@ export function addPatternZone() {
         bigHoleFreq: 0,
         bigLineFreq: 1,
         bigHoleScale: 1.5,
+        swirlFreq: 2.5,
+        swirlConnected: false,
         
         tMin: 0.0,
         tMax: 1.0,

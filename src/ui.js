@@ -131,7 +131,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const holeDistProx = Math.max(0, Math.min(100, Math.round(100 * (0.30 - zone.holeDistance) / 0.298)));
             const holeCountProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeCount - 1) / 799)));
 
-            const isLocalShape = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle', 'custom-image'].includes(zone.type);
+            const isLocalShape = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle', 'custom-image', 'swirls'].includes(zone.type);
             
             let fillTypeSelect = '';
             if (isLocalShape && zone.type !== 'custom-image') {
@@ -369,9 +369,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
                                 <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
                                 <option value="diagonal-frame" ${zone.type === 'diagonal-frame' ? 'selected' : ''}>Diagonal Frame</option>
-                                <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
-                                <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}>Square Patch</option>
-                                <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
+                                <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}\u003eCircular Patch\u003c/option\u003e
+                                <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}\u003eSquare Patch\u003c/option\u003e
+                                <option value="swirls" ${zone.type === 'swirls' ? 'selected' : ''}\u003eSwirls\u003c/option\u003e
+                                <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}\u003eCustom Image (SVG/PNG)\u003c/option\u003e
                             </select>
                         </div>
 
@@ -400,6 +401,13 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ` : ''}
                         ${!['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type) ? `
                             ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
+                        ` : ''}
+                        ${zone.type === 'swirls' ? `
+                            <div class="control-row" style="margin-bottom: 8px;">
+                                <label class="control-label" style="width: 50%;">Connected Swirls</label>
+                                <input type="checkbox" class="zone-swirl-connected-checkbox" data-zone-id="${zone.id}" ${zone.swirlConnected ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                            </div>
+                            ${sliderRow('Swirl Tightness', `pat-zone-swirlFreq-${zone.id}`, 1.0, 5.0, 0.25, zone.swirlFreq || 2.5, 'turns')}
                         ` : ''}
                         
                         ${fillTypeSelect}
@@ -860,6 +868,7 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         'diagonal-frame': 'Diagonal Frame',
         'circular-patch': 'Circular Patch',
         'square-patch': 'Square Patch',
+        'swirls': 'Swirls Pattern',
         'circle': 'Circle Frame',
         'square': 'Square Frame',
         'fish': 'Fish Silhouette',
@@ -895,6 +904,20 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (zone) {
                 pushUndoState(gourdMesh);
                 zone.clipBackground = cb.checked;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-swirl-connected-checkbox').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const zoneId = cb.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.swirlConnected = cb.checked;
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
