@@ -36,8 +36,10 @@ export const state = {
             weaveVerCount: 5,
             weaveHorStyle: 'both',
             weaveHorColor: '#D4A843',
+            weaveHorHoleSize: 0.03,
             weaveVerStyle: 'both',
             weaveVerColor: '#D4A843',
+            weaveVerHoleSize: 0.03,
             
             // Bounds parameters (used depending on type)
             tMin: 0.0,
@@ -327,8 +329,10 @@ export function addPatternZone() {
         weaveVerCount: 5,
         weaveHorStyle: 'both',
         weaveHorColor: '#D4A843',
+        weaveHorHoleSize: 0.03,
         weaveVerStyle: 'both',
         weaveVerColor: '#D4A843',
+        weaveVerHoleSize: 0.03,
         
         tMin: 0.0,
         tMax: 1.0,
