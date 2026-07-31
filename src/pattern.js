@@ -1419,6 +1419,62 @@ export function generateSwirlPaths(zone) {
     return paths;
 }
 
+export function generateWeavePaths(zone, verDensityVal) {
+    const paths = [];
+    const density = zone.density || 1.0;
+    const vDensity = verDensityVal || density;
+    
+    const H = Math.round(density * 10);
+    const V = Math.round(vDensity * 8);
+    
+    const horCount = zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5;
+    const verCount = zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5;
+    
+    for (let i = 0; i < H; i++) {
+        const t_min = i / H;
+        const t_max = (i + 1) / H;
+        const t_w = t_max - t_min;
+        
+        for (let j = 0; j < V; j++) {
+            const theta_min = j * (2 * Math.PI) / V;
+            const theta_max = (j + 1) * (2 * Math.PI) / V;
+            const theta_w = theta_max - theta_min;
+            
+            const isHorizontal = (i + j) % 2 === 0;
+            
+            if (isHorizontal) {
+                // Horizontal lines inside this cell
+                for (let k = 0; k < horCount; k++) {
+                    const t = t_min + ((k + 0.5) / horCount) * t_w;
+                    const segment = [];
+                    const steps = 15;
+                    for (let s = 0; s <= steps; s++) {
+                        let theta = theta_min + (s / steps) * theta_w;
+                        theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                        segment.push({ t, theta, rOffset: 0 });
+                    }
+                    paths.push(segment);
+                }
+            } else {
+                // Vertical lines inside this cell
+                for (let k = 0; k < verCount; k++) {
+                    let theta = theta_min + ((k + 0.5) / verCount) * theta_w;
+                    theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                    const segment = [];
+                    const steps = 15;
+                    for (let s = 0; s <= steps; s++) {
+                        const t = t_min + (s / steps) * t_w;
+                        segment.push({ t, theta, rOffset: 0 });
+                    }
+                    paths.push(segment);
+                }
+            }
+        }
+    }
+    
+    return paths;
+}
+
 // Rebuilds pattern inside a parent THREE.Group (handles lines and instanced holes)
 export function updatePatternGroup(group, state) {
     // Clear old children
@@ -1528,6 +1584,37 @@ export function updatePatternGroup(group, state) {
                 hasHoles = true;
                 const count = renderPatternLayer(
                     group, swirlPaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            continue;
+        }
+
+        if (patLayout === 'weave') {
+            const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
+            let weavePaths = generateWeavePaths(zone, verDensityVal);
+            if (zone.type !== 'full') {
+                const clipped = [];
+                for (const path of weavePaths) {
+                    clipped.push(...clipPathToZone(path, zone));
+                }
+                weavePaths = clipped;
+            }
+            if (renderLines) {
+                hasLines = true;
+                const count = renderPatternLayer(
+                    group, weavePaths, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            if (renderHoles) {
+                hasHoles = true;
+                const count = renderPatternLayer(
+                    group, weavePaths, 'holes', zone.color, zone.opacity,
                     zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
                     zone.dashSpacing, zone
                 );

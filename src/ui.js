@@ -173,6 +173,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'organic' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="organic" style="padding: 4px; font-size: 10px;">Organic</button>
                             <button class="option-btn ${zone.patternType === 'box-grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="box-grid" style="padding: 4px; font-size: 10px;">Box Grid</button>
                             <button class="option-btn ${zone.patternType === 'swirls' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="swirls" style="padding: 4px; font-size: 10px;">Swirls</button>
+                            <button class="option-btn ${zone.patternType === 'weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave" style="padding: 4px; font-size: 10px;">Weave</button>
                         </div>
                     </div>
                 `;
@@ -423,6 +424,14 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 ${sliderRow('Height Offset', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT !== undefined ? zone.centerT : 0.5)}
                                 ${sliderRow('Rotation Offset', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round((zone.centerTheta !== undefined ? zone.centerTheta : 0.0) * 180 / Math.PI), '°')}
                                 ${sliderRow('Rotation Angle', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
+                            </div>
+                        ` : ''}
+                        
+                        ${zone.patternType === 'weave' ? `
+                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px;">
+                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 8px;">Basket Weave Configuration</div>
+                                ${sliderRow('Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 2, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
+                                ${sliderRow('Weave Vert. Count', `pat-zone-weaveVerCount-${zone.id}`, 2, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
                             </div>
                         ` : ''}
                         
@@ -1313,7 +1322,7 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 zone.holeWobbleFreq = Math.round(valFloat);
             } else if (param === 'patchCount') {
                 zone.patchCount = Math.round(valFloat);
-            } else if (param === 'bigHoleFreq' || param === 'bigLineFreq' || param === 'swirlRows') {
+            } else if (param === 'bigHoleFreq' || param === 'bigLineFreq' || param === 'swirlRows' || param === 'weaveHorCount' || param === 'weaveVerCount') {
                 zone[param] = Math.round(valFloat);
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {

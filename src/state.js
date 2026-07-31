@@ -32,6 +32,8 @@ export const state = {
             swirlConnected: false,
             swirlRows: 1,
             swirlRowSpacing: 0.15,
+            weaveHorCount: 5,
+            weaveVerCount: 5,
             
             // Bounds parameters (used depending on type)
             tMin: 0.0,
@@ -317,6 +319,8 @@ export function addPatternZone() {
         swirlConnected: false,
         swirlRows: 1,
         swirlRowSpacing: 0.15,
+        weaveHorCount: 5,
+        weaveVerCount: 5,
         
         tMin: 0.0,
         tMax: 1.0,
