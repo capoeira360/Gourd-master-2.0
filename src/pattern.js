@@ -1480,60 +1480,108 @@ export function generateWeave2Paths(zone, verDensityVal) {
     const density = zone.density || 1.0;
     const vDensity = verDensityVal || density;
     
-    const H = Math.round(density * 10);
-    const V = Math.round(vDensity * 8);
+    // Virtual cylindrical dimensions to map to square cells
+    const R_avg = 0.15;
+    const H_gourd = 0.35;
     
+    const V = Math.round(vDensity * 8);
     const horCount = zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5;
     const verCount = zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5;
     
-    const t_w = 1.0 / H;
+    // Checkerboard diagonal step size based on horizontal cell width
+    const c = (2 * Math.PI / V) * R_avg;
     
-    for (let i = -1; i <= H + 1; i++) {
-        for (let j = 0; j < V; j++) {
-            // Stagger odd columns vertically by 0.5 of cell height
-            const isOddCol = j % 2 !== 0;
-            const staggerY = isOddCol ? 0.5 * t_w : 0.0;
-            
-            const t_min = i * t_w + staggerY;
-            const t_max = (i + 1) * t_w + staggerY;
-            
-            // Skip cells completely out of the [0, 1] range
-            if (t_min >= 1.0 || t_max <= 0.0) continue;
-            
-            const theta_min = j * (2 * Math.PI) / V;
-            const theta_max = (j + 1) * (2 * Math.PI) / V;
-            const theta_w = theta_max - theta_min;
-            
+    // Bounds of coverage in un-wrapped cylindrical coords
+    const x_min = -Math.PI * R_avg;
+    const x_max = Math.PI * R_avg;
+    const y_min = -0.1 * H_gourd;
+    const y_max = 1.1 * H_gourd;
+    
+    const d1_min = x_min + y_min;
+    const d1_max = x_max + y_max;
+    const d2_min = x_min - y_max;
+    const d2_max = x_max - y_min;
+    
+    const i_min = Math.floor(d1_min / c) - 1;
+    const i_max = Math.floor(d1_max / c) + 1;
+    const j_min = Math.floor(d2_min / c) - 1;
+    const j_max = Math.floor(d2_max / c) + 1;
+    
+    // Helper to safely add a path segment with seam-splitting
+    const addSegment = (ptsList) => {
+        let currentSegment = [];
+        for (const pt of ptsList) {
+            if (currentSegment.length > 0) {
+                const prev = currentSegment[currentSegment.length - 1];
+                if (Math.abs(pt.theta - prev.theta) > Math.PI) {
+                    if (currentSegment.length >= 2) {
+                        paths.push(currentSegment);
+                    }
+                    currentSegment = [];
+                }
+            }
+            currentSegment.push(pt);
+        }
+        if (currentSegment.length >= 2) {
+            paths.push(currentSegment);
+        }
+    };
+    
+    for (let i = i_min; i <= i_max; i++) {
+        for (let j = j_min; j <= j_max; j++) {
             const isHorizontal = (i + j) % 2 === 0;
             
             if (isHorizontal) {
-                // Horizontal lines inside this cell
+                // Diagonal ascending lines `/` (constant d2)
                 for (let k = 0; k < horCount; k++) {
-                    const t = t_min + ((k + 0.5) / horCount) * t_w;
-                    if (t < 0.001 || t > 0.999) continue;
-                    
-                    const segment = [];
+                    const d2 = (j + (k + 0.5) / horCount) * c;
+                    const ptsList = [];
                     const steps = 15;
                     for (let s = 0; s <= steps; s++) {
-                        let theta = theta_min + (s / steps) * theta_w;
+                        const d1 = (i + s / steps) * c;
+                        
+                        // Convert back to cylindrical coords
+                        const x = (d1 + d2) / 2;
+                        const y = (d1 - d2) / 2;
+                        
+                        // Check domain
+                        if (x < x_min || x > x_max || y < y_min || y > y_max) continue;
+                        
+                        const t = Math.max(0.001, Math.min(0.999, y / H_gourd));
+                        let theta = x / R_avg;
                         theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-                        segment.push({ t, theta, rOffset: 0 });
+                        
+                        ptsList.push({ t, theta, rOffset: 0 });
                     }
-                    paths.push(segment);
+                    if (ptsList.length >= 2) {
+                        addSegment(ptsList);
+                    }
                 }
             } else {
-                // Vertical lines inside this cell
+                // Diagonal descending lines `\` (constant d1)
                 for (let k = 0; k < verCount; k++) {
-                    let theta = theta_min + ((k + 0.5) / verCount) * theta_w;
-                    theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-                    const segment = [];
+                    const d1 = (i + (k + 0.5) / verCount) * c;
+                    const ptsList = [];
                     const steps = 15;
                     for (let s = 0; s <= steps; s++) {
-                        const t = t_min + (s / steps) * t_w;
-                        const clampedT = Math.max(0.001, Math.min(0.999, t));
-                        segment.push({ t: clampedT, theta, rOffset: 0 });
+                        const d2 = (j + s / steps) * c;
+                        
+                        // Convert back to cylindrical coords
+                        const x = (d1 + d2) / 2;
+                        const y = (d1 - d2) / 2;
+                        
+                        // Check domain
+                        if (x < x_min || x > x_max || y < y_min || y > y_max) continue;
+                        
+                        const t = Math.max(0.001, Math.min(0.999, y / H_gourd));
+                        let theta = x / R_avg;
+                        theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                        
+                        ptsList.push({ t, theta, rOffset: 0 });
                     }
-                    paths.push(segment);
+                    if (ptsList.length >= 2) {
+                        addSegment(ptsList);
+                    }
                 }
             }
         }
