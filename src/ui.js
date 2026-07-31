@@ -418,6 +418,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 ${sliderRow('Swirl Tightness', `pat-zone-swirlFreq-${zone.id}`, 1.0, 5.0, 0.25, zone.swirlFreq || 2.5, 'turns')}
                                 ${sliderRow('Swirl Size', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius !== undefined ? zone.radius : 0.2, 'cm')}
                                 ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 36, 1, zone.patchCount !== undefined ? zone.patchCount : 3)}
+                                ${sliderRow('Swirl Rows', `pat-zone-swirlRows-${zone.id}`, 1, 10, 1, zone.swirlRows !== undefined ? zone.swirlRows : 1)}
+                                ${(zone.swirlRows || 1) > 1 ? sliderRow('Row Spacing', `pat-zone-swirlRowSpacing-${zone.id}`, 0.05, 0.40, 0.01, zone.swirlRowSpacing !== undefined ? zone.swirlRowSpacing : 0.15, 'cm') : ''}
                                 ${sliderRow('Height Offset', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT !== undefined ? zone.centerT : 0.5)}
                                 ${sliderRow('Rotation Offset', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round((zone.centerTheta !== undefined ? zone.centerTheta : 0.0) * 180 / Math.PI), '°')}
                                 ${sliderRow('Rotation Angle', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
@@ -1311,7 +1313,7 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 zone.holeWobbleFreq = Math.round(valFloat);
             } else if (param === 'patchCount') {
                 zone.patchCount = Math.round(valFloat);
-            } else if (param === 'bigHoleFreq' || param === 'bigLineFreq') {
+            } else if (param === 'bigHoleFreq' || param === 'bigLineFreq' || param === 'swirlRows') {
                 zone[param] = Math.round(valFloat);
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {

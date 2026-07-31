@@ -1364,51 +1364,55 @@ export function generateSwirlPaths(zone) {
     const shapeRotation = zone.shapeRotation !== undefined ? zone.shapeRotation : 0;
     const rotRad = (shapeRotation * Math.PI) / 180;
     
+    const rowsCount = zone.swirlRows !== undefined ? zone.swirlRows : 1;
+    const rowSpacing = zone.swirlRowSpacing !== undefined ? zone.swirlRowSpacing : 0.15;
+    
     const maxPhi = turns * 2 * Math.PI;
     
-    // Generate separate spiral paths first
-    const spirals = [];
-    for (let p = 0; p < patchCount; p++) {
-        const offsetTheta = (p / patchCount) * Math.PI * 2;
-        const theta_c = centerTheta + offsetTheta;
-        const t_c = centerT;
-        const windDir = (p % 2 === 0) ? 1 : -1;
+    for (let r = 0; r < rowsCount; r++) {
+        // Distribute row heights centered around centerT
+        const t_c = centerT + (r - (rowsCount - 1) / 2) * rowSpacing;
         
-        const pts = [];
-        for (let i = 0; i <= 60; i++) {
-            const phi = (i / 60) * maxPhi;
-            const r = (i / 60) * size;
-            
-            const angle = windDir * phi + rotRad;
-            const t = Math.max(0.001, Math.min(0.999, t_c + r * Math.sin(angle)));
-            let theta = theta_c + r * Math.cos(angle);
-            theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-            
-            pts.push({ t, theta });
-        }
-        spirals.push(pts);
-    }
-    
-    if (connected) {
-        for (let p = 0; p < patchCount; p += 2) {
-            if (p + 1 < patchCount) {
-                const spiralA = spirals[p];         // center to tail
-                const spiralB = spirals[p + 1];     // center to tail
-                
-                // Reverse spiralB so it goes from tail to center
-                const reversedB = [...spiralB].reverse();
-                
-                // Combine: spiralA + reversedB
-                const combined = [...spiralA, ...reversedB];
-                paths.push(combined);
-            } else {
-                // If odd count, add the last one as independent
-                paths.push(spirals[p]);
-            }
-        }
-    } else {
+        // Stagger rotation offset on odd rows to create interlocking mesh pattern
+        const stagger = (r % 2 === 0) ? 0 : (Math.PI / patchCount);
+        
+        const spiralsInRow = [];
         for (let p = 0; p < patchCount; p++) {
-            paths.push(spirals[p]);
+            const offsetTheta = (p / patchCount) * Math.PI * 2;
+            const theta_c = centerTheta + offsetTheta + stagger;
+            const windDir = ((p + r) % 2 === 0) ? 1 : -1;
+            
+            const pts = [];
+            for (let i = 0; i <= 60; i++) {
+                const phi = (i / 60) * maxPhi;
+                const rVal = (i / 60) * size;
+                
+                const angle = windDir * phi + rotRad;
+                const t = Math.max(0.001, Math.min(0.999, t_c + rVal * Math.sin(angle)));
+                let theta = theta_c + rVal * Math.cos(angle);
+                theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                
+                pts.push({ t, theta });
+            }
+            spiralsInRow.push(pts);
+        }
+        
+        if (connected) {
+            for (let p = 0; p < patchCount; p += 2) {
+                if (p + 1 < patchCount) {
+                    const spiralA = spiralsInRow[p];
+                    const spiralB = spiralsInRow[p + 1];
+                    const reversedB = [...spiralB].reverse();
+                    const combined = [...spiralA, ...reversedB];
+                    paths.push(combined);
+                } else {
+                    paths.push(spiralsInRow[p]);
+                }
+            }
+        } else {
+            for (let p = 0; p < patchCount; p++) {
+                paths.push(spiralsInRow[p]);
+            }
         }
     }
     
