@@ -236,7 +236,9 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
-            if (zone.style === 'lines') {
+            if (zone.patternType === 'weave' || zone.patternType === 'weave2') {
+                styleControls = '';
+            } else if (zone.style === 'lines') {
                 styleControls = `
                     ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
                     ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
@@ -431,6 +433,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${(zone.patternType === 'weave' || zone.patternType === 'weave2') ? `
                             <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                 <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Basket Weave Configuration</div>
+                                ${sliderRow('Horizontal Cell Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
+                                ${sliderRow('Vertical Cell Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx)}
                                 ${sliderRow('Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 2, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
                                 ${sliderRow('Weave Vert. Count', `pat-zone-weaveVerCount-${zone.id}`, 2, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
                                 
@@ -449,6 +453,41 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                         <label class="control-label" style="width: 45%;">Color</label>
                                         <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveHorColor" value="${zone.weaveHorColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
                                     </div>
+                                    
+                                    ${(zone.weaveHorStyle === 'holes' || zone.weaveHorStyle === 'both') ? `
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Hole Shape</label>
+                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorHoleShape" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                <option value="round" ${(zone.weaveHorHoleShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
+                                                <option value="wobbly" ${zone.weaveHorHoleShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                                <option value="star" ${zone.weaveHorHoleShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                                            </select>
+                                        </div>
+                                        ${sliderRow('Hole Size', `pat-zone-weaveHorHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveHorHoleSize !== undefined ? zone.weaveHorHoleSize : 0.03, 'cm')}
+                                        ${['wobbly', 'star'].includes(zone.weaveHorHoleShape) ? `
+                                            ${sliderRow(zone.weaveHorHoleShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-weaveHorHoleWobbleFreq-${zone.id}`, 3, 12, 1, zone.weaveHorHoleWobbleFreq !== undefined ? zone.weaveHorHoleWobbleFreq : 5)}
+                                            ${sliderRow(zone.weaveHorHoleShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-weaveHorHoleWobbleAmp-${zone.id}`, 0, 100, 1, zone.weaveHorHoleWobbleAmp !== undefined ? zone.weaveHorHoleWobbleAmp : 0)}
+                                        ` : ''}
+                                        ${sliderRow('Big Hole Freq.', `pat-zone-weaveHorBigHoleFreq-${zone.id}`, 0, 10, 1, zone.weaveHorBigHoleFreq !== undefined ? zone.weaveHorBigHoleFreq : 0)}
+                                        ${(zone.weaveHorBigHoleFreq || 0) > 0 ? sliderRow('Big Line Freq.', `pat-zone-weaveHorBigLineFreq-${zone.id}`, 1, 5, 1, zone.weaveHorBigLineFreq !== undefined ? zone.weaveHorBigLineFreq : 1) : ''}
+                                        ${(zone.weaveHorBigHoleFreq || 0) > 0 ? sliderRow('Big Hole Scale', `pat-zone-weaveHorBigHoleScale-${zone.id}`, 1.1, 3.0, 0.1, zone.weaveHorBigHoleScale !== undefined ? zone.weaveHorBigHoleScale : 1.5, 'x') : ''}
+                                    ` : ''}
+                                    
+                                    ${(zone.weaveHorStyle === 'holes' || zone.weaveHorStyle === 'both') ? `
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Hole Spacing Mode</label>
+                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorDistMode" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                <option value="count" ${(zone.weaveHorDistMode || 'count') === 'count' ? 'selected' : ''}>Hole Count</option>
+                                                <option value="distance" ${zone.weaveHorDistMode === 'distance' ? 'selected' : ''}>Hole Distance</option>
+                                            </select>
+                                        </div>
+                                        ${(zone.weaveHorDistMode || 'count') === 'count' ? 
+                                            sliderRow('Hole Count', `pat-zone-weaveHorHoleCount-${zone.id}`, 1, 800, 1, zone.weaveHorHoleCount !== undefined ? zone.weaveHorHoleCount : 30) :
+                                            sliderRow('Hole Distance', `pat-zone-weaveHorHoleDistance-${zone.id}`, 0, 100, 1, zone.weaveHorHoleDistance !== undefined ? Math.round(100 * (0.30 - zone.weaveHorHoleDistance) / 0.298) : 80)
+                                        }
+                                    ` : ''}
+                                    
+                                    ${sliderRow('Dash Gap', `pat-zone-weaveHorDashSpacing-${zone.id}`, 0, 100, 1, zone.weaveHorDashSpacing !== undefined ? zone.weaveHorDashSpacing : 0)}
                                 </div>
                                 
                                 <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
@@ -466,6 +505,41 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                         <label class="control-label" style="width: 45%;">Color</label>
                                         <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveVerColor" value="${zone.weaveVerColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
                                     </div>
+                                    
+                                    ${(zone.weaveVerStyle === 'holes' || zone.weaveVerStyle === 'both') ? `
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Hole Shape</label>
+                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveVerHoleShape" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                <option value="round" ${(zone.weaveVerHoleShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
+                                                <option value="wobbly" ${zone.weaveVerHoleShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                                <option value="star" ${zone.weaveVerHoleShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                                            </select>
+                                        </div>
+                                        ${sliderRow('Hole Size', `pat-zone-weaveVerHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveVerHoleSize !== undefined ? zone.weaveVerHoleSize : 0.03, 'cm')}
+                                        ${['wobbly', 'star'].includes(zone.weaveVerHoleShape) ? `
+                                            ${sliderRow(zone.weaveVerHoleShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-weaveVerHoleWobbleFreq-${zone.id}`, 3, 12, 1, zone.weaveVerHoleWobbleFreq !== undefined ? zone.weaveVerHoleWobbleFreq : 5)}
+                                            ${sliderRow(zone.weaveVerHoleShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-weaveVerHoleWobbleAmp-${zone.id}`, 0, 100, 1, zone.weaveVerHoleWobbleAmp !== undefined ? zone.weaveVerHoleWobbleAmp : 0)}
+                                        ` : ''}
+                                        ${sliderRow('Big Hole Freq.', `pat-zone-weaveVerBigHoleFreq-${zone.id}`, 0, 10, 1, zone.weaveVerBigHoleFreq !== undefined ? zone.weaveVerBigHoleFreq : 0)}
+                                        ${(zone.weaveVerBigHoleFreq || 0) > 0 ? sliderRow('Big Line Freq.', `pat-zone-weaveVerBigLineFreq-${zone.id}`, 1, 5, 1, zone.weaveVerBigLineFreq !== undefined ? zone.weaveVerBigLineFreq : 1) : ''}
+                                        ${(zone.weaveVerBigHoleFreq || 0) > 0 ? sliderRow('Big Hole Scale', `pat-zone-weaveVerBigHoleScale-${zone.id}`, 1.1, 3.0, 0.1, zone.weaveVerBigHoleScale !== undefined ? zone.weaveVerBigHoleScale : 1.5, 'x') : ''}
+                                    ` : ''}
+                                    
+                                    ${(zone.weaveVerStyle === 'holes' || zone.weaveVerStyle === 'both') ? `
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Hole Spacing Mode</label>
+                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveVerDistMode" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                <option value="count" ${(zone.weaveVerDistMode || 'count') === 'count' ? 'selected' : ''}>Hole Count</option>
+                                                <option value="distance" ${zone.weaveVerDistMode === 'distance' ? 'selected' : ''}>Hole Distance</option>
+                                            </select>
+                                        </div>
+                                        ${(zone.weaveVerDistMode || 'count') === 'count' ? 
+                                            sliderRow('Hole Count', `pat-zone-weaveVerHoleCount-${zone.id}`, 1, 800, 1, zone.weaveVerHoleCount !== undefined ? zone.weaveVerHoleCount : 30) :
+                                            sliderRow('Hole Distance', `pat-zone-weaveVerHoleDistance-${zone.id}`, 0, 100, 1, zone.weaveVerHoleDistance !== undefined ? Math.round(100 * (0.30 - zone.weaveVerHoleDistance) / 0.298) : 80)
+                                        }
+                                    ` : ''}
+                                    
+                                    ${sliderRow('Dash Gap', `pat-zone-weaveVerDashSpacing-${zone.id}`, 0, 100, 1, zone.weaveVerDashSpacing !== undefined ? zone.weaveVerDashSpacing : 0)}
                                 </div>
                             </div>
                         ` : ''}
@@ -1387,7 +1461,16 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 zone.holeWobbleFreq = Math.round(valFloat);
             } else if (param === 'patchCount') {
                 zone.patchCount = Math.round(valFloat);
-            } else if (param === 'bigHoleFreq' || param === 'bigLineFreq' || param === 'swirlRows' || param === 'weaveHorCount' || param === 'weaveVerCount') {
+            } else if (param === 'weaveHorHoleWobbleAmp' || param === 'weaveVerHoleWobbleAmp') {
+                zone[param] = (valFloat / 100.0) * 0.4;
+            } else if (param === 'weaveHorDashSpacing' || param === 'weaveVerDashSpacing') {
+                zone[param] = 0.30 - (valFloat / 100.0) * 0.30;
+            } else if (param === 'weaveHorHoleDistance' || param === 'weaveVerHoleDistance') {
+                zone[param] = 0.30 - (valFloat / 100.0) * 0.298;
+            } else if (param === 'bigHoleFreq' || param === 'bigLineFreq' || param === 'swirlRows' || 
+                       param === 'weaveHorCount' || param === 'weaveVerCount' ||
+                       param === 'weaveHorBigHoleFreq' || param === 'weaveHorBigLineFreq' || param === 'weaveHorHoleWobbleFreq' || param === 'weaveHorHoleCount' ||
+                       param === 'weaveVerBigHoleFreq' || param === 'weaveVerBigLineFreq' || param === 'weaveVerHoleWobbleFreq' || param === 'weaveVerHoleCount') {
                 zone[param] = Math.round(valFloat);
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {

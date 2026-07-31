@@ -1736,12 +1736,29 @@ export function updatePatternGroup(group, state) {
             const horRenderLines = horStyle === 'lines' || horStyle === 'both';
             const horRenderHoles = horStyle === 'holes' || horStyle === 'both';
             
+            const horZone = {
+                ...zone,
+                style: horStyle,
+                color: horColor,
+                holeSize: zone.weaveHorHoleSize !== undefined ? zone.weaveHorHoleSize : zone.holeSize,
+                dashSpacing: zone.weaveHorDashSpacing !== undefined ? zone.weaveHorDashSpacing : zone.dashSpacing,
+                holeShape: zone.weaveHorHoleShape !== undefined ? zone.weaveHorHoleShape : zone.holeShape,
+                holeWobbleFreq: zone.weaveHorHoleWobbleFreq !== undefined ? zone.weaveHorHoleWobbleFreq : zone.holeWobbleFreq,
+                holeWobbleAmp: zone.weaveHorHoleWobbleAmp !== undefined ? zone.weaveHorHoleWobbleAmp : zone.holeWobbleAmp,
+                bigHoleFreq: zone.weaveHorBigHoleFreq !== undefined ? zone.weaveHorBigHoleFreq : zone.bigHoleFreq,
+                bigLineFreq: zone.weaveHorBigLineFreq !== undefined ? zone.weaveHorBigLineFreq : zone.bigLineFreq,
+                bigHoleScale: zone.weaveHorBigHoleScale !== undefined ? zone.weaveHorBigHoleScale : zone.bigHoleScale,
+                distMode: zone.weaveHorDistMode !== undefined ? zone.weaveHorDistMode : zone.distMode,
+                holeCount: zone.weaveHorHoleCount !== undefined ? zone.weaveHorHoleCount : zone.holeCount,
+                holeDistance: zone.weaveHorHoleDistance !== undefined ? zone.weaveHorHoleDistance : zone.holeDistance
+            };
+            
             if (horRenderLines) {
                 hasLines = true;
                 const count = renderPatternLayer(
                     group, horPaths, 'lines', horColor, zone.opacity,
-                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                    zone.dashSpacing, zone
+                    horZone.holeSize, horZone.distMode, horZone.holeCount, horZone.holeDistance,
+                    horZone.dashSpacing, horZone
                 );
                 totalCount += count;
             }
@@ -1749,8 +1766,8 @@ export function updatePatternGroup(group, state) {
                 hasHoles = true;
                 const count = renderPatternLayer(
                     group, horPaths, 'holes', horColor, zone.opacity,
-                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                    zone.dashSpacing, zone
+                    horZone.holeSize, horZone.distMode, horZone.holeCount, horZone.holeDistance,
+                    horZone.dashSpacing, horZone
                 );
                 totalCount += count;
             }
@@ -1761,12 +1778,29 @@ export function updatePatternGroup(group, state) {
             const verRenderLines = verStyle === 'lines' || verStyle === 'both';
             const verRenderHoles = verStyle === 'holes' || verStyle === 'both';
             
+            const verZone = {
+                ...zone,
+                style: verStyle,
+                color: verColor,
+                holeSize: zone.weaveVerHoleSize !== undefined ? zone.weaveVerHoleSize : zone.holeSize,
+                dashSpacing: zone.weaveVerDashSpacing !== undefined ? zone.weaveVerDashSpacing : zone.dashSpacing,
+                holeShape: zone.weaveVerHoleShape !== undefined ? zone.weaveVerHoleShape : zone.holeShape,
+                holeWobbleFreq: zone.weaveVerHoleWobbleFreq !== undefined ? zone.weaveVerHoleWobbleFreq : zone.holeWobbleFreq,
+                holeWobbleAmp: zone.weaveVerHoleWobbleAmp !== undefined ? zone.weaveVerHoleWobbleAmp : zone.holeWobbleAmp,
+                bigHoleFreq: zone.weaveVerBigHoleFreq !== undefined ? zone.weaveVerBigHoleFreq : zone.bigHoleFreq,
+                bigLineFreq: zone.weaveVerBigLineFreq !== undefined ? zone.weaveVerBigLineFreq : zone.bigLineFreq,
+                bigHoleScale: zone.weaveVerBigHoleScale !== undefined ? zone.weaveVerBigHoleScale : zone.bigHoleScale,
+                distMode: zone.weaveVerDistMode !== undefined ? zone.weaveVerDistMode : zone.distMode,
+                holeCount: zone.weaveVerHoleCount !== undefined ? zone.weaveVerHoleCount : zone.holeCount,
+                holeDistance: zone.weaveVerHoleDistance !== undefined ? zone.weaveVerHoleDistance : zone.holeDistance
+            };
+            
             if (verRenderLines) {
                 hasLines = true;
                 const count = renderPatternLayer(
                     group, verPaths, 'lines', verColor, zone.opacity,
-                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                    zone.dashSpacing, zone
+                    verZone.holeSize, verZone.distMode, verZone.holeCount, verZone.holeDistance,
+                    verZone.dashSpacing, verZone
                 );
                 totalCount += count;
             }
@@ -1774,12 +1808,11 @@ export function updatePatternGroup(group, state) {
                 hasHoles = true;
                 const count = renderPatternLayer(
                     group, verPaths, 'holes', verColor, zone.opacity,
-                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                    zone.dashSpacing, zone
+                    verZone.holeSize, verZone.distMode, verZone.holeCount, verZone.holeDistance,
+                    verZone.dashSpacing, verZone
                 );
                 totalCount += count;
             }
-            
         }
 
         if (renderLines) {
