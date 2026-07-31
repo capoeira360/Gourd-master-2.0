@@ -1420,7 +1420,8 @@ export function generateSwirlPaths(zone) {
 }
 
 export function generateWeavePaths(zone, verDensityVal) {
-    const paths = [];
+    const horPaths = [];
+    const verPaths = [];
     const density = zone.density || 1.0;
     const vDensity = verDensityVal || density;
     
@@ -1453,7 +1454,7 @@ export function generateWeavePaths(zone, verDensityVal) {
                         theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
                         segment.push({ t, theta, rOffset: 0 });
                     }
-                    paths.push(segment);
+                    horPaths.push(segment);
                 }
             } else {
                 // Vertical lines inside this cell
@@ -1466,17 +1467,18 @@ export function generateWeavePaths(zone, verDensityVal) {
                         const t = t_min + (s / steps) * t_w;
                         segment.push({ t, theta, rOffset: 0 });
                     }
-                    paths.push(segment);
+                    verPaths.push(segment);
                 }
             }
         }
     }
     
-    return paths;
+    return { horPaths, verPaths };
 }
 
 export function generateWeave2Paths(zone, verDensityVal) {
-    const paths = [];
+    const horPaths = [];
+    const verPaths = [];
     const density = zone.density || 1.0;
     const vDensity = verDensityVal || density;
     
@@ -1508,14 +1510,14 @@ export function generateWeave2Paths(zone, verDensityVal) {
     const j_max = Math.floor(d2_max / c) + 1;
     
     // Helper to safely add a path segment with seam-splitting
-    const addSegment = (ptsList) => {
+    const addSegment = (ptsList, targetArray) => {
         let currentSegment = [];
         for (const pt of ptsList) {
             if (currentSegment.length > 0) {
                 const prev = currentSegment[currentSegment.length - 1];
                 if (Math.abs(pt.theta - prev.theta) > Math.PI) {
                     if (currentSegment.length >= 2) {
-                        paths.push(currentSegment);
+                        targetArray.push(currentSegment);
                     }
                     currentSegment = [];
                 }
@@ -1523,7 +1525,7 @@ export function generateWeave2Paths(zone, verDensityVal) {
             currentSegment.push(pt);
         }
         if (currentSegment.length >= 2) {
-            paths.push(currentSegment);
+            targetArray.push(currentSegment);
         }
     };
     
@@ -1554,7 +1556,7 @@ export function generateWeave2Paths(zone, verDensityVal) {
                         ptsList.push({ t, theta, rOffset: 0 });
                     }
                     if (ptsList.length >= 2) {
-                        addSegment(ptsList);
+                        addSegment(ptsList, horPaths);
                     }
                 }
             } else {
@@ -1580,14 +1582,14 @@ export function generateWeave2Paths(zone, verDensityVal) {
                         ptsList.push({ t, theta, rOffset: 0 });
                     }
                     if (ptsList.length >= 2) {
-                        addSegment(ptsList);
+                        addSegment(ptsList, verPaths);
                     }
                 }
             }
         }
     }
     
-    return paths;
+    return { horPaths, verPaths };
 }
 
 // Rebuilds pattern inside a parent THREE.Group (handles lines and instanced holes)
@@ -1707,66 +1709,77 @@ export function updatePatternGroup(group, state) {
             continue;
         }
 
-        if (patLayout === 'weave') {
+        if (patLayout === 'weave' || patLayout === 'weave2') {
             const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
-            let weavePaths = generateWeavePaths(zone, verDensityVal);
+            const res = patLayout === 'weave' ? generateWeavePaths(zone, verDensityVal) : generateWeave2Paths(zone, verDensityVal);
+            
+            let horPaths = res.horPaths;
+            let verPaths = res.verPaths;
+            
             if (zone.type !== 'full') {
-                const clipped = [];
-                for (const path of weavePaths) {
-                    clipped.push(...clipPathToZone(path, zone));
+                const clippedHor = [];
+                for (const path of horPaths) {
+                    clippedHor.push(...clipPathToZone(path, zone));
                 }
-                weavePaths = clipped;
+                horPaths = clippedHor;
+                
+                const clippedVer = [];
+                for (const path of verPaths) {
+                    clippedVer.push(...clipPathToZone(path, zone));
+                }
+                verPaths = clippedVer;
             }
-            if (renderLines) {
+            
+            // Render horizontal paths
+            const horStyle = zone.weaveHorStyle || 'both';
+            const horColor = zone.weaveHorColor || zone.color;
+            const horRenderLines = horStyle === 'lines' || horStyle === 'both';
+            const horRenderHoles = horStyle === 'holes' || horStyle === 'both';
+            
+            if (horRenderLines) {
                 hasLines = true;
                 const count = renderPatternLayer(
-                    group, weavePaths, 'lines', zone.color, zone.opacity,
+                    group, horPaths, 'lines', horColor, zone.opacity,
                     zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
                     zone.dashSpacing, zone
                 );
                 totalCount += count;
             }
-            if (renderHoles) {
+            if (horRenderHoles) {
                 hasHoles = true;
                 const count = renderPatternLayer(
-                    group, weavePaths, 'holes', zone.color, zone.opacity,
+                    group, horPaths, 'holes', horColor, zone.opacity,
                     zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
                     zone.dashSpacing, zone
                 );
                 totalCount += count;
             }
-            continue;
-        }
-
-        if (patLayout === 'weave2') {
-            const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
-            let weave2Paths = generateWeave2Paths(zone, verDensityVal);
-            if (zone.type !== 'full') {
-                const clipped = [];
-                for (const path of weave2Paths) {
-                    clipped.push(...clipPathToZone(path, zone));
-                }
-                weave2Paths = clipped;
-            }
-            if (renderLines) {
+            
+            // Render vertical paths
+            const verStyle = zone.weaveVerStyle || 'both';
+            const verColor = zone.weaveVerColor || zone.color;
+            const verRenderLines = verStyle === 'lines' || verStyle === 'both';
+            const verRenderHoles = verStyle === 'holes' || verStyle === 'both';
+            
+            if (verRenderLines) {
                 hasLines = true;
                 const count = renderPatternLayer(
-                    group, weave2Paths, 'lines', zone.color, zone.opacity,
+                    group, verPaths, 'lines', verColor, zone.opacity,
                     zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
                     zone.dashSpacing, zone
                 );
                 totalCount += count;
             }
-            if (renderHoles) {
+            if (verRenderHoles) {
                 hasHoles = true;
                 const count = renderPatternLayer(
-                    group, weave2Paths, 'holes', zone.color, zone.opacity,
+                    group, verPaths, 'holes', verColor, zone.opacity,
                     zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
                     zone.dashSpacing, zone
                 );
                 totalCount += count;
             }
-            continue;
+            
         }
 
         if (renderLines) {

@@ -34,6 +34,10 @@ export const state = {
             swirlRowSpacing: 0.15,
             weaveHorCount: 5,
             weaveVerCount: 5,
+            weaveHorStyle: 'both',
+            weaveHorColor: '#D4A843',
+            weaveVerStyle: 'both',
+            weaveVerColor: '#D4A843',
             
             // Bounds parameters (used depending on type)
             tMin: 0.0,
@@ -321,6 +325,10 @@ export function addPatternZone() {
         swirlRowSpacing: 0.15,
         weaveHorCount: 5,
         weaveVerCount: 5,
+        weaveHorStyle: 'both',
+        weaveHorColor: '#D4A843',
+        weaveVerStyle: 'both',
+        weaveVerColor: '#D4A843',
         
         tMin: 0.0,
         tMax: 1.0,

@@ -429,10 +429,44 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ` : ''}
                         
                         ${(zone.patternType === 'weave' || zone.patternType === 'weave2') ? `
-                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px;">
-                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 8px;">Basket Weave Configuration</div>
+                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Basket Weave Configuration</div>
                                 ${sliderRow('Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 2, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
                                 ${sliderRow('Weave Vert. Count', `pat-zone-weaveVerCount-${zone.id}`, 2, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
+                                
+                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">HORIZONTAL / ASCENDING</div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Style</label>
+                                        <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorStyle" style="flex: 1; font-size: 11px; padding: 2px;">
+                                            <option value="both" ${zone.weaveHorStyle === 'both' ? 'selected' : ''}>Both</option>
+                                            <option value="lines" ${zone.weaveHorStyle === 'lines' ? 'selected' : ''}>Lines</option>
+                                            <option value="holes" ${zone.weaveHorStyle === 'holes' ? 'selected' : ''}>Holes</option>
+                                            <option value="off" ${zone.weaveHorStyle === 'off' ? 'selected' : ''}>Off</option>
+                                        </select>
+                                    </div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Color</label>
+                                        <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveHorColor" value="${zone.weaveHorColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                    </div>
+                                </div>
+                                
+                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">VERTICAL / DESCENDING</div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Style</label>
+                                        <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveVerStyle" style="flex: 1; font-size: 11px; padding: 2px;">
+                                            <option value="both" ${zone.weaveVerStyle === 'both' ? 'selected' : ''}>Both</option>
+                                            <option value="lines" ${zone.weaveVerStyle === 'lines' ? 'selected' : ''}>Lines</option>
+                                            <option value="holes" ${zone.weaveVerStyle === 'holes' ? 'selected' : ''}>Holes</option>
+                                            <option value="off" ${zone.weaveVerStyle === 'off' ? 'selected' : ''}>Off</option>
+                                        </select>
+                                    </div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Color</label>
+                                        <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveVerColor" value="${zone.weaveVerColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                    </div>
+                                </div>
                             </div>
                         ` : ''}
                         
@@ -1045,6 +1079,36 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                 zone.color = picker.value;
                 const labelText = picker.nextElementSibling;
                 if (labelText) labelText.textContent = zone.color.toUpperCase();
+                updatePatternGroup(patternGroup, state);
+            }
+        });
+        picker.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+        });
+    });
+
+    document.querySelectorAll('.zone-weave-style-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const param = select.dataset.param;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone[param] = select.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-weave-color-input').forEach(picker => {
+        picker.addEventListener('input', () => {
+            const zoneId = picker.dataset.zoneId;
+            const param = picker.dataset.param;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                state.activeZoneId = zoneId;
+                zone[param] = picker.value;
                 updatePatternGroup(patternGroup, state);
             }
         });
