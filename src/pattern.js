@@ -1475,6 +1475,73 @@ export function generateWeavePaths(zone, verDensityVal) {
     return paths;
 }
 
+export function generateWeave2Paths(zone, verDensityVal) {
+    const paths = [];
+    const density = zone.density || 1.0;
+    const vDensity = verDensityVal || density;
+    
+    const H = Math.round(density * 10);
+    const V = Math.round(vDensity * 8);
+    
+    const horCount = zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5;
+    const verCount = zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5;
+    
+    const t_w = 1.0 / H;
+    
+    for (let i = -1; i <= H + 1; i++) {
+        for (let j = 0; j < V; j++) {
+            // Stagger odd columns vertically by 0.5 of cell height
+            const isOddCol = j % 2 !== 0;
+            const staggerY = isOddCol ? 0.5 * t_w : 0.0;
+            
+            const t_min = i * t_w + staggerY;
+            const t_max = (i + 1) * t_w + staggerY;
+            
+            // Skip cells completely out of the [0, 1] range
+            if (t_min >= 1.0 || t_max <= 0.0) continue;
+            
+            const theta_min = j * (2 * Math.PI) / V;
+            const theta_max = (j + 1) * (2 * Math.PI) / V;
+            const theta_w = theta_max - theta_min;
+            
+            const isHorizontal = (i + j) % 2 === 0;
+            
+            if (isHorizontal) {
+                // Horizontal lines inside this cell
+                for (let k = 0; k < horCount; k++) {
+                    const t = t_min + ((k + 0.5) / horCount) * t_w;
+                    if (t < 0.001 || t > 0.999) continue;
+                    
+                    const segment = [];
+                    const steps = 15;
+                    for (let s = 0; s <= steps; s++) {
+                        let theta = theta_min + (s / steps) * theta_w;
+                        theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                        segment.push({ t, theta, rOffset: 0 });
+                    }
+                    paths.push(segment);
+                }
+            } else {
+                // Vertical lines inside this cell
+                for (let k = 0; k < verCount; k++) {
+                    let theta = theta_min + ((k + 0.5) / verCount) * theta_w;
+                    theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                    const segment = [];
+                    const steps = 15;
+                    for (let s = 0; s <= steps; s++) {
+                        const t = t_min + (s / steps) * t_w;
+                        const clampedT = Math.max(0.001, Math.min(0.999, t));
+                        segment.push({ t: clampedT, theta, rOffset: 0 });
+                    }
+                    paths.push(segment);
+                }
+            }
+        }
+    }
+    
+    return paths;
+}
+
 // Rebuilds pattern inside a parent THREE.Group (handles lines and instanced holes)
 export function updatePatternGroup(group, state) {
     // Clear old children
@@ -1615,6 +1682,37 @@ export function updatePatternGroup(group, state) {
                 hasHoles = true;
                 const count = renderPatternLayer(
                     group, weavePaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            continue;
+        }
+
+        if (patLayout === 'weave2') {
+            const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
+            let weave2Paths = generateWeave2Paths(zone, verDensityVal);
+            if (zone.type !== 'full') {
+                const clipped = [];
+                for (const path of weave2Paths) {
+                    clipped.push(...clipPathToZone(path, zone));
+                }
+                weave2Paths = clipped;
+            }
+            if (renderLines) {
+                hasLines = true;
+                const count = renderPatternLayer(
+                    group, weave2Paths, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            if (renderHoles) {
+                hasHoles = true;
+                const count = renderPatternLayer(
+                    group, weave2Paths, 'holes', zone.color, zone.opacity,
                     zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
                     zone.dashSpacing, zone
                 );

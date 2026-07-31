@@ -165,7 +165,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 patternTypeSelector = `
                     <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: flex-start;">
                         <label class="control-label" style="margin-bottom: 6px;">Pattern Layout</label>
-                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(4, 1fr);">
+                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(3, 1fr);">
                             <button class="option-btn ${zone.patternType === 'grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="grid" style="padding: 4px; font-size: 10px;">Grid</button>
                             <button class="option-btn ${zone.patternType === 'spiral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="spiral" style="padding: 4px; font-size: 10px;">Spiral</button>
                             <button class="option-btn ${zone.patternType === 'flower' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flower" style="padding: 4px; font-size: 10px;">Flower</button>
@@ -174,6 +174,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'box-grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="box-grid" style="padding: 4px; font-size: 10px;">Box Grid</button>
                             <button class="option-btn ${zone.patternType === 'swirls' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="swirls" style="padding: 4px; font-size: 10px;">Swirls</button>
                             <button class="option-btn ${zone.patternType === 'weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave" style="padding: 4px; font-size: 10px;">Weave</button>
+                            <button class="option-btn ${zone.patternType === 'weave2' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave2" style="padding: 4px; font-size: 10px;">Weave 2</button>
                         </div>
                     </div>
                 `;
@@ -427,7 +428,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             </div>
                         ` : ''}
                         
-                        ${zone.patternType === 'weave' ? `
+                        ${(zone.patternType === 'weave' || zone.patternType === 'weave2') ? `
                             <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px;">
                                 <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 8px;">Basket Weave Configuration</div>
                                 ${sliderRow('Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 2, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
