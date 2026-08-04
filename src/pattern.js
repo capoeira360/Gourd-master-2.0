@@ -1600,6 +1600,137 @@ export function generateWeave2Paths(zone, verDensityVal) {
     return { horPaths, verPaths };
 }
 
+export function generateGeoTrianglePaths(zone, verDensityVal) {
+    const verPaths = []; // vertical hatch + vertical boundaries
+    const diagPaths = []; // diagonal hatch + diagonal boundaries
+    
+    const density = zone.density || 1.0;
+    const vDensity = verDensityVal || density;
+    
+    const H = Math.round(density * 10);
+    const V = Math.round(vDensity * 8);
+    
+    const verLineCount = zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5;
+    const diagLineCount = zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5;
+    
+    for (let i = 0; i < H; i++) {
+        const x_min = i / H;
+        const x_max = (i + 1) / H;
+        const x_w = x_max - x_min;
+        
+        for (let j = 0; j < V; j++) {
+            const y_min = j / V;
+            const y_max = (j + 1) / V;
+            const y_h = y_max - y_min;
+            
+            const isEven = (i + j) % 2 === 0;
+            
+            // 1. Draw boundary lines:
+            // - Vertical boundary on the left of each cell: x = x_min
+            const leftBoundary = [];
+            const N_pts = 10;
+            for (let k = 0; k <= N_pts; k++) {
+                const y_val = y_min + (k / N_pts) * y_h;
+                leftBoundary.push({
+                    t: y_val,
+                    theta: x_min * 2 * Math.PI - Math.PI
+                });
+            }
+            verPaths.push(leftBoundary);
+            
+            // - Diagonal boundary of the cell
+            const diagBoundary = [];
+            for (let k = 0; k <= N_pts; k++) {
+                const f = k / N_pts;
+                const x_val = x_min + f * x_w;
+                const y_val = isEven ? (y_max - f * y_h) : (y_min + f * y_h);
+                diagBoundary.push({
+                    t: y_val,
+                    theta: x_val * 2 * Math.PI - Math.PI
+                });
+            }
+            diagPaths.push(diagBoundary);
+            
+            // 2. Draw hatch lines inside:
+            if (isEven) {
+                // Bottom-left triangle (u + v < 1): vertical lines
+                for (let k = 1; k <= verLineCount; k++) {
+                    const u = k / (verLineCount + 1);
+                    const x_val = x_min + u * x_w;
+                    const y_limit = y_min + (1 - u) * y_h;
+                    
+                    const line = [];
+                    for (let step = 0; step <= N_pts; step++) {
+                        const y_val = y_min + (step / N_pts) * (y_limit - y_min);
+                        line.push({
+                            t: y_val,
+                            theta: x_val * 2 * Math.PI - Math.PI
+                        });
+                    }
+                    verPaths.push(line);
+                }
+                
+                // Top-right triangle (u + v >= 1): diagonal lines parallel to u + v = 1
+                for (let k = 1; k <= diagLineCount; k++) {
+                    const f = k / (diagLineCount + 1);
+                    const line = [];
+                    for (let step = 0; step <= N_pts; step++) {
+                        const s = step / N_pts;
+                        const u = f + s * (1 - f);
+                        const v = 1 + f - u;
+                        
+                        const x_val = x_min + u * x_w;
+                        const y_val = y_min + v * y_h;
+                        line.push({
+                            t: y_val,
+                            theta: x_val * 2 * Math.PI - Math.PI
+                        });
+                    }
+                    diagPaths.push(line);
+                }
+            } else {
+                // Top-left triangle (u <= v): vertical lines
+                for (let k = 1; k <= verLineCount; k++) {
+                    const u = k / (verLineCount + 1);
+                    const x_val = x_min + u * x_w;
+                    const y_start = y_min + u * y_h;
+                    
+                    const line = [];
+                    for (let step = 0; step <= N_pts; step++) {
+                        const y_val = y_start + (step / N_pts) * (y_max - y_start);
+                        line.push({
+                            t: y_val,
+                            theta: x_val * 2 * Math.PI - Math.PI
+                        });
+                    }
+                    verPaths.push(line);
+                }
+                
+                // Bottom-right triangle (u > v): diagonal lines parallel to u = v (i.e. u - v = C)
+                for (let k = 1; k <= diagLineCount; k++) {
+                    const f = k / (diagLineCount + 1);
+                    const line = [];
+                    for (let step = 0; step <= N_pts; step++) {
+                        const s = step / N_pts;
+                        const u = f + s * (1 - f);
+                        const v = u - f;
+                        
+                        const x_val = x_min + u * x_w;
+                        const y_val = y_min + v * y_h;
+                        line.push({
+                            t: y_val,
+                            theta: x_val * 2 * Math.PI - Math.PI
+                        });
+                    }
+                    diagPaths.push(line);
+                }
+            }
+        }
+    }
+    
+    return { horPaths: verPaths, verPaths: diagPaths };
+}
+
 function renderScatterLayer(group, points, colorHex, opacity, zone) {
     if (points.length === 0) return 0;
     
@@ -1900,9 +2031,16 @@ export function updatePatternGroup(group, state) {
             continue;
         }
 
-        if (patLayout === 'weave' || patLayout === 'weave2') {
+        if (patLayout === 'weave' || patLayout === 'weave2' || patLayout === 'geo-triangle') {
             const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
-            const res = patLayout === 'weave' ? generateWeavePaths(zone, verDensityVal) : generateWeave2Paths(zone, verDensityVal);
+            let res;
+            if (patLayout === 'weave') {
+                res = generateWeavePaths(zone, verDensityVal);
+            } else if (patLayout === 'weave2') {
+                res = generateWeave2Paths(zone, verDensityVal);
+            } else {
+                res = generateGeoTrianglePaths(zone, verDensityVal);
+            }
             
             let horPaths = res.horPaths;
             let verPaths = res.verPaths;
