@@ -231,6 +231,41 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 }
             }
 
+            let scatterGroupsHTML = '';
+            if (zone.patternType === 'scatter') {
+                const numGroups = zone.scatterSizeGroupsCount || 3;
+                for (let i = 1; i <= numGroups; i++) {
+                    const sh = zone['scatterShape' + i] || 'round';
+                    const sz = zone['scatterSize' + i] !== undefined ? zone['scatterSize' + i] : 0.05;
+                    const qty = zone['scatterQty' + i] !== undefined ? zone['scatterQty' + i] : 30;
+                    const col = zone['scatterColor' + i] || '#D4A843';
+                    
+                    scatterGroupsHTML += `
+                        <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">SIZE GROUP ${i}</div>
+                            
+                            <div class="control-row" style="margin-bottom: 0;">
+                                <label class="control-label" style="width: 45%;">Hole Shape</label>
+                                <select class="zone-scatter-group-select" data-zone-id="${zone.id}" data-param="scatterShape${i}" style="flex: 1; font-size: 11px; padding: 2px;">
+                                    <option value="round" ${sh === 'round' ? 'selected' : ''}>Round Hole</option>
+                                    <option value="wobbly" ${sh === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                    <option value="star" ${sh === 'star' ? 'selected' : ''}>Star Shape</option>
+                                    <option value="mix" ${sh === 'mix' ? 'selected' : ''}>Mixed Shapes</option>
+                                </select>
+                            </div>
+                            
+                            ${sliderRow('Hole Size', `pat-zone-scatterSize${i}-${zone.id}`, 0.01, 0.15, 0.005, sz, 'cm')}
+                            ${sliderRow('Hole Quantity', `pat-zone-scatterQty${i}-${zone.id}`, 5, 200, 5, qty)}
+                            
+                            <div class="control-row" style="margin-bottom: 0;">
+                                <label class="control-label" style="width: 45%;">Color</label>
+                                <input type="color" class="zone-scatter-group-color" data-zone-id="${zone.id}" data-param="scatterColor${i}" value="${col}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
             let styleControls = '';
             const leanAngleVal = zone.leanAngle !== undefined ? zone.leanAngle : 0.0;
             const direction = zone.direction || 'both';
@@ -548,35 +583,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${zone.patternType === 'scatter' ? `
                             <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                 <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Scatter Configuration (Stars)</div>
-                                ${sliderRow('Hole Quantity', `pat-zone-scatterCount-${zone.id}`, 10, 500, 5, zone.scatterCount !== undefined ? zone.scatterCount : 100)}
-                                ${sliderRow('Min Size', `pat-zone-scatterMinSize-${zone.id}`, 0.01, 0.10, 0.005, zone.scatterMinSize !== undefined ? zone.scatterMinSize : 0.02, 'cm')}
-                                ${sliderRow('Max Size', `pat-zone-scatterMaxSize-${zone.id}`, 0.01, 0.15, 0.005, zone.scatterMaxSize !== undefined ? zone.scatterMaxSize : 0.08, 'cm')}
+                                ${sliderRow('Size Categories', `pat-zone-scatterSizeGroupsCount-${zone.id}`, 1, 5, 1, zone.scatterSizeGroupsCount || 3)}
                                 ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
                                 
-                                <div class="control-row" style="margin-top: 4px; justify-content: space-between;">
-                                    <label class="control-label" style="width: auto;">Mix Shapes (Round/Wobbly/Star)</label>
-                                    <input type="checkbox" class="zone-scatter-mix-checkbox" data-zone-id="${zone.id}" ${zone.scatterMixShapes ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
-                                </div>
-                                
-                                ${!zone.scatterMixShapes ? `
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Hole Shape</label>
-                                        <select class="zone-scatter-shape-select" data-zone-id="${zone.id}" style="flex: 1; font-size: 11px; padding: 2px;">
-                                            <option value="round" ${(zone.holeShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
-                                            <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
-                                            <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
-                                        </select>
-                                    </div>
-                                    ${['wobbly', 'star'].includes(zone.holeShape) ? `
-                                        ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5)}
-                                        ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, zone.holeWobbleAmp !== undefined ? Math.round(100 * zone.holeWobbleAmp / 0.4) : 37)}
-                                    ` : ''}
-                                ` : ''}
-                                
-                                <div class="control-row" style="margin-bottom: 0; margin-top: 4px;">
-                                    <label class="control-label" style="width: 45%;">Hole Color</label>
-                                    <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
-                                </div>
+                                ${scatterGroupsHTML}
                             </div>
                         ` : ''}
                         
@@ -1270,6 +1280,37 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    document.querySelectorAll('.zone-scatter-group-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const param = select.dataset.param;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone[param] = select.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-scatter-group-color').forEach(picker => {
+        picker.addEventListener('input', () => {
+            const zoneId = picker.dataset.zoneId;
+            const param = picker.dataset.param;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                state.activeZoneId = zoneId;
+                zone[param] = picker.value;
+                updatePatternGroup(patternGroup, state);
+            }
+        });
+        picker.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+        });
+    });
+
     document.querySelectorAll('.zone-card').forEach(card => {
         card.addEventListener('click', (e) => {
             if (e.target.closest('select, button, .zone-action-btn')) return;
@@ -1552,9 +1593,14 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                        param === 'weaveVerBigHoleFreq' || param === 'weaveVerBigLineFreq' || param === 'weaveVerHoleWobbleFreq' || param === 'weaveVerHoleCount') {
                 zone[param] = Math.round(valFloat);
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
-            } else if (param === 'scatterCount' || param === 'scatterSeed') {
+            } else if (param === 'scatterCount' || param === 'scatterSeed' || param === 'scatterSizeGroupsCount' ||
+                       param === 'scatterQty1' || param === 'scatterQty2' || param === 'scatterQty3' || param === 'scatterQty4' || param === 'scatterQty5') {
                 zone[param] = Math.round(valFloat);
-            } else if (param === 'scatterMinSize' || param === 'scatterMaxSize') {
+                if (param === 'scatterSizeGroupsCount') {
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                }
+            } else if (param === 'scatterMinSize' || param === 'scatterMaxSize' ||
+                       param === 'scatterSize1' || param === 'scatterSize2' || param === 'scatterSize3' || param === 'scatterSize4' || param === 'scatterSize5') {
                 zone[param] = valFloat;
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {
                 zone[param] = valFloat * Math.PI / 180;

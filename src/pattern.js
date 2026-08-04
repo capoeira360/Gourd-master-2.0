@@ -1603,38 +1603,39 @@ export function generateWeave2Paths(zone, verDensityVal) {
 function renderScatterLayer(group, points, colorHex, opacity, zone) {
     if (points.length === 0) return 0;
     
-    // Group points by shape: 'round', 'wobbly', 'star'
-    const groups = {
-        round: [],
-        wobbly: [],
-        star: []
-    };
+    // Group points by shape AND color: e.g. "round_#ff0000"
+    const groups = {};
     
     for (const pt of points) {
         const sh = pt.customHoleShape || 'round';
-        if (groups[sh]) {
-            groups[sh].push(pt);
-        } else {
-            groups.round.push(pt);
+        const col = pt.customColor || colorHex;
+        const key = `${sh}_${col}`;
+        if (!groups[key]) {
+            groups[key] = [];
         }
+        groups[key].push(pt);
     }
-    
-    const color = new THREE.Color(colorHex);
-    const mat = new THREE.MeshBasicMaterial({
-        color: color,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: opacity,
-        depthTest: true,
-        depthWrite: false
-    });
-    mat.userData = { originalOpacity: opacity };
     
     let totalRendered = 0;
     const upVector = new THREE.Vector3(0, 0, 1);
     
-    for (const [shapeName, pts] of Object.entries(groups)) {
+    for (const [key, pts] of Object.entries(groups)) {
         if (pts.length === 0) continue;
+        
+        const parts = key.split('_');
+        const shapeName = parts[0];
+        const ptColor = parts.slice(1).join('_');
+        
+        const color = new THREE.Color(ptColor);
+        const mat = new THREE.MeshBasicMaterial({
+            color: color,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: opacity,
+            depthTest: true,
+            depthWrite: false
+        });
+        mat.userData = { originalOpacity: opacity };
         
         let geom;
         if (shapeName === 'round') {
@@ -1642,7 +1643,6 @@ function renderScatterLayer(group, points, colorHex, opacity, zone) {
         } else {
             const shape = new THREE.Shape();
             const segments = 60;
-            // Generate shape in a unit bounding circle (radius = 1.0)
             const amp = pts[0].customHoleWobbleAmp !== undefined ? pts[0].customHoleWobbleAmp : 0.15;
             const freq = pts[0].customHoleWobbleFreq !== undefined ? pts[0].customHoleWobbleFreq : 5;
             
@@ -1660,7 +1660,6 @@ function renderScatterLayer(group, points, colorHex, opacity, zone) {
             geom = new THREE.ShapeGeometry(shape);
         }
         
-        // Scale down unit geometry factor by 0.5 to match normal hole radius scaling
         const instancedMesh = new THREE.InstancedMesh(geom, mat, pts.length);
         instancedMesh.renderOrder = zone.renderOrder || 5;
         
@@ -1806,54 +1805,94 @@ export function updatePatternGroup(group, state) {
         }
 
         if (patLayout === 'scatter') {
+            const numGroups = zone.scatterSizeGroupsCount !== undefined ? zone.scatterSizeGroupsCount : 3;
+            const groupsToProcess = [];
+            for (let i = 1; i <= numGroups; i++) {
+                groupsToProcess.push({
+                    index: i,
+                    qty: zone['scatterQty' + i] !== undefined ? zone['scatterQty' + i] : 30,
+                    size: zone['scatterSize' + i] !== undefined ? zone['scatterSize' + i] : 0.05,
+                    shape: zone['scatterShape' + i] || 'round',
+                    color: zone['scatterColor' + i] || '#D4A843'
+                });
+            }
+            // Sort descending by size to place largest holes first for Poisson packing
+            groupsToProcess.sort((a, b) => b.size - a.size);
+            
             const rng = seededRandom(zone.scatterSeed !== undefined ? zone.scatterSeed : 42);
             const pts = [];
-            let attempts = 0;
-            const targetCount = zone.scatterCount !== undefined ? zone.scatterCount : 100;
-            const minSize = zone.scatterMinSize !== undefined ? zone.scatterMinSize : 0.02;
-            const maxSize = zone.scatterMaxSize !== undefined ? zone.scatterMaxSize : 0.08;
+            const placed = []; // array of { pos, maxRadius, pt }
             
-            while (pts.length < targetCount && attempts < targetCount * 200) {
-                const t = rng();
-                const theta = rng() * Math.PI * 2 - Math.PI;
-                attempts++;
+            for (const gp of groupsToProcess) {
+                let placedCount = 0;
+                let attempts = 0;
+                const targetCount = gp.qty;
+                const baseRadius = gp.size * 0.5;
+                const isMixed = gp.shape === 'mix';
                 
-                if (isPointInZone(t, theta, zone)) {
-                    const size = minSize + rng() * (maxSize - minSize);
+                while (placedCount < targetCount && attempts < targetCount * 300) {
+                    attempts++;
+                    const t = rng();
+                    const theta = rng() * Math.PI * 2 - Math.PI;
                     
-                    let shape = zone.holeShape || 'round';
-                    let wobbleFreq = zone.holeWobbleFreq || 5;
-                    let wobbleAmp = zone.holeWobbleAmp || 0.15;
-                    
-                    if (zone.scatterMixShapes) {
-                        const r = rng();
-                        if (r < 0.33) {
-                            shape = 'round';
-                            wobbleAmp = 0;
-                        } else if (r < 0.66) {
-                            shape = 'wobbly';
-                            wobbleFreq = Math.round(3 + rng() * 5);
-                            wobbleAmp = 0.10 + rng() * 0.15;
+                    if (isPointInZone(t, theta, zone)) {
+                        let shape = gp.shape;
+                        let wobbleFreq = zone.holeWobbleFreq || 5;
+                        let wobbleAmp = zone.holeWobbleAmp || 0.15;
+                        
+                        if (isMixed) {
+                            const r = rng();
+                            if (r < 0.33) {
+                                shape = 'round';
+                                wobbleAmp = 0;
+                            } else if (r < 0.66) {
+                                shape = 'wobbly';
+                                wobbleFreq = Math.round(3 + rng() * 5);
+                                wobbleAmp = 0.10 + rng() * 0.15;
+                            } else {
+                                shape = 'star';
+                                wobbleFreq = Math.round(5 + rng() * 4);
+                                wobbleAmp = 0.15 + rng() * 0.20;
+                            }
                         } else {
-                            shape = 'star';
-                            wobbleFreq = Math.round(5 + rng() * 4);
-                            wobbleAmp = 0.15 + rng() * 0.20;
+                            wobbleFreq = zone.holeWobbleFreq || 5;
+                            wobbleAmp = zone.holeWobbleAmp || 0.15;
+                            if (shape === 'round') {
+                                wobbleAmp = 0;
+                            }
+                        }
+                        
+                        const maxRadius = baseRadius * (1.0 + (shape === 'round' ? 0.0 : wobbleAmp));
+                        const pos = getSurfacePoint(t, theta, 0.002, 0);
+                        
+                        // Collision check with 0.01cm safety margin
+                        let hasCollision = false;
+                        for (const p of placed) {
+                            if (pos.distanceTo(p.pos) < (maxRadius + p.maxRadius + 0.01)) {
+                                hasCollision = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!hasCollision) {
+                            const pt = {
+                                t,
+                                theta,
+                                rOffset: 0,
+                                customHoleSize: gp.size,
+                                customHoleShape: shape,
+                                customHoleWobbleFreq: wobbleFreq,
+                                customHoleWobbleAmp: wobbleAmp,
+                                customColor: gp.color
+                            };
+                            placed.push({ pos, maxRadius, pt });
+                            pts.push(pt);
+                            placedCount++;
                         }
                     }
-                    
-                    pts.push({
-                        t,
-                        theta,
-                        rOffset: 0,
-                        customHoleSize: size,
-                        customHoleShape: shape,
-                        customHoleWobbleFreq: wobbleFreq,
-                        customHoleWobbleAmp: wobbleAmp
-                    });
                 }
             }
             
-            // Scatter layout is pure holes (no lines/both support needed)
             hasHoles = true;
             const count = renderScatterLayer(group, pts, zone.color, zone.opacity, zone);
             totalCount += count;
