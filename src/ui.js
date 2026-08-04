@@ -165,7 +165,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 patternTypeSelector = `
                     <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: flex-start;">
                         <label class="control-label" style="margin-bottom: 6px;">Pattern Layout</label>
-                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(3, 1fr);">
+                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(5, 1fr);">
                             <button class="option-btn ${zone.patternType === 'grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="grid" style="padding: 4px; font-size: 10px;">Grid</button>
                             <button class="option-btn ${zone.patternType === 'spiral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="spiral" style="padding: 4px; font-size: 10px;">Spiral</button>
                             <button class="option-btn ${zone.patternType === 'flower' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flower" style="padding: 4px; font-size: 10px;">Flower</button>
@@ -175,6 +175,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'swirls' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="swirls" style="padding: 4px; font-size: 10px;">Swirls</button>
                             <button class="option-btn ${zone.patternType === 'weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave" style="padding: 4px; font-size: 10px;">Weave</button>
                             <button class="option-btn ${zone.patternType === 'weave2' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave2" style="padding: 4px; font-size: 10px;">Weave 2</button>
+                            <button class="option-btn ${zone.patternType === 'scatter' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="scatter" style="padding: 4px; font-size: 10px;">Scatter</button>
                         </div>
                     </div>
                 `;
@@ -236,7 +237,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
-            if (zone.patternType === 'weave' || zone.patternType === 'weave2') {
+            if (zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter') {
                 styleControls = '';
             } else if (zone.style === 'lines') {
                 styleControls = `
@@ -540,6 +541,41 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                     ` : ''}
                                     
                                     ${sliderRow('Dash Gap', `pat-zone-weaveVerDashSpacing-${zone.id}`, 0, 100, 1, zone.weaveVerDashSpacing !== undefined ? zone.weaveVerDashSpacing : 0)}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${zone.patternType === 'scatter' ? `
+                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Scatter Configuration (Stars)</div>
+                                ${sliderRow('Hole Quantity', `pat-zone-scatterCount-${zone.id}`, 10, 500, 5, zone.scatterCount !== undefined ? zone.scatterCount : 100)}
+                                ${sliderRow('Min Size', `pat-zone-scatterMinSize-${zone.id}`, 0.01, 0.10, 0.005, zone.scatterMinSize !== undefined ? zone.scatterMinSize : 0.02, 'cm')}
+                                ${sliderRow('Max Size', `pat-zone-scatterMaxSize-${zone.id}`, 0.01, 0.15, 0.005, zone.scatterMaxSize !== undefined ? zone.scatterMaxSize : 0.08, 'cm')}
+                                ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
+                                
+                                <div class="control-row" style="margin-top: 4px; justify-content: space-between;">
+                                    <label class="control-label" style="width: auto;">Mix Shapes (Round/Wobbly/Star)</label>
+                                    <input type="checkbox" class="zone-scatter-mix-checkbox" data-zone-id="${zone.id}" ${zone.scatterMixShapes ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                                </div>
+                                
+                                ${!zone.scatterMixShapes ? `
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Hole Shape</label>
+                                        <select class="zone-scatter-shape-select" data-zone-id="${zone.id}" style="flex: 1; font-size: 11px; padding: 2px;">
+                                            <option value="round" ${(zone.holeShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
+                                            <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                            <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                                        </select>
+                                    </div>
+                                    ${['wobbly', 'star'].includes(zone.holeShape) ? `
+                                        ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq !== undefined ? zone.holeWobbleFreq : 5)}
+                                        ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, zone.holeWobbleAmp !== undefined ? Math.round(100 * zone.holeWobbleAmp / 0.4) : 37)}
+                                    ` : ''}
+                                ` : ''}
+                                
+                                <div class="control-row" style="margin-bottom: 0; margin-top: 4px;">
+                                    <label class="control-label" style="width: 45%;">Hole Color</label>
+                                    <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
                                 </div>
                             </div>
                         ` : ''}
@@ -1191,6 +1227,49 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    document.querySelectorAll('.zone-scatter-mix-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            const zoneId = checkbox.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.scatterMixShapes = checkbox.checked;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-scatter-shape-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.holeShape = select.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-scatter-color-input').forEach(picker => {
+        picker.addEventListener('input', () => {
+            const zoneId = picker.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                state.activeZoneId = zoneId;
+                zone.color = picker.value;
+                updatePatternGroup(patternGroup, state);
+            }
+        });
+        picker.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+        });
+    });
+
     document.querySelectorAll('.zone-card').forEach(card => {
         card.addEventListener('click', (e) => {
             if (e.target.closest('select, button, .zone-action-btn')) return;
@@ -1473,6 +1552,10 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                        param === 'weaveVerBigHoleFreq' || param === 'weaveVerBigLineFreq' || param === 'weaveVerHoleWobbleFreq' || param === 'weaveVerHoleCount') {
                 zone[param] = Math.round(valFloat);
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            } else if (param === 'scatterCount' || param === 'scatterSeed') {
+                zone[param] = Math.round(valFloat);
+            } else if (param === 'scatterMinSize' || param === 'scatterMaxSize') {
+                zone[param] = valFloat;
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {
                 zone[param] = valFloat * Math.PI / 180;
             } else {

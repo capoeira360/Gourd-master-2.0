@@ -40,6 +40,11 @@ export const state = {
             weaveVerStyle: 'both',
             weaveVerColor: '#D4A843',
             weaveVerHoleSize: 0.03,
+            scatterCount: 100,
+            scatterMinSize: 0.02,
+            scatterMaxSize: 0.08,
+            scatterMixShapes: false,
+            scatterSeed: 42,
             
             // Bounds parameters (used depending on type)
             tMin: 0.0,
@@ -333,6 +338,11 @@ export function addPatternZone() {
         weaveVerStyle: 'both',
         weaveVerColor: '#D4A843',
         weaveVerHoleSize: 0.03,
+        scatterCount: 100,
+        scatterMinSize: 0.02,
+        scatterMaxSize: 0.08,
+        scatterMixShapes: false,
+        scatterSeed: 42,
         
         tMin: 0.0,
         tMax: 1.0,
