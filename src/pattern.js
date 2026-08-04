@@ -1739,59 +1739,112 @@ export function generateFlowPaths(zone) {
     const length = zone.flowLength !== undefined ? zone.flowLength : 40;
     const baseAngle = (zone.flowBaseAngle !== undefined ? zone.flowBaseAngle : 0.0) * Math.PI / 180;
     
+    const rng = seededRandom(zone.scatterSeed !== undefined ? zone.scatterSeed : 42);
+    
+    // 1. Generate Obstacles
+    const obstacles = [];
+    const numObstacles = 8 + Math.round(rng() * 6);
+    for (let k = 0; k < numObstacles; k++) {
+        const t_c = 0.1 + rng() * 0.8;
+        const theta_c = -Math.PI + rng() * 2 * Math.PI;
+        const radius_c = 0.03 + rng() * 0.04;
+        obstacles.push({ t: t_c, theta: theta_c, r: radius_c });
+    }
+    zone._obstacles = obstacles;
+    
     const H_seeds = 5;
     const V_seeds = Math.ceil(count / 5);
-    const rng = seededRandom(zone.scatterSeed !== undefined ? zone.scatterSeed : 42);
+    const allPoints3D = [];
     
     for (let i = 0; i < H_seeds; i++) {
         const theta0 = -Math.PI + (i / H_seeds) * 2 * Math.PI + (rng() - 0.5) * 0.2;
         for (let j = 0; j < V_seeds; j++) {
             const t0 = 0.05 + (j / V_seeds) * 0.9 + (rng() - 0.5) * 0.05;
-            const pathPts = [];
             
-            // Integrate forward
-            let t = t0;
-            let theta = theta0;
             const dt = 0.015;
             const dtheta = 0.045;
             
-            for (let step = 0; step < length; step++) {
-                pathPts.push({ t, theta });
-                const alpha = baseAngle + scale * (
-                    Math.sin(freq * t * Math.PI + 2 * theta) + 
-                    Math.cos(freq * 0.7 * t * Math.PI - 3 * theta)
-                );
-                t += dt * Math.cos(alpha);
-                theta += dtheta * Math.sin(alpha);
+            const integrate = (dir) => {
+                let t = t0;
+                let theta = theta0;
+                const pts = [];
                 
-                if (theta > Math.PI) theta -= 2 * Math.PI;
-                if (theta < -Math.PI) theta += 2 * Math.PI;
-                
-                if (t < 0 || t > 1) break;
-            }
+                for (let step = 0; step < length; step++) {
+                    const pos3d = getSurfacePoint(t, theta, 0.002, 0);
+                    let tooClose = false;
+                    for (const p3d of allPoints3D) {
+                        if (pos3d.distanceTo(p3d) < 0.40) {
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                    if (tooClose) break;
+                    
+                    pts.push({ t, theta });
+                    
+                    const alpha0 = baseAngle + scale * (
+                        Math.sin(freq * t * Math.PI + 2 * theta) + 
+                        Math.cos(freq * 0.7 * t * Math.PI - 3 * theta)
+                    );
+                    let vx = Math.cos(alpha0);
+                    let vy = Math.sin(alpha0);
+                    
+                    for (const obs of obstacles) {
+                        let dTheta = theta - obs.theta;
+                        if (dTheta > Math.PI) dTheta -= 2 * Math.PI;
+                        if (dTheta < -Math.PI) dTheta += 2 * Math.PI;
+                        
+                        const dist = Math.sqrt((t - obs.t)*(t - obs.t) + dTheta*dTheta);
+                        const influenceR = obs.r * 1.8;
+                        
+                        if (dist < influenceR) {
+                            const nx = (t - obs.t) / dist;
+                            const ny = dTheta / dist;
+                            
+                            let tx = -ny;
+                            let ty = nx;
+                            if (vx * tx + vy * ty < 0) {
+                                tx = -tx;
+                                ty = -ty;
+                            }
+                            
+                            const f = Math.max(0, Math.min(1, (influenceR - dist) / (influenceR - obs.r)));
+                            vx = (1 - f) * vx + f * tx;
+                            vy = (1 - f) * vy + f * ty;
+                            
+                            if (dist < obs.r + 0.005) {
+                                t += nx * 0.005 * dir;
+                                theta += ny * 0.015 * dir;
+                            }
+                        }
+                    }
+                    
+                    const len = Math.sqrt(vx*vx + vy*vy);
+                    vx /= (len || 1);
+                    vy /= (len || 1);
+                    
+                    t += dt * vx * dir;
+                    theta += dtheta * vy * dir;
+                    
+                    if (theta > Math.PI) theta -= 2 * Math.PI;
+                    if (theta < -Math.PI) theta += 2 * Math.PI;
+                    
+                    if (t < 0 || t > 1) break;
+                }
+                return pts;
+            };
             
-            // Integrate backward
-            t = t0;
-            theta = theta0;
-            const pathPtsBack = [];
-            for (let step = 0; step < length; step++) {
-                const alpha = baseAngle + scale * (
-                    Math.sin(freq * t * Math.PI + 2 * theta) + 
-                    Math.cos(freq * 0.7 * t * Math.PI - 3 * theta)
-                );
-                t -= dt * Math.cos(alpha);
-                theta -= dtheta * Math.sin(alpha);
-                
-                if (theta > Math.PI) theta -= 2 * Math.PI;
-                if (theta < -Math.PI) theta += 2 * Math.PI;
-                
-                if (t < 0 || t > 1) break;
-                pathPtsBack.unshift({ t, theta });
-            }
+            const pathPtsFwd = integrate(1);
+            const pathPtsBwd = integrate(-1);
+            pathPtsBwd.reverse();
             
-            const fullPath = [...pathPtsBack, ...pathPts];
+            const fullPath = [...pathPtsBwd, ...pathPtsFwd];
             if (fullPath.length >= 2) {
                 paths.push(fullPath);
+                for (let step = 0; step < fullPath.length; step += 3) {
+                    const pt = fullPath[step];
+                    allPoints3D.push(getSurfacePoint(pt.t, pt.theta, 0.002, 0));
+                }
             }
         }
     }
@@ -1801,65 +1854,121 @@ export function generateFlowPaths(zone) {
 
 export function generateFlowDots(zone, paths) {
     const dots = [];
-    const targetDotCount = zone.flowDotCount !== undefined ? zone.flowDotCount : 80;
-    const dotSize = zone.flowDotSize !== undefined ? zone.flowDotSize : 0.03;
+    const rng = seededRandom((zone.scatterSeed !== undefined ? zone.scatterSeed : 42) + 1234);
     
-    const rng = seededRandom((zone.scatterSeed !== undefined ? zone.scatterSeed : 42) + 999);
-    let attempts = 0;
+    const obstacles = zone._obstacles || [];
+    for (const obs of obstacles) {
+        if (isPointInZone(obs.t, obs.theta, zone)) {
+            const sizeCm = obs.r * 20;
+            dots.push({
+                t: obs.t,
+                theta: obs.theta,
+                rOffset: 0,
+                customHoleSize: sizeCm,
+                customHoleShape: 'round',
+                customColor: zone.color
+            });
+        }
+    }
+    
+    const dotCount = zone.flowDotCount !== undefined ? zone.flowDotCount : 80;
+    const baseDotSize = zone.flowDotSize !== undefined ? zone.flowDotSize : 0.03;
+    
+    let beadAttempts = 0;
+    let beadPlaced = 0;
+    const targetBeads = Math.round(dotCount * 0.4);
+    
+    if (paths.length > 0) {
+        while (beadPlaced < targetBeads && beadAttempts < 500) {
+            beadAttempts++;
+            const pathIdx = Math.floor(rng() * paths.length);
+            const path = paths[pathIdx];
+            if (path.length > 4) {
+                const ptIdx = Math.floor(2 + rng() * (path.length - 4));
+                const pt = path[ptIdx];
+                
+                if (isPointInZone(pt.t, pt.theta, zone)) {
+                    const pos = getSurfacePoint(pt.t, pt.theta, 0.002, 0);
+                    let tooClose = false;
+                    for (const dot of dots) {
+                        const dotPos = getSurfacePoint(dot.t, dot.theta, 0.002, 0);
+                        if (pos.distanceTo(dotPos) < 0.60) {
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!tooClose) {
+                        const size = baseDotSize * (0.8 + rng() * 0.4);
+                        dots.push({
+                            t: pt.t,
+                            theta: pt.theta,
+                            rOffset: 0,
+                            customHoleSize: size,
+                            customHoleShape: 'round',
+                            customColor: zone.color
+                        });
+                        beadPlaced++;
+                    }
+                }
+            }
+        }
+    }
+    
+    const targetGaps = dotCount - beadPlaced;
+    let gapAttempts = 0;
+    let gapPlaced = 0;
     
     const pathPoints3D = [];
     for (const path of paths) {
-        for (let step = 0; step < path.length; step += 4) {
+        for (let step = 0; step < path.length; step += 3) {
             const pt = path[step];
             pathPoints3D.push(getSurfacePoint(pt.t, pt.theta, 0.002, 0));
         }
     }
     
-    while (dots.length < targetDotCount && attempts < targetDotCount * 250) {
-        attempts++;
+    while (gapPlaced < targetGaps && gapAttempts < targetGaps * 250) {
+        gapAttempts++;
         const t = rng();
         const theta = rng() * Math.PI * 2 - Math.PI;
         
         if (isPointInZone(t, theta, zone)) {
             const pos = getSurfacePoint(t, theta, 0.002, 0);
             
-            // Distance check to flow streams
             let tooCloseToLine = false;
             for (const p3d of pathPoints3D) {
-                if (pos.distanceTo(p3d) < 0.65) {
+                if (pos.distanceTo(p3d) < 0.50) {
                     tooCloseToLine = true;
                     break;
                 }
             }
-            
             if (tooCloseToLine) continue;
             
-            // Distance check to other dots
             let tooCloseToDot = false;
             for (const dot of dots) {
-                if (pos.distanceTo(dot.pos) < 0.45) {
+                const dotPos = getSurfacePoint(dot.t, dot.theta, 0.002, 0);
+                if (pos.distanceTo(dotPos) < 0.50) {
                     tooCloseToDot = true;
                     break;
                 }
             }
             
             if (!tooCloseToDot) {
+                const size = baseDotSize * (0.8 + rng() * 1.5);
                 dots.push({
-                    pos,
-                    pt: {
-                        t,
-                        theta,
-                        rOffset: 0,
-                        customHoleSize: dotSize,
-                        customHoleShape: 'round',
-                        customColor: zone.color
-                    }
+                    t,
+                    theta,
+                    rOffset: 0,
+                    customHoleSize: size,
+                    customHoleShape: 'round',
+                    customColor: zone.color
                 });
+                gapPlaced++;
             }
         }
     }
     
-    return dots.map(d => d.pt);
+    return dots;
 }
 
 function renderScatterLayer(group, points, colorHex, opacity, zone) {
