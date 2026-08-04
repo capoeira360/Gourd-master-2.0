@@ -1752,14 +1752,16 @@ export function generateFlowPaths(zone) {
     }
     zone._obstacles = obstacles;
     
-    const H_seeds = 5;
-    const V_seeds = Math.ceil(count / 5);
+    const H_seeds = Math.ceil(Math.sqrt(count * 1.5));
+    const V_seeds = Math.ceil(count / H_seeds);
     const allPoints3D = [];
     
+    const minLineDist = Math.max(0.12, 0.50 - (count / 50.0) * 0.38);
+    
     for (let i = 0; i < H_seeds; i++) {
-        const theta0 = -Math.PI + (i / H_seeds) * 2 * Math.PI + (rng() - 0.5) * 0.2;
+        const theta0 = -Math.PI + (i / H_seeds) * 2 * Math.PI + (rng() - 0.5) * 0.1;
         for (let j = 0; j < V_seeds; j++) {
-            const t0 = 0.05 + (j / V_seeds) * 0.9 + (rng() - 0.5) * 0.05;
+            const t0 = 0.05 + (j / V_seeds) * 0.9 + (rng() - 0.5) * 0.03;
             
             const dt = 0.015;
             const dtheta = 0.045;
@@ -1773,12 +1775,12 @@ export function generateFlowPaths(zone) {
                     const pos3d = getSurfacePoint(t, theta, 0.002, 0);
                     let tooClose = false;
                     for (const p3d of allPoints3D) {
-                        if (pos3d.distanceTo(p3d) < 0.40) {
+                        if (pos3d.distanceTo(p3d) < minLineDist) {
                             tooClose = true;
                             break;
                         }
                     }
-                    if (tooClose) break;
+                    if (tooClose && step > 0) break;
                     
                     pts.push({ t, theta });
                     
@@ -1892,7 +1894,7 @@ export function generateFlowDots(zone, paths) {
                     let tooClose = false;
                     for (const dot of dots) {
                         const dotPos = getSurfacePoint(dot.t, dot.theta, 0.002, 0);
-                        if (pos.distanceTo(dotPos) < 0.60) {
+                        if (pos.distanceTo(dotPos) < 0.35) {
                             tooClose = true;
                             break;
                         }
@@ -1927,6 +1929,9 @@ export function generateFlowDots(zone, paths) {
         }
     }
     
+    const minDotDist = Math.max(0.20, baseDotSize * 6.0 - (dotCount / 300.0) * 0.15);
+    const minLineDotDist = Math.max(0.25, baseDotSize * 4.0);
+    
     while (gapPlaced < targetGaps && gapAttempts < targetGaps * 250) {
         gapAttempts++;
         const t = rng();
@@ -1937,7 +1942,7 @@ export function generateFlowDots(zone, paths) {
             
             let tooCloseToLine = false;
             for (const p3d of pathPoints3D) {
-                if (pos.distanceTo(p3d) < 0.50) {
+                if (pos.distanceTo(p3d) < minLineDotDist) {
                     tooCloseToLine = true;
                     break;
                 }
@@ -1947,7 +1952,7 @@ export function generateFlowDots(zone, paths) {
             let tooCloseToDot = false;
             for (const dot of dots) {
                 const dotPos = getSurfacePoint(dot.t, dot.theta, 0.002, 0);
-                if (pos.distanceTo(dotPos) < 0.50) {
+                if (pos.distanceTo(dotPos) < minDotDist) {
                     tooCloseToDot = true;
                     break;
                 }

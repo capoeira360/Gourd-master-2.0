@@ -874,7 +874,9 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         if (!numberField) return;
         
         slider.addEventListener('input', () => {
-            numberField.value = parseFloat(slider.value).toFixed(2);
+            const stepStr = slider.step || '1';
+            const decimals = stepStr.includes('.') ? stepStr.split('.')[1].length : 0;
+            numberField.value = parseFloat(slider.value).toFixed(decimals);
             applyInputChanges(slider.id, slider.value, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
         });
         
