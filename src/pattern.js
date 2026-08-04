@@ -1856,10 +1856,13 @@ export function generateFlowDots(zone, paths) {
     const dots = [];
     const rng = seededRandom((zone.scatterSeed !== undefined ? zone.scatterSeed : 42) + 1234);
     
+    const dotCount = zone.flowDotCount !== undefined ? zone.flowDotCount : 80;
+    const baseDotSize = zone.flowDotSize !== undefined ? zone.flowDotSize : 0.03;
+    
     const obstacles = zone._obstacles || [];
     for (const obs of obstacles) {
         if (isPointInZone(obs.t, obs.theta, zone)) {
-            const sizeCm = obs.r * 20;
+            const sizeCm = baseDotSize * (3.0 + rng() * 3.0);
             dots.push({
                 t: obs.t,
                 theta: obs.theta,
@@ -1870,9 +1873,6 @@ export function generateFlowDots(zone, paths) {
             });
         }
     }
-    
-    const dotCount = zone.flowDotCount !== undefined ? zone.flowDotCount : 80;
-    const baseDotSize = zone.flowDotSize !== undefined ? zone.flowDotSize : 0.03;
     
     let beadAttempts = 0;
     let beadPlaced = 0;
