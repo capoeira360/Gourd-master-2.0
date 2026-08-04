@@ -177,6 +177,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'weave2' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave2" style="padding: 4px; font-size: 10px;">Weave 2</button>
                             <button class="option-btn ${zone.patternType === 'scatter' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="scatter" style="padding: 4px; font-size: 10px;">Scatter</button>
                             <button class="option-btn ${zone.patternType === 'geo-triangle' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="geo-triangle" style="padding: 4px; font-size: 10px;">Geo-Triangle</button>
+                            <button class="option-btn ${zone.patternType === 'flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flow" style="padding: 4px; font-size: 10px;">Flow</button>
                         </div>
                     </div>
                 `;
@@ -273,7 +274,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
-            if (zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle') {
+            if (zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow') {
                 styleControls = '';
             } else if (zone.style === 'lines') {
                 styleControls = `
@@ -611,6 +612,46 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
                                 
                                 ${scatterGroupsHTML}
+                            </div>
+                        ` : ''}
+                        
+                        ${zone.patternType === 'flow' ? `
+                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Organic Flow Configuration</div>
+                                ${sliderRow('Flow Turbulence', `pat-zone-flowScale-${zone.id}`, 0.0, 5.0, 0.1, zone.flowScale !== undefined ? zone.flowScale : 2.0)}
+                                ${sliderRow('Flow Wave Frequency', `pat-zone-flowFreq-${zone.id}`, 0.5, 8.0, 0.1, zone.flowFreq !== undefined ? zone.flowFreq : 3.0)}
+                                ${sliderRow('Stream Quantity', `pat-zone-flowCount-${zone.id}`, 5, 50, 1, zone.flowCount !== undefined ? zone.flowCount : 25)}
+                                ${sliderRow('Stream Length', `pat-zone-flowLength-${zone.id}`, 10, 100, 5, zone.flowLength !== undefined ? zone.flowLength : 40)}
+                                ${sliderRow('Flow Angle Offset', `pat-zone-flowBaseAngle-${zone.id}`, -180, 180, 5, zone.flowBaseAngle !== undefined ? zone.flowBaseAngle : 0, '°')}
+                                ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
+                                
+                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">SCATTERED GAP DOTS</div>
+                                    ${sliderRow('Dot Quantity', `pat-zone-flowDotCount-${zone.id}`, 0, 300, 5, zone.flowDotCount !== undefined ? zone.flowDotCount : 80)}
+                                    ${sliderRow('Dot Size', `pat-zone-flowDotSize-${zone.id}`, 0.01, 0.10, 0.005, zone.flowDotSize !== undefined ? zone.flowDotSize : 0.03, 'cm')}
+                                </div>
+                                
+                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">STREAM CHANNELS</div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Hole Size</label>
+                                        <input type="number" id="pat-zone-holeSize-${zone.id}-num" style="display:none;"> <!-- hidden helper to satisfy sliderRow sync -->
+                                        ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
+                                    </div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Style</label>
+                                        <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="style" style="flex: 1; font-size: 11px; padding: 2px;">
+                                            <option value="lines" ${zone.style === 'lines' ? 'selected' : ''}>Lines</option>
+                                            <option value="holes" ${zone.style === 'holes' ? 'selected' : ''}>Holes</option>
+                                            <option value="both" ${zone.style === 'both' ? 'selected' : ''}>Both</option>
+                                            <option value="off" ${zone.style === 'off' ? 'selected' : ''}>Off</option>
+                                        </select>
+                                    </div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Color</label>
+                                        <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                    </div>
+                                </div>
                             </div>
                         ` : ''}
                         
@@ -1618,13 +1659,15 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 zone[param] = Math.round(valFloat);
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             } else if (param === 'scatterCount' || param === 'scatterSeed' || param === 'scatterSizeGroupsCount' ||
-                       param === 'scatterQty1' || param === 'scatterQty2' || param === 'scatterQty3' || param === 'scatterQty4' || param === 'scatterQty5') {
+                       param === 'scatterQty1' || param === 'scatterQty2' || param === 'scatterQty3' || param === 'scatterQty4' || param === 'scatterQty5' ||
+                       param === 'flowCount' || param === 'flowLength' || param === 'flowDotCount') {
                 zone[param] = Math.round(valFloat);
                 if (param === 'scatterSizeGroupsCount') {
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                 }
             } else if (param === 'scatterMinSize' || param === 'scatterMaxSize' ||
-                       param === 'scatterSize1' || param === 'scatterSize2' || param === 'scatterSize3' || param === 'scatterSize4' || param === 'scatterSize5') {
+                       param === 'scatterSize1' || param === 'scatterSize2' || param === 'scatterSize3' || param === 'scatterSize4' || param === 'scatterSize5' ||
+                       param === 'flowScale' || param === 'flowFreq' || param === 'flowBaseAngle' || param === 'flowDotSize') {
                 zone[param] = valFloat;
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {
                 zone[param] = valFloat * Math.PI / 180;

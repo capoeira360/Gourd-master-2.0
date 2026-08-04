@@ -66,6 +66,13 @@ export const state = {
             scatterSize5: 0.07,
             scatterQty5: 10,
             scatterColor5: '#B58A30',
+            flowScale: 2.0,
+            flowFreq: 3.0,
+            flowCount: 25,
+            flowLength: 40,
+            flowBaseAngle: 0.0,
+            flowDotCount: 80,
+            flowDotSize: 0.03,
             
             // Bounds parameters (used depending on type)
             tMin: 0.0,
@@ -385,6 +392,13 @@ export function addPatternZone() {
         scatterSize5: 0.07,
         scatterQty5: 10,
         scatterColor5: '#B58A30',
+        flowScale: 2.0,
+        flowFreq: 3.0,
+        flowCount: 25,
+        flowLength: 40,
+        flowBaseAngle: 0.0,
+        flowDotCount: 80,
+        flowDotSize: 0.03,
         
         tMin: 0.0,
         tMax: 1.0,

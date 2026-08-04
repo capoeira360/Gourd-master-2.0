@@ -1731,6 +1731,137 @@ export function generateGeoTrianglePaths(zone, verDensityVal) {
     return { horPaths: verPaths, verPaths: diagPaths };
 }
 
+export function generateFlowPaths(zone) {
+    const paths = [];
+    const scale = zone.flowScale !== undefined ? zone.flowScale : 2.0;
+    const freq = zone.flowFreq !== undefined ? zone.flowFreq : 3.0;
+    const count = zone.flowCount !== undefined ? zone.flowCount : 25;
+    const length = zone.flowLength !== undefined ? zone.flowLength : 40;
+    const baseAngle = (zone.flowBaseAngle !== undefined ? zone.flowBaseAngle : 0.0) * Math.PI / 180;
+    
+    const H_seeds = 5;
+    const V_seeds = Math.ceil(count / 5);
+    const rng = seededRandom(zone.scatterSeed !== undefined ? zone.scatterSeed : 42);
+    
+    for (let i = 0; i < H_seeds; i++) {
+        const theta0 = -Math.PI + (i / H_seeds) * 2 * Math.PI + (rng() - 0.5) * 0.2;
+        for (let j = 0; j < V_seeds; j++) {
+            const t0 = 0.05 + (j / V_seeds) * 0.9 + (rng() - 0.5) * 0.05;
+            const pathPts = [];
+            
+            // Integrate forward
+            let t = t0;
+            let theta = theta0;
+            const dt = 0.015;
+            const dtheta = 0.045;
+            
+            for (let step = 0; step < length; step++) {
+                pathPts.push({ t, theta });
+                const alpha = baseAngle + scale * (
+                    Math.sin(freq * t * Math.PI + 2 * theta) + 
+                    Math.cos(freq * 0.7 * t * Math.PI - 3 * theta)
+                );
+                t += dt * Math.cos(alpha);
+                theta += dtheta * Math.sin(alpha);
+                
+                if (theta > Math.PI) theta -= 2 * Math.PI;
+                if (theta < -Math.PI) theta += 2 * Math.PI;
+                
+                if (t < 0 || t > 1) break;
+            }
+            
+            // Integrate backward
+            t = t0;
+            theta = theta0;
+            const pathPtsBack = [];
+            for (let step = 0; step < length; step++) {
+                const alpha = baseAngle + scale * (
+                    Math.sin(freq * t * Math.PI + 2 * theta) + 
+                    Math.cos(freq * 0.7 * t * Math.PI - 3 * theta)
+                );
+                t -= dt * Math.cos(alpha);
+                theta -= dtheta * Math.sin(alpha);
+                
+                if (theta > Math.PI) theta -= 2 * Math.PI;
+                if (theta < -Math.PI) theta += 2 * Math.PI;
+                
+                if (t < 0 || t > 1) break;
+                pathPtsBack.unshift({ t, theta });
+            }
+            
+            const fullPath = [...pathPtsBack, ...pathPts];
+            if (fullPath.length >= 2) {
+                paths.push(fullPath);
+            }
+        }
+    }
+    
+    return paths;
+}
+
+export function generateFlowDots(zone, paths) {
+    const dots = [];
+    const targetDotCount = zone.flowDotCount !== undefined ? zone.flowDotCount : 80;
+    const dotSize = zone.flowDotSize !== undefined ? zone.flowDotSize : 0.03;
+    
+    const rng = seededRandom((zone.scatterSeed !== undefined ? zone.scatterSeed : 42) + 999);
+    let attempts = 0;
+    
+    const pathPoints3D = [];
+    for (const path of paths) {
+        for (let step = 0; step < path.length; step += 4) {
+            const pt = path[step];
+            pathPoints3D.push(getSurfacePoint(pt.t, pt.theta, 0.002, 0));
+        }
+    }
+    
+    while (dots.length < targetDotCount && attempts < targetDotCount * 250) {
+        attempts++;
+        const t = rng();
+        const theta = rng() * Math.PI * 2 - Math.PI;
+        
+        if (isPointInZone(t, theta, zone)) {
+            const pos = getSurfacePoint(t, theta, 0.002, 0);
+            
+            // Distance check to flow streams
+            let tooCloseToLine = false;
+            for (const p3d of pathPoints3D) {
+                if (pos.distanceTo(p3d) < 0.65) {
+                    tooCloseToLine = true;
+                    break;
+                }
+            }
+            
+            if (tooCloseToLine) continue;
+            
+            // Distance check to other dots
+            let tooCloseToDot = false;
+            for (const dot of dots) {
+                if (pos.distanceTo(dot.pos) < 0.45) {
+                    tooCloseToDot = true;
+                    break;
+                }
+            }
+            
+            if (!tooCloseToDot) {
+                dots.push({
+                    pos,
+                    pt: {
+                        t,
+                        theta,
+                        rOffset: 0,
+                        customHoleSize: dotSize,
+                        customHoleShape: 'round',
+                        customColor: zone.color
+                    }
+                });
+            }
+        }
+    }
+    
+    return dots.map(d => d.pt);
+}
+
 function renderScatterLayer(group, points, colorHex, opacity, zone) {
     if (points.length === 0) return 0;
     
@@ -2027,6 +2158,51 @@ export function updatePatternGroup(group, state) {
             hasHoles = true;
             const count = renderScatterLayer(group, pts, zone.color, zone.opacity, zone);
             totalCount += count;
+            
+            continue;
+        }
+
+        if (patLayout === 'flow') {
+            let flowPaths = generateFlowPaths(zone);
+            
+            if (zone.type !== 'full') {
+                const clipped = [];
+                for (const path of flowPaths) {
+                    clipped.push(...clipPathToZone(path, zone));
+                }
+                flowPaths = clipped;
+            }
+            
+            const gapDots = generateFlowDots(zone, flowPaths);
+            
+            const renderLines = zone.style === 'lines' || zone.style === 'both';
+            const renderHoles = zone.style === 'holes' || zone.style === 'both';
+            
+            if (renderLines) {
+                hasLines = true;
+                const count = renderPatternLayer(
+                    group, flowPaths, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            
+            if (renderHoles) {
+                hasHoles = true;
+                const count = renderPatternLayer(
+                    group, flowPaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            
+            if (gapDots.length > 0) {
+                hasHoles = true;
+                const count = renderScatterLayer(group, gapDots, zone.color, zone.opacity, zone);
+                totalCount += count;
+            }
             
             continue;
         }
