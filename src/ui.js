@@ -498,11 +498,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                         <label class="control-label" style="width: 45%;">Color</label>
                                         <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveHorColor" value="${zone.weaveHorColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
                                     </div>
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Hole Size</label>
-                                        <input type="number" id="pat-zone-weaveHorHoleSize-${zone.id}-num" style="display:none;"> <!-- hidden helper to satisfy sliderRow sync -->
-                                        ${sliderRow('Hole Size', `pat-zone-weaveHorHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveHorHoleSize !== undefined ? zone.weaveHorHoleSize : 0.03, 'cm')}
-                                    </div>
+                                    ${sliderRow('Hole Size', `pat-zone-weaveHorHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveHorHoleSize !== undefined ? zone.weaveHorHoleSize : 0.03, 'cm')}
                                     
                                     <div class="control-row" style="margin-bottom: 8px;">
                                         <label class="control-label">Layout Mode</label>
@@ -675,11 +671,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 
                                 <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
                                     <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">STREAM CHANNELS</div>
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Hole Size</label>
-                                        <input type="number" id="pat-zone-holeSize-${zone.id}-num" style="display:none;"> <!-- hidden helper to satisfy sliderRow sync -->
-                                        ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
-                                    </div>
+                                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
                                     <div class="control-row" style="margin-bottom: 0;">
                                         <label class="control-label" style="width: 45%;">Style</label>
                                         <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="style" style="flex: 1; font-size: 11px; padding: 2px;">
@@ -731,11 +723,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 
                                 <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
                                     <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">RIBBON STYLE</div>
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Hole Size</label>
-                                        <input type="number" id="pat-zone-holeSize-${zone.id}-num" style="display:none;"> <!-- hidden helper to satisfy sliderRow sync -->
-                                        ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
-                                    </div>
+                                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
                                     <div class="control-row" style="margin-bottom: 0;">
                                         <label class="control-label" style="width: 45%;">Style</label>
                                         <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="style" style="flex: 1; font-size: 11px; padding: 2px;">
