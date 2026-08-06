@@ -2445,19 +2445,28 @@ export function updatePatternGroup(group, state) {
             continue;
         }
 
-        if (patLayout === 'weave' || patLayout === 'weave2' || patLayout === 'geo-triangle') {
+        if (patLayout === 'grid' || patLayout === 'weave' || patLayout === 'weave2' || patLayout === 'geo-triangle') {
             const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
-            let res;
-            if (patLayout === 'weave') {
-                res = generateWeavePaths(zone, verDensityVal);
-            } else if (patLayout === 'weave2') {
-                res = generateWeave2Paths(zone, verDensityVal);
-            } else {
-                res = generateGeoTrianglePaths(zone, verDensityVal);
-            }
+            let horPaths = [];
+            let verPaths = [];
             
-            let horPaths = res.horPaths;
-            let verPaths = res.verPaths;
+            if (patLayout === 'grid') {
+                horPaths = generateHorizontalPaths('grid', zone.density, state.patTilt, zone, false);
+                verPaths = generateVerticalPaths('grid', verDensityVal, state.patTilt, zone.leanAngle || 0, zone, false);
+            } else if (patLayout === 'weave') {
+                const res = generateWeavePaths(zone, verDensityVal);
+                horPaths = res.horPaths;
+                verPaths = res.verPaths;
+            } else if (patLayout === 'weave2') {
+                const res = generateWeave2Paths(zone, verDensityVal);
+                horPaths = res.horPaths;
+                verPaths = res.verPaths;
+            } else {
+                const res = generateGeoTrianglePaths(zone, verDensityVal);
+                horPaths = res.horPaths;
+                verPaths = res.verPaths;
+            }
+
             
             if (zone.type !== 'full') {
                 const clippedHor = [];
@@ -2556,6 +2565,7 @@ export function updatePatternGroup(group, state) {
                 );
                 totalCount += count;
             }
+            continue;
         }
 
         if (renderLines) {

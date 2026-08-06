@@ -275,7 +275,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
-            if (zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
+            if (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
                 styleControls = '';
             } else if (zone.style === 'lines') {
                 styleControls = `
@@ -469,19 +469,60 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             </div>
                         ` : ''}
                         
-                        ${(zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'geo-triangle') ? `
+                        ${(zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'geo-triangle') ? `
                             <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                 <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">
-                                    ${zone.patternType === 'geo-triangle' ? 'Geo-Triangle Configuration' : 'Basket Weave Configuration'}
+                                    ${zone.patternType === 'grid' ? 'Grid Layout Configuration' : (zone.patternType === 'geo-triangle' ? 'Geo-Triangle Configuration' : 'Basket Weave Configuration')}
                                 </div>
                                 ${sliderRow('Horizontal Cell Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
                                 ${sliderRow('Vertical Cell Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx)}
-                                ${sliderRow(zone.patternType === 'geo-triangle' ? 'Vertical Hatch Lines' : 'Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 1, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
-                                ${sliderRow(zone.patternType === 'geo-triangle' ? 'Diagonal Hatch Lines' : 'Weave Vert. Count', `pat-zone-weaveVerCount-${zone.id}`, 1, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
+                                ${zone.patternType !== 'grid' ? `
+                                    ${sliderRow(zone.patternType === 'geo-triangle' ? 'Vertical Hatch Lines' : 'Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 1, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
+                                    ${sliderRow(zone.patternType === 'geo-triangle' ? 'Diagonal Hatch Lines' : 'Weave Vert. Count', `pat-zone-weaveVerCount-${zone.id}`, 1, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
+                                ` : ''}
                                 
                                 <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
                                     <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">
-                                        ${zone.patternType === 'geo-triangle' ? 'VERTICAL LINES' : 'HORIZONTAL / ASCENDING'}
+                                        ${zone.patternType === 'grid' ? 'HORIZONTAL GRID LINES' : (zone.patternType === 'geo-triangle' ? 'VERTICAL LINES' : 'HORIZONTAL / ASCENDING')}
+                                    </div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Style</label>
+                                        <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorStyle" style="flex: 1; font-size: 11px; padding: 2px;">
+                                            <option value="both" ${zone.weaveHorStyle === 'both' ? 'selected' : ''}>Both</option>
+                                            <option value="lines" ${zone.weaveHorStyle === 'lines' ? 'selected' : ''}>Lines</option>
+                                            <option value="holes" ${zone.weaveHorStyle === 'holes' ? 'selected' : ''}>Holes</option>
+                                            <option value="off" ${zone.weaveHorStyle === 'off' ? 'selected' : ''}>Off</option>
+                                        </select>
+                                    </div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Color</label>
+                                        <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveHorColor" value="${zone.weaveHorColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                    </div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Hole Size</label>
+                                        <input type="number" id="pat-zone-weaveHorHoleSize-${zone.id}-num" style="display:none;"> <!-- hidden helper to satisfy sliderRow sync -->
+                                        ${sliderRow('Hole Size', `pat-zone-weaveHorHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveHorHoleSize !== undefined ? zone.weaveHorHoleSize : 0.03, 'cm')}
+                                    </div>
+                                    
+                                    <div class="control-row" style="margin-bottom: 8px;">
+                                        <label class="control-label">Layout Mode</label>
+                                        <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
+                                            <button class="option-btn ${zone.weaveHorDistMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-weave-hor-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
+                                            <button class="option-btn ${zone.weaveHorDistMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-weave-hor-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
+                                        </div>
+                                    </div>
+                                    ${(zone.weaveHorDistMode || 'count') === 'count' ? `
+                                        ${sliderRow('Hole Count', `pat-zone-weaveHorHoleCount-${zone.id}`, 1, 800, 1, zone.weaveHorHoleCount !== undefined ? zone.weaveHorHoleCount : 30)}
+                                    ` : `
+                                        ${sliderRow('Hole Distance', `pat-zone-weaveHorHoleDistance-${zone.id}`, 0, 100, 1, zone.weaveHorHoleDistance !== undefined ? Math.round(100 * (0.30 - zone.weaveHorHoleDistance) / 0.298) : 80)}
+                                    `}
+                                    
+                                    ${sliderRow('Dash Gap', `pat-zone-weaveHorDashSpacing-${zone.id}`, 0, 100, 1, zone.weaveHorDashSpacing !== undefined ? zone.weaveHorDashSpacing : 0)}
+                                </div>
+                                
+                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">
+                                        ${zone.patternType === 'grid' ? 'VERTICAL GRID LINES' : (zone.patternType === 'geo-triangle' ? 'DIAGONAL LINES' : 'VERTICAL / DESCENDING')}
                                     </div>
                                     <div class="control-row" style="margin-bottom: 0;">
                                         <label class="control-label" style="width: 45%;">Style</label>
@@ -648,6 +689,19 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                             <option value="off" ${zone.style === 'off' ? 'selected' : ''}>Off</option>
                                         </select>
                                     </div>
+                                    <div class="control-row" style="margin-bottom: 8px;">
+                                        <label class="control-label">Layout Mode</label>
+                                        <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
+                                            <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
+                                            <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
+                                        </div>
+                                    </div>
+                                    ${zone.distMode === 'count' ? `
+                                        ${sliderRow('Hole Count', `pat-zone-holeCount-${zone.id}`, 0, 100, 1, holeCountProx)}
+                                    ` : `
+                                        ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${zone.id}`, 0, 100, 1, holeDistProx)}
+                                    `}
+                                    ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx)}
                                     <div class="control-row" style="margin-bottom: 0;">
                                         <label class="control-label" style="width: 45%;">Color</label>
                                         <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
@@ -691,6 +745,19 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                             <option value="off" ${zone.style === 'off' ? 'selected' : ''}>Off</option>
                                         </select>
                                     </div>
+                                    <div class="control-row" style="margin-bottom: 8px;">
+                                        <label class="control-label">Layout Mode</label>
+                                        <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
+                                            <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
+                                            <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
+                                        </div>
+                                    </div>
+                                    ${zone.distMode === 'count' ? `
+                                        ${sliderRow('Hole Count', `pat-zone-holeCount-${zone.id}`, 0, 100, 1, holeCountProx)}
+                                    ` : `
+                                        ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${zone.id}`, 0, 100, 1, holeDistProx)}
+                                    `}
+                                    ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx)}
                                     <div class="control-row" style="margin-bottom: 0;">
                                         <label class="control-label" style="width: 45%;">Color</label>
                                         <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
