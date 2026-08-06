@@ -73,6 +73,12 @@ export const state = {
             flowBaseAngle: 0.0,
             flowDotCount: 80,
             flowDotSize: 0.03,
+            ribbonCount: 8,
+            ribbonLines: 5,
+            ribbonSpacing: 0.012,
+            ribbonAmp: 0.15,
+            ribbonFreq: 2.0,
+            ribbonDirection: 'both',
             
             // Bounds parameters (used depending on type)
             tMin: 0.0,
@@ -399,6 +405,12 @@ export function addPatternZone() {
         flowBaseAngle: 0.0,
         flowDotCount: 80,
         flowDotSize: 0.03,
+        ribbonCount: 8,
+        ribbonLines: 5,
+        ribbonSpacing: 0.012,
+        ribbonAmp: 0.15,
+        ribbonFreq: 2.0,
+        ribbonDirection: 'both',
         
         tMin: 0.0,
         tMax: 1.0,

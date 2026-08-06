@@ -178,6 +178,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'scatter' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="scatter" style="padding: 4px; font-size: 10px;">Scatter</button>
                             <button class="option-btn ${zone.patternType === 'geo-triangle' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="geo-triangle" style="padding: 4px; font-size: 10px;">Geo-Triangle</button>
                             <button class="option-btn ${zone.patternType === 'flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flow" style="padding: 4px; font-size: 10px;">Flow</button>
+                            <button class="option-btn ${zone.patternType === 'ribbons' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="ribbons" style="padding: 4px; font-size: 10px;">Ribbons</button>
                         </div>
                     </div>
                 `;
@@ -274,7 +275,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
-            if (zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow') {
+            if (zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
                 styleControls = '';
             } else if (zone.style === 'lines') {
                 styleControls = `
@@ -633,6 +634,49 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 
                                 <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
                                     <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">STREAM CHANNELS</div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Hole Size</label>
+                                        <input type="number" id="pat-zone-holeSize-${zone.id}-num" style="display:none;"> <!-- hidden helper to satisfy sliderRow sync -->
+                                        ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
+                                    </div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Style</label>
+                                        <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="style" style="flex: 1; font-size: 11px; padding: 2px;">
+                                            <option value="lines" ${zone.style === 'lines' ? 'selected' : ''}>Lines</option>
+                                            <option value="holes" ${zone.style === 'holes' ? 'selected' : ''}>Holes</option>
+                                            <option value="both" ${zone.style === 'both' ? 'selected' : ''}>Both</option>
+                                            <option value="off" ${zone.style === 'off' ? 'selected' : ''}>Off</option>
+                                        </select>
+                                    </div>
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Color</label>
+                                        <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${zone.patternType === 'ribbons' ? `
+                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Noodle Ribbon Configuration</div>
+                                ${sliderRow('Ribbon Quantity', `pat-zone-ribbonCount-${zone.id}`, 2, 20, 1, zone.ribbonCount !== undefined ? zone.ribbonCount : 8)}
+                                ${sliderRow('Lines Per Ribbon', `pat-zone-ribbonLines-${zone.id}`, 1, 9, 1, zone.ribbonLines !== undefined ? zone.ribbonLines : 5)}
+                                ${sliderRow('Line Spacing', `pat-zone-ribbonSpacing-${zone.id}`, 0.004, 0.030, 0.001, zone.ribbonSpacing !== undefined ? zone.ribbonSpacing : 0.012, 'cm')}
+                                ${sliderRow('Ribbon Waviness', `pat-zone-ribbonAmp-${zone.id}`, 0.0, 0.40, 0.01, zone.ribbonAmp !== undefined ? zone.ribbonAmp : 0.15)}
+                                ${sliderRow('Wave Frequency', `pat-zone-ribbonFreq-${zone.id}`, 1.0, 6.0, 0.1, zone.ribbonFreq !== undefined ? zone.ribbonFreq : 2.0)}
+                                ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
+                                
+                                <div class="control-row" style="margin-bottom: 0;">
+                                    <label class="control-label" style="width: 45%;">Direction</label>
+                                    <select class="zone-ribbon-direction-select" data-zone-id="${zone.id}" style="flex: 1; font-size: 11px; padding: 2px;">
+                                        <option value="both" ${zone.ribbonDirection === 'both' ? 'selected' : ''}>Both Directions</option>
+                                        <option value="horizontal" ${zone.ribbonDirection === 'horizontal' ? 'selected' : ''}>Horizontal Only</option>
+                                        <option value="vertical" ${zone.ribbonDirection === 'vertical' ? 'selected' : ''}>Vertical Only</option>
+                                    </select>
+                                </div>
+                                
+                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">RIBBON STYLE</div>
                                     <div class="control-row" style="margin-bottom: 0;">
                                         <label class="control-label" style="width: 45%;">Hole Size</label>
                                         <input type="number" id="pat-zone-holeSize-${zone.id}-num" style="display:none;"> <!-- hidden helper to satisfy sliderRow sync -->
@@ -1288,6 +1332,19 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    document.querySelectorAll('.zone-ribbon-direction-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.ribbonDirection = select.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+            }
+        });
+    });
+
     document.querySelectorAll('.zone-weave-color-input').forEach(picker => {
         picker.addEventListener('input', () => {
             const zoneId = picker.dataset.zoneId;
@@ -1662,14 +1719,16 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             } else if (param === 'scatterCount' || param === 'scatterSeed' || param === 'scatterSizeGroupsCount' ||
                        param === 'scatterQty1' || param === 'scatterQty2' || param === 'scatterQty3' || param === 'scatterQty4' || param === 'scatterQty5' ||
-                       param === 'flowCount' || param === 'flowLength' || param === 'flowDotCount') {
+                       param === 'flowCount' || param === 'flowLength' || param === 'flowDotCount' ||
+                       param === 'ribbonCount' || param === 'ribbonLines') {
                 zone[param] = Math.round(valFloat);
                 if (param === 'scatterSizeGroupsCount') {
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                 }
             } else if (param === 'scatterMinSize' || param === 'scatterMaxSize' ||
                        param === 'scatterSize1' || param === 'scatterSize2' || param === 'scatterSize3' || param === 'scatterSize4' || param === 'scatterSize5' ||
-                       param === 'flowScale' || param === 'flowFreq' || param === 'flowBaseAngle' || param === 'flowDotSize') {
+                       param === 'flowScale' || param === 'flowFreq' || param === 'flowBaseAngle' || param === 'flowDotSize' ||
+                       param === 'ribbonSpacing' || param === 'ribbonAmp' || param === 'ribbonFreq') {
                 zone[param] = valFloat;
             } else if (param === 'thetaMin' || param === 'thetaMax' || param === 'centerTheta') {
                 zone[param] = valFloat * Math.PI / 180;

@@ -1976,6 +1976,93 @@ export function generateFlowDots(zone, paths) {
     return dots;
 }
 
+export function generateRibbonPaths(zone) {
+    const paths = [];
+    const count = zone.ribbonCount !== undefined ? zone.ribbonCount : 8;
+    const numLines = zone.ribbonLines !== undefined ? zone.ribbonLines : 5;
+    const spacing = zone.ribbonSpacing !== undefined ? zone.ribbonSpacing : 0.012;
+    const amp = zone.ribbonAmp !== undefined ? zone.ribbonAmp : 0.15;
+    const freq = zone.ribbonFreq !== undefined ? zone.ribbonFreq : 2.0;
+    const direction = zone.ribbonDirection || 'both';
+    
+    const rng = seededRandom(zone.scatterSeed !== undefined ? zone.scatterSeed : 42);
+    
+    let numH = 0;
+    let numV = 0;
+    if (direction === 'horizontal') {
+        numH = count;
+    } else if (direction === 'vertical') {
+        numV = count;
+    } else {
+        numH = Math.ceil(count / 2);
+        numV = Math.floor(count / 2);
+    }
+    
+    // Generate Horizontal Ribbons
+    for (let i = 0; i < numH; i++) {
+        const baseT = 0.1 + (i / Math.max(1, numH - 1)) * 0.8 + (rng() - 0.5) * 0.05;
+        const phase = rng() * Math.PI * 2;
+        
+        for (let k = 0; k < numLines; k++) {
+            const dk = spacing * (k - (numLines - 1) / 2);
+            const linePts = [];
+            const steps = 120;
+            
+            for (let step = 0; step <= steps; step++) {
+                const theta = -Math.PI + (step / steps) * 2 * Math.PI;
+                const t_guide = baseT + amp * Math.sin(freq * theta + phase) + (amp * 0.3) * Math.cos(2 * freq * theta - phase);
+                const dt_dtheta = amp * freq * Math.cos(freq * theta + phase) - (amp * 0.3) * 2 * freq * Math.sin(2 * freq * theta - phase);
+                
+                const len = Math.sqrt(1 + dt_dtheta * dt_dtheta);
+                const nx = -dt_dtheta / len;
+                const ny = 1.0 / len;
+                
+                let offsetTheta = theta + dk * nx;
+                let offsetT = t_guide + dk * ny;
+                
+                if (offsetTheta > Math.PI) offsetTheta -= 2 * Math.PI;
+                if (offsetTheta < -Math.PI) offsetTheta += 2 * Math.PI;
+                
+                linePts.push({ t: offsetT, theta: offsetTheta });
+            }
+            paths.push(linePts);
+        }
+    }
+    
+    // Generate Vertical Ribbons
+    for (let j = 0; j < numV; j++) {
+        const baseTheta = -Math.PI + (j / Math.max(1, numV)) * 2 * Math.PI + (rng() - 0.5) * 0.2;
+        const phase = rng() * Math.PI * 2;
+        
+        for (let k = 0; k < numLines; k++) {
+            const dk = spacing * (k - (numLines - 1) / 2);
+            const linePts = [];
+            const steps = 100;
+            
+            for (let step = 0; step <= steps; step++) {
+                const t = 0.0 + (step / steps) * 1.0;
+                const theta_guide = baseTheta + amp * Math.sin(freq * t * Math.PI + phase) + (amp * 0.3) * Math.cos(2 * freq * t * Math.PI - phase);
+                const dtheta_dt = amp * freq * Math.PI * Math.cos(freq * t * Math.PI + phase) - (amp * 0.3) * 2 * freq * Math.PI * Math.sin(2 * freq * t * Math.PI - phase);
+                
+                const len = Math.sqrt(1 + dtheta_dt * dtheta_dt);
+                const nx = -1.0 / len;
+                const ny = dtheta_dt / len;
+                
+                let offsetTheta = theta_guide + dk * nx;
+                let offsetT = t + dk * ny;
+                
+                if (offsetTheta > Math.PI) offsetTheta -= 2 * Math.PI;
+                if (offsetTheta < -Math.PI) offsetTheta += 2 * Math.PI;
+                
+                linePts.push({ t: offsetT, theta: offsetTheta });
+            }
+            paths.push(linePts);
+        }
+    }
+    
+    return paths;
+}
+
 function renderScatterLayer(group, points, colorHex, opacity, zone) {
     if (points.length === 0) return 0;
     
@@ -2315,6 +2402,43 @@ export function updatePatternGroup(group, state) {
             if (gapDots.length > 0) {
                 hasHoles = true;
                 const count = renderScatterLayer(group, gapDots, zone.color, zone.opacity, zone);
+                totalCount += count;
+            }
+            
+            continue;
+        }
+
+        if (patLayout === 'ribbons') {
+            let ribbonPaths = generateRibbonPaths(zone);
+            
+            if (zone.type !== 'full') {
+                const clipped = [];
+                for (const path of ribbonPaths) {
+                    clipped.push(...clipPathToZone(path, zone));
+                }
+                ribbonPaths = clipped;
+            }
+            
+            const renderLines = zone.style === 'lines' || zone.style === 'both';
+            const renderHoles = zone.style === 'holes' || zone.style === 'both';
+            
+            if (renderLines) {
+                hasLines = true;
+                const count = renderPatternLayer(
+                    group, ribbonPaths, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            
+            if (renderHoles) {
+                hasHoles = true;
+                const count = renderPatternLayer(
+                    group, ribbonPaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
                 totalCount += count;
             }
             
