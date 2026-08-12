@@ -2684,6 +2684,11 @@ export function updatePatternGroupImmediate(group, state) {
         }
     }
 
+    const gourdMesh = group.parent;
+    if (gourdMesh) {
+        updatePatternCanvasTexture(gourdMesh, state);
+    }
+
     state.patternCount = totalCount;
     if (hasHoles && hasLines) {
         state.patternCountType = 'Items';
@@ -2708,6 +2713,151 @@ export function animatePatternPulse(group, opacity, elapsed) {
             child.material.opacity = orig * pulse;
         }
     });
+}
+
+// Draws base texture and active custom pattern images onto a 1024x1024 CanvasTexture mapped directly onto the gourd mesh.
+export function updatePatternCanvasTexture(gourdMesh, state) {
+    if (!gourdMesh) return;
+    
+    const hasCustomImages = state.patternZones.some(z => z.type === 'custom-image' && z.customImageDataUrl && z.visible !== false);
+    const hasBaseTexture = !!state.textureDataURL;
+    
+    if (!hasCustomImages && !hasBaseTexture) {
+        if (gourdMesh.material.map && gourdMesh.material.map.userData && gourdMesh.material.map.userData.isPatternTexture) {
+            gourdMesh.material.map = null;
+            gourdMesh.material.color = new THREE.Color(state.materialColor);
+            gourdMesh.material.needsUpdate = true;
+        }
+        return;
+    }
+    
+    // Lazy load base texture cache if needed
+    if (state.textureDataURL) {
+        if (!window.appImageCache) window.appImageCache = {};
+        const cached = window.appImageCache[state.textureDataURL];
+        if (!cached) {
+            window.appImageCache[state.textureDataURL] = { status: 'loading' };
+            const img = new Image();
+            img.onload = () => {
+                window.appImageCache[state.textureDataURL] = {
+                    status: 'loaded',
+                    img: img
+                };
+                if (window.refreshPatternGroup) {
+                    window.refreshPatternGroup();
+                }
+            };
+            img.src = state.textureDataURL;
+        }
+    }
+    
+    if (!gourdMesh.userData.patternCanvas) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        gourdMesh.userData.patternCanvas = canvas;
+        gourdMesh.userData.patternTexture = new THREE.CanvasTexture(canvas);
+        gourdMesh.userData.patternTexture.wrapS = THREE.RepeatWrapping;
+        gourdMesh.userData.patternTexture.wrapT = THREE.ClampToEdgeWrapping;
+        gourdMesh.userData.patternTexture.userData = { isPatternTexture: true };
+    }
+    
+    const canvas = gourdMesh.userData.patternCanvas;
+    const ctx = canvas.getContext('2d');
+    
+    // Fill canvas background with Gourd's base material color to act as a solid backdrop
+    ctx.fillStyle = state.materialColor || '#D4A843';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 1. Draw base texture if loaded
+    if (hasBaseTexture && window.appImageCache && window.appImageCache[state.textureDataURL]) {
+        const cached = window.appImageCache[state.textureDataURL];
+        if (cached.status === 'loaded' && cached.img) {
+            const baseImg = cached.img;
+            const scale = state.textureScale || 1.0;
+            const rotOffset = ((state.textureRotation || 0) / 360) * canvas.width;
+            
+            ctx.save();
+            ctx.translate(rotOffset, 0);
+            const w = canvas.width * scale;
+            const h = canvas.height * scale * 0.85;
+            for (let x = -w; x < canvas.width + w; x += w) {
+                ctx.drawImage(baseImg, x, 0, w, h);
+            }
+            ctx.restore();
+        }
+    }
+    
+    // 2. Draw custom pattern image layers
+    for (const zone of state.patternZones) {
+        if (zone.type !== 'custom-image' || !zone.customImageDataUrl || zone.visible === false) continue;
+        
+        if (window.appImageCache && window.appImageCache[zone.customImageDataUrl]) {
+            const cached = window.appImageCache[zone.customImageDataUrl];
+            if (cached.status === 'loaded' && cached.img) {
+                const img = cached.img;
+                
+                const centerT = zone.centerT !== undefined ? zone.centerT : 0.5;
+                const centerTheta = zone.centerTheta !== undefined ? zone.centerTheta : 0.0;
+                const radius = zone.radius !== undefined ? zone.radius : 0.2;
+                const opacity = zone.opacity !== undefined ? zone.opacity : 1.0;
+                
+                const cx = ((centerTheta + Math.PI) / (Math.PI * 2)) * canvas.width;
+                const cy = (1.0 - centerT) * canvas.height;
+                
+                const imgSizeY = radius * 2.0 * canvas.height;
+                const imgSizeX = radius * 2.0 * canvas.width;
+                
+                // Process lines/colors (remove white background / apply custom color tint)
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = img.width;
+                tempCanvas.height = img.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(img, 0, 0);
+                
+                const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                const data = imgData.data;
+                
+                const tintColor = zone.color ? new THREE.Color(zone.color) : null;
+                const tr = tintColor ? Math.round(tintColor.r * 255) : 0;
+                const tg = tintColor ? Math.round(tintColor.g * 255) : 0;
+                const tb = tintColor ? Math.round(tintColor.b * 255) : 0;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const a = data[i + 3];
+                    const brightness = (r + g + b) / 3;
+                    
+                    if (brightness > 220 || a < 30) {
+                        data[i + 3] = 0;
+                    } else if (tintColor) {
+                        data[i] = tr;
+                        data[i + 1] = tg;
+                        data[i + 2] = tb;
+                    }
+                }
+                tempCtx.putImageData(imgData, 0, 0);
+                
+                ctx.save();
+                ctx.globalAlpha = opacity;
+                ctx.translate(cx, cy);
+                ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
+                ctx.drawImage(tempCanvas, -imgSizeX / 2, -imgSizeY / 2, imgSizeX, imgSizeY);
+                ctx.restore();
+            }
+        }
+    }
+    
+    // Assign texture map
+    if (gourdMesh.material.map !== gourdMesh.userData.patternTexture) {
+        gourdMesh.material.map = gourdMesh.userData.patternTexture;
+        gourdMesh.material.color = new THREE.Color(0xffffff); // Set color to white so we don't multiply texture by default brown
+        gourdMesh.material.transparent = true;
+        gourdMesh.material.needsUpdate = true;
+    }
+    gourdMesh.userData.patternTexture.needsUpdate = true;
 }
 
 window.appPatternHelpers = {

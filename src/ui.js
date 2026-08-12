@@ -27,27 +27,13 @@ export function showToast(msg, type = 'info') {
 
 export function applyGourdTexture(gourdMesh, dataURL, scale = 1.0, rotation = 0) {
     if (!gourdMesh) return;
-    if (!dataURL) {
-        gourdMesh.material.map = null;
-        gourdMesh.material.color = new THREE.Color(state.materialColor);
-        gourdMesh.material.needsUpdate = true;
-        return;
-    }
+    state.textureDataURL = dataURL;
+    state.textureScale = scale;
+    state.textureRotation = rotation;
     
-    const loader = new THREE.TextureLoader();
-    loader.load(dataURL, (texture) => {
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(scale, scale * 0.85);
-        texture.offset.set(rotation / 360, 0);
-        texture.needsUpdate = true;
-        
-        gourdMesh.material.map = texture;
-        gourdMesh.material.color = new THREE.Color(0xffffff); // Use white so the texture color is shown exactly as is!
-        gourdMesh.material.needsUpdate = true;
-    }, undefined, (err) => {
-        console.error('Failed to load texture:', err);
-    });
+    if (window.refreshPatternGroup) {
+        window.refreshPatternGroup();
+    }
 }
 
 // Row template for ranges and number sync inputs
@@ -73,7 +59,15 @@ function isDarkColor(hex) {
 // Helper to convert hex string to THREE.Color
 function setMeshColor(gourdMesh, hex) {
     if (gourdMesh) {
-        gourdMesh.material.color.set(hex);
+        state.materialColor = hex;
+        if (gourdMesh.material.map && gourdMesh.material.map.userData && gourdMesh.material.map.userData.isPatternTexture) {
+            gourdMesh.material.color.set(0xffffff);
+        } else {
+            gourdMesh.material.color.set(hex);
+        }
+        if (window.refreshPatternGroup) {
+            window.refreshPatternGroup();
+        }
     }
 }
 
