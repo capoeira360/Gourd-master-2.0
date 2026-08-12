@@ -498,20 +498,39 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                         <label class="control-label" style="width: 45%;">Color</label>
                                         <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveHorColor" value="${zone.weaveHorColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
                                     </div>
-                                    ${sliderRow('Hole Size', `pat-zone-weaveHorHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveHorHoleSize !== undefined ? zone.weaveHorHoleSize : 0.03, 'cm')}
                                     
-                                    <div class="control-row" style="margin-bottom: 8px;">
-                                        <label class="control-label">Layout Mode</label>
-                                        <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
-                                            <button class="option-btn ${zone.weaveHorDistMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-weave-hor-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
-                                            <button class="option-btn ${zone.weaveHorDistMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-weave-hor-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
+                                    ${(zone.weaveHorStyle === 'holes' || zone.weaveHorStyle === 'both') ? `
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Hole Shape</label>
+                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorHoleShape" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                <option value="round" ${(zone.weaveHorHoleShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
+                                                <option value="wobbly" ${zone.weaveHorHoleShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                                <option value="star" ${zone.weaveHorHoleShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                                            </select>
                                         </div>
-                                    </div>
-                                    ${(zone.weaveHorDistMode || 'count') === 'count' ? `
-                                        ${sliderRow('Hole Count', `pat-zone-weaveHorHoleCount-${zone.id}`, 1, 800, 1, zone.weaveHorHoleCount !== undefined ? zone.weaveHorHoleCount : 30)}
-                                    ` : `
-                                        ${sliderRow('Hole Distance', `pat-zone-weaveHorHoleDistance-${zone.id}`, 0, 100, 1, zone.weaveHorHoleDistance !== undefined ? Math.round(100 * (0.30 - zone.weaveHorHoleDistance) / 0.298) : 80)}
-                                    `}
+                                        ${sliderRow('Hole Size', `pat-zone-weaveHorHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveHorHoleSize !== undefined ? zone.weaveHorHoleSize : 0.03, 'cm')}
+                                        ${['wobbly', 'star'].includes(zone.weaveHorHoleShape) ? `
+                                            ${sliderRow(zone.weaveHorHoleShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-weaveHorHoleWobbleFreq-${zone.id}`, 3, 12, 1, zone.weaveHorHoleWobbleFreq !== undefined ? zone.weaveHorHoleWobbleFreq : 5)}
+                                            ${sliderRow(zone.weaveHorHoleShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-weaveHorHoleWobbleAmp-${zone.id}`, 0, 100, 1, zone.weaveHorHoleWobbleAmp !== undefined ? zone.weaveHorHoleWobbleAmp : 0)}
+                                        ` : ''}
+                                        ${sliderRow('Big Hole Freq.', `pat-zone-weaveHorBigHoleFreq-${zone.id}`, 0, 10, 1, zone.weaveHorBigHoleFreq !== undefined ? zone.weaveHorBigHoleFreq : 0)}
+                                        ${(zone.weaveHorBigHoleFreq || 0) > 0 ? sliderRow('Big Line Freq.', `pat-zone-weaveHorBigLineFreq-${zone.id}`, 1, 5, 1, zone.weaveHorBigLineFreq !== undefined ? zone.weaveHorBigLineFreq : 1) : ''}
+                                        ${(zone.weaveHorBigHoleFreq || 0) > 0 ? sliderRow('Big Hole Scale', `pat-zone-weaveHorBigHoleScale-${zone.id}`, 1.1, 3.0, 0.1, zone.weaveHorBigHoleScale !== undefined ? zone.weaveHorBigHoleScale : 1.5, 'x') : ''}
+                                    ` : ''}
+                                    
+                                    ${(zone.weaveHorStyle === 'holes' || zone.weaveHorStyle === 'both') ? `
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Hole Spacing Mode</label>
+                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorDistMode" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                <option value="count" ${(zone.weaveHorDistMode || 'count') === 'count' ? 'selected' : ''}>Hole Count</option>
+                                                <option value="distance" ${zone.weaveHorDistMode === 'distance' ? 'selected' : ''}>Hole Distance</option>
+                                            </select>
+                                        </div>
+                                        ${(zone.weaveHorDistMode || 'count') === 'count' ? 
+                                            sliderRow('Hole Count', `pat-zone-weaveHorHoleCount-${zone.id}`, 1, 800, 1, zone.weaveHorHoleCount !== undefined ? zone.weaveHorHoleCount : 30) :
+                                            sliderRow('Hole Distance', `pat-zone-weaveHorHoleDistance-${zone.id}`, 0, 100, 1, zone.weaveHorHoleDistance !== undefined ? Math.round(100 * (0.30 - zone.weaveHorHoleDistance) / 0.298) : 80)
+                                        }
+                                    ` : ''}
                                     
                                     ${sliderRow('Dash Gap', `pat-zone-weaveHorDashSpacing-${zone.id}`, 0, 100, 1, zone.weaveHorDashSpacing !== undefined ? zone.weaveHorDashSpacing : 0)}
                                 </div>
