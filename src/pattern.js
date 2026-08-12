@@ -41,7 +41,10 @@ const DOODLE_PRESETS = {
 };
 
 export function generateDoodlePaths(zone) {
-    const presetKey = zone.doodlePreset || 'flow';
+    let presetKey = zone.patternType || 'doodle-flow';
+    if (presetKey.startsWith('doodle-')) {
+        presetKey = presetKey.replace('doodle-', '');
+    }
     const preset = DOODLE_PRESETS[presetKey] || DOODLE_PRESETS.flow;
     
     const seed = zone.doodleSeed !== undefined ? zone.doodleSeed : 42;
@@ -2506,7 +2509,7 @@ export function updatePatternGroupImmediate(group, state) {
         const renderLines = zone.style === 'lines' || zone.style === 'both';
         const renderHoles = zone.style === 'holes' || zone.style === 'both';
 
-        if (patLayout === 'doodleware') {
+        if (patLayout.startsWith('doodle-')) {
             let doodlePaths = generateDoodlePaths(zone);
             if (zone.type !== 'full') {
                 const clipped = [];

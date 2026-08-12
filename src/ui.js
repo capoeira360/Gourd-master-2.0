@@ -197,8 +197,12 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'scatter' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="scatter" style="padding: 4px; font-size: 10px;">Scatter</button>
                             <button class="option-btn ${zone.patternType === 'geo-triangle' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="geo-triangle" style="padding: 4px; font-size: 10px;">Geo-Triangle</button>
                             <button class="option-btn ${zone.patternType === 'flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flow" style="padding: 4px; font-size: 10px;">Flow</button>
-                            <button class="option-btn ${zone.patternType === 'ribbons' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="ribbons" style="padding: 4px; font-size: 10px;">Ribbons</button>
-                            <button class="option-btn ${zone.patternType === 'doodleware' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodleware" style="padding: 4px; font-size: 10px;">Procedural</button>
+                            <button class="option-btn ${zone.patternType === 'doodle-flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-flow" style="padding: 4px; font-size: 10px;">Org Flow</button>
+                            <button class="option-btn ${zone.patternType === 'doodle-maze' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-maze" style="padding: 4px; font-size: 10px;">Maze</button>
+                            <button class="option-btn ${zone.patternType === 'doodle-zebra' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-zebra" style="padding: 4px; font-size: 10px;">Zebra Waves</button>
+                            <button class="option-btn ${zone.patternType === 'doodle-coral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-coral" style="padding: 4px; font-size: 10px;">Coral Reef</button>
+                            <button class="option-btn ${zone.patternType === 'doodle-weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-weave" style="padding: 4px; font-size: 10px;">Weave</button>
+                            <button class="option-btn ${zone.patternType === 'doodle-confet' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-confet" style="padding: 4px; font-size: 10px;">Dot & Dash</button>
                         </div>
                     </div>
                 `;
@@ -295,19 +299,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
-            if (zone.patternType === 'doodleware') {
+            if (zone.patternType && zone.patternType.startsWith('doodle-')) {
                 styleControls = `
-                    <div class="control-row" style="margin-bottom: 8px;">
-                        <label class="control-label" style="width: 35%;">Preset</label>
-                        <select class="zone-doodle-preset-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
-                            <option value="flow" ${zone.doodlePreset === 'flow' ? 'selected' : ''}>Organic Flow</option>
-                            <option value="maze" ${zone.doodlePreset === 'maze' ? 'selected' : ''}>Tangle Maze</option>
-                            <option value="zebra" ${zone.doodlePreset === 'zebra' ? 'selected' : ''}>Zebra Waves</option>
-                            <option value="coral" ${zone.doodlePreset === 'coral' ? 'selected' : ''}>Coral Reef</option>
-                            <option value="weave" ${zone.doodlePreset === 'weave' ? 'selected' : ''}>Noodle Weave</option>
-                            <option value="confet" ${zone.doodlePreset === 'confet' ? 'selected' : ''}>Dot & Dash</option>
-                        </select>
-                    </div>
                     ${sliderRow('Size / Thickness', `pat-zone-holeSize-${zone.id}`, 0.01, 0.12, 0.005, zone.holeSize || 0.05, 'cm')}
                     ${sliderRow('Random Seed', `pat-zone-doodleSeed-${zone.id}`, 0, 9999, 1, zone.doodleSeed !== undefined ? zone.doodleSeed : 42)}
                     ${sliderRow('Curl Factor', `pat-zone-doodleCurl-${zone.id}`, 0.0, 4.0, 0.05, zone.doodleCurl !== undefined ? zone.doodleCurl : 2.0)}
@@ -1408,19 +1401,6 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
-    document.querySelectorAll('.zone-doodle-preset-select').forEach(select => {
-        select.addEventListener('change', () => {
-            const zoneId = select.dataset.zoneId;
-            const zone = state.patternZones.find(z => z.id === zoneId);
-            if (zone) {
-                pushUndoState(gourdMesh);
-                zone.doodlePreset = select.value;
-                updatePatternGroup(patternGroup, state);
-                if (onUpdatePattern) onUpdatePattern();
-                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
-            }
-        });
-    });
 
     document.querySelectorAll('.zone-direction-select').forEach(select => {
         select.addEventListener('change', () => {
