@@ -384,34 +384,71 @@ h1, h2, h3, h4, .font-display {
 
 .panel-tabs {
     display: flex;
+    gap: 6px;
+    padding: 8px;
     border-bottom: 1px solid var(--color-bdr);
-    background: rgba(20, 20, 22, 0.4);
+    background: rgba(20, 20, 22, 0.45);
 }
 
 .panel-tab {
-    flex: 1;
-    background: transparent;
-    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    width: 34px;
+    flex: none;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
     color: var(--color-tx-m);
-    padding: 10px 4px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: var(--transition-fast);
-    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
+}
+
+.panel-tab i {
+    font-size: 13px;
+    flex: none;
+}
+
+.panel-tab .tab-text {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0;
+    max-width: 0;
+    margin-left: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
 }
 
 .panel-tab:hover {
-    color: var(--color-tx);
-    background: rgba(255, 255, 255, 0.02);
+    width: 96px;
+    background: rgba(212, 168, 67, 0.08);
+    border-color: rgba(212, 168, 67, 0.35);
+    color: var(--color-acc);
+}
+
+.panel-tab:hover .tab-text {
+    opacity: 1;
+    max-width: 60px;
+    margin-left: 6px;
 }
 
 .panel-tab.active {
+    background: rgba(212, 168, 67, 0.16);
+    border-color: var(--color-acc);
     color: var(--color-acc);
-    border-bottom-color: var(--color-acc);
+    width: 96px;
+}
+
+.panel-tab.active .tab-text {
+    opacity: 1;
+    max-width: 60px;
+    margin-left: 6px;
 }
 
 .panel-body {
