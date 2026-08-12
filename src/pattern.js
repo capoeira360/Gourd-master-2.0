@@ -182,38 +182,57 @@ export function isPointInZoneRaw(t, theta, zone) {
 
     if (zone.type === 'custom-image') {
         const dt = t - zone.centerT;
-        let dTheta = mappedTheta - zone.centerTheta;
-        dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-
-        const r = getGourdRadius(t);
-        const dy = dt * getGourdHeight();
-        const dx = r * dTheta;
-
-        const shapeRotRad = -(zone.shapeRotation || 0) * Math.PI / 180;
-        const rx = dx * Math.cos(shapeRotRad) - dy * Math.sin(shapeRotRad);
-        const ry = dx * Math.sin(shapeRotRad) + dy * Math.cos(shapeRotRad);
-
-        const radius = Math.max(0.005, zone.radius || 0.15);
-        const wScale = zone.widthScale !== undefined ? zone.widthScale : 1.0;
-        const hScale = zone.heightScale !== undefined ? zone.heightScale : 1.0;
-
-        let uRaw = rx / (radius * wScale);
-        let vRaw = ry / (radius * hScale);
-
-        const skewX = zone.skewX !== undefined ? zone.skewX : 0.0;
-        const skewY = zone.skewY !== undefined ? zone.skewY : 0.0;
-        const det = 1.0 - skewX * skewY;
+        const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
+        let inside = false;
         
-        let u = uRaw;
-        let v = vRaw;
-        if (Math.abs(det) > 0.001) {
-            u = (uRaw - skewX * vRaw) / det;
-            v = (vRaw - skewY * uRaw) / det;
+        for (let p = 0; p < patchCount; p++) {
+            const offsetTheta = (p / patchCount) * Math.PI * 2;
+            let currentTheta = zone.centerTheta + offsetTheta;
+            currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+            
+            let dTheta = mappedTheta - currentTheta;
+            dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+            const r = getGourdRadius(t);
+            const dy = dt * getGourdHeight();
+            const dx = r * dTheta;
+
+            const shapeRotRad = -(zone.shapeRotation || 0) * Math.PI / 180;
+            const rx = dx * Math.cos(shapeRotRad) - dy * Math.sin(shapeRotRad);
+            const ry = dx * Math.sin(shapeRotRad) + dy * Math.cos(shapeRotRad);
+
+            const radius = Math.max(0.005, zone.radius || 0.15);
+            const wScale = zone.widthScale !== undefined ? zone.widthScale : 1.0;
+            const hScale = zone.heightScale !== undefined ? zone.heightScale : 1.0;
+
+            let uRaw = rx / (radius * wScale);
+            let vRaw = ry / (radius * hScale);
+
+            const skewX = zone.skewX !== undefined ? zone.skewX : 0.0;
+            const skewY = zone.skewY !== undefined ? zone.skewY : 0.0;
+            const det = 1.0 - skewX * skewY;
+            
+            let u = uRaw;
+            let v = vRaw;
+            if (Math.abs(det) > 0.001) {
+                u = (uRaw - skewX * vRaw) / det;
+                v = (vRaw - skewY * uRaw) / det;
+            }
+
+            if (Math.abs(u) <= 1.0 && Math.abs(v) <= 1.0) {
+                zone.tempU = u;
+                zone.tempV = v;
+                inside = true;
+                break;
+            }
         }
 
-        if (Math.abs(u) > 1.0 || Math.abs(v) > 1.0) {
+        if (!inside) {
             return false;
         }
+
+        const u = zone.tempU;
+        const v = zone.tempV;
 
         const gridDim = 512;
         const px = Math.min(gridDim - 1, Math.max(0, Math.floor((u + 1.0) / 2.0 * gridDim)));
@@ -2823,9 +2842,6 @@ export function updatePatternCanvasTexture(gourdMesh, state) {
                 const radius = zone.radius !== undefined ? zone.radius : 0.2;
                 const opacity = zone.opacity !== undefined ? zone.opacity : 1.0;
                 
-                const cx = ((centerTheta + Math.PI) / (Math.PI * 2)) * canvas.width;
-                const cy = (1.0 - centerT) * canvas.height;
-                
                 const wScale = zone.widthScale !== undefined ? zone.widthScale : 1.0;
                 const hScale = zone.heightScale !== undefined ? zone.heightScale : 1.0;
                 const imgSizeY = radius * 2.0 * canvas.height * hScale;
@@ -2863,18 +2879,29 @@ export function updatePatternCanvasTexture(gourdMesh, state) {
                 }
                 tempCtx.putImageData(imgData, 0, 0);
                 
-                ctx.save();
-                ctx.globalAlpha = opacity;
-                ctx.translate(cx, cy);
-                ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
-                
-                // Apply skew/shear distortion
+                const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
                 const skewX = zone.skewX !== undefined ? zone.skewX : 0.0;
                 const skewY = zone.skewY !== undefined ? zone.skewY : 0.0;
-                ctx.transform(1, skewY, skewX, 1, 0, 0);
-                
-                ctx.drawImage(tempCanvas, -imgSizeX / 2, -imgSizeY / 2, imgSizeX, imgSizeY);
-                ctx.restore();
+
+                for (let p = 0; p < patchCount; p++) {
+                    const offsetTheta = (p / patchCount) * Math.PI * 2;
+                    let currentTheta = centerTheta + offsetTheta;
+                    currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+                    const cx = ((currentTheta + Math.PI) / (Math.PI * 2)) * canvas.width;
+                    const cy = (1.0 - centerT) * canvas.height;
+
+                    ctx.save();
+                    ctx.globalAlpha = opacity;
+                    ctx.translate(cx, cy);
+                    ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
+                    
+                    // Apply skew/shear distortion
+                    ctx.transform(1, skewY, skewX, 1, 0, 0);
+                    
+                    ctx.drawImage(tempCanvas, -imgSizeX / 2, -imgSizeY / 2, imgSizeX, imgSizeY);
+                    ctx.restore();
+                }
             }
         }
     }

@@ -470,6 +470,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
                                 ${sliderRow('Image Size', `pat-zone-radius-${zone.id}`, 0.02, 0.6, 0.01, zone.radius, 'cm')}
                                 ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
+                                ${sliderRow('Repeat Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
                                 ${sliderRow('Aspect Width', `pat-zone-widthScale-${zone.id}`, 0.2, 3.0, 0.05, zone.widthScale !== undefined ? zone.widthScale : 1.0)}
                                 ${sliderRow('Aspect Height', `pat-zone-heightScale-${zone.id}`, 0.2, 3.0, 0.05, zone.heightScale !== undefined ? zone.heightScale : 1.0)}
                                 ${sliderRow('Skew X', `pat-zone-skewX-${zone.id}`, -1.5, 1.5, 0.05, zone.skewX !== undefined ? zone.skewX : 0.0)}
