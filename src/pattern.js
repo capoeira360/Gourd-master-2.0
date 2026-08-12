@@ -201,16 +201,17 @@ export function isPointInZoneRaw(t, theta, zone) {
             return false;
         }
 
-        const px = Math.floor((u + 1.0) / 2.0 * 128);
-        const py = Math.floor((v + 1.0) / 2.0 * 128);
-        const invertedPy = 127 - py;
+        const gridDim = 512;
+        const px = Math.min(gridDim - 1, Math.max(0, Math.floor((u + 1.0) / 2.0 * gridDim)));
+        const py = Math.min(gridDim - 1, Math.max(0, Math.floor((v + 1.0) / 2.0 * gridDim)));
+        const invertedPy = (gridDim - 1) - py;
 
         if (zone.customImageDataUrl) {
             if (!window.appImageCache) window.appImageCache = {};
             const cached = window.appImageCache[zone.customImageDataUrl];
             if (cached && cached.status === 'loaded' && cached.alphaGrid) {
                 const alphaGrid = cached.alphaGrid;
-                const idx = (invertedPy * 128 + px) * 4;
+                const idx = (invertedPy * gridDim + px) * 4;
                 const red = alphaGrid[idx];
                 const green = alphaGrid[idx + 1];
                 const blue = alphaGrid[idx + 2];
@@ -225,11 +226,11 @@ export function isPointInZoneRaw(t, theta, zone) {
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 128;
-                    canvas.height = 128;
+                    canvas.width = gridDim;
+                    canvas.height = gridDim;
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, 128, 128);
-                    const alphaGrid = ctx.getImageData(0, 0, 128, 128).data;
+                    ctx.drawImage(img, 0, 0, gridDim, gridDim);
+                    const alphaGrid = ctx.getImageData(0, 0, gridDim, gridDim).data;
                     window.appImageCache[zone.customImageDataUrl] = {
                         status: 'loaded',
                         img: img,
@@ -2201,8 +2202,9 @@ export function updatePatternGroupImmediate(group, state) {
             
             const r = getGourdRadius(centerT);
             
-            // Calculate scan step sizes
-            const steps = 48;
+            // Calculate dynamic scan step size based on radius / holeSize ratio to guarantee high fidelity.
+            const holeSz = zone.holeSize || 0.03;
+            const steps = Math.min(220, Math.max(60, Math.round((radius * 3.5) / Math.max(0.002, holeSz))));
             const tMinScan = Math.max(0.02, centerT - radius);
             const tMaxScan = Math.min(0.98, centerT + radius);
             
