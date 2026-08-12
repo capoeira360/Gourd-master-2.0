@@ -470,6 +470,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
                                 ${sliderRow('Image Size', `pat-zone-radius-${zone.id}`, 0.02, 0.6, 0.01, zone.radius, 'cm')}
                                 ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
+                                ${sliderRow('Aspect Width', `pat-zone-widthScale-${zone.id}`, 0.2, 3.0, 0.05, zone.widthScale !== undefined ? zone.widthScale : 1.0)}
+                                ${sliderRow('Aspect Height', `pat-zone-heightScale-${zone.id}`, 0.2, 3.0, 0.05, zone.heightScale !== undefined ? zone.heightScale : 1.0)}
+                                ${sliderRow('Skew X', `pat-zone-skewX-${zone.id}`, -1.5, 1.5, 0.05, zone.skewX !== undefined ? zone.skewX : 0.0)}
+                                ${sliderRow('Skew Y', `pat-zone-skewY-${zone.id}`, -1.5, 1.5, 0.05, zone.skewY !== undefined ? zone.skewY : 0.0)}
                             </div>
 
                             <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">

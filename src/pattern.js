@@ -194,8 +194,22 @@ export function isPointInZoneRaw(t, theta, zone) {
         const ry = dx * Math.sin(shapeRotRad) + dy * Math.cos(shapeRotRad);
 
         const radius = Math.max(0.005, zone.radius || 0.15);
-        const u = rx / radius;
-        const v = ry / radius;
+        const wScale = zone.widthScale !== undefined ? zone.widthScale : 1.0;
+        const hScale = zone.heightScale !== undefined ? zone.heightScale : 1.0;
+
+        let uRaw = rx / (radius * wScale);
+        let vRaw = ry / (radius * hScale);
+
+        const skewX = zone.skewX !== undefined ? zone.skewX : 0.0;
+        const skewY = zone.skewY !== undefined ? zone.skewY : 0.0;
+        const det = 1.0 - skewX * skewY;
+        
+        let u = uRaw;
+        let v = vRaw;
+        if (Math.abs(det) > 0.001) {
+            u = (uRaw - skewX * vRaw) / det;
+            v = (vRaw - skewY * uRaw) / det;
+        }
 
         if (Math.abs(u) > 1.0 || Math.abs(v) > 1.0) {
             return false;
@@ -1332,11 +1346,18 @@ export function getSvgPaths(zone) {
                         const u = (svgPt.x - cx) / (w / 2);
                         const v = -(svgPt.y - cy) / (h / 2); // Invert Y axis
 
-                        const rx = u * radius;
-                        const ry = v * radius;
+                        const wScale = zone.widthScale !== undefined ? zone.widthScale : 1.0;
+                        const hScale = zone.heightScale !== undefined ? zone.heightScale : 1.0;
+                        const rx = u * radius * wScale;
+                        const ry = v * radius * hScale;
 
-                        const dx = rx * Math.cos(shapeRotRad) - ry * Math.sin(shapeRotRad);
-                        const dy = rx * Math.sin(shapeRotRad) + ry * Math.cos(shapeRotRad);
+                        const skewX = zone.skewX !== undefined ? zone.skewX : 0.0;
+                        const skewY = zone.skewY !== undefined ? zone.skewY : 0.0;
+                        const rxSkewed = rx + skewX * ry;
+                        const rySkewed = ry + skewY * rx;
+
+                        const dx = rxSkewed * Math.cos(shapeRotRad) - rySkewed * Math.sin(shapeRotRad);
+                        const dy = rxSkewed * Math.sin(shapeRotRad) + rySkewed * Math.cos(shapeRotRad);
 
                         const dt = dy / getGourdHeight();
                         const t = zone.centerT + dt;
@@ -2805,8 +2826,10 @@ export function updatePatternCanvasTexture(gourdMesh, state) {
                 const cx = ((centerTheta + Math.PI) / (Math.PI * 2)) * canvas.width;
                 const cy = (1.0 - centerT) * canvas.height;
                 
-                const imgSizeY = radius * 2.0 * canvas.height;
-                const imgSizeX = radius * 2.0 * canvas.width;
+                const wScale = zone.widthScale !== undefined ? zone.widthScale : 1.0;
+                const hScale = zone.heightScale !== undefined ? zone.heightScale : 1.0;
+                const imgSizeY = radius * 2.0 * canvas.height * hScale;
+                const imgSizeX = radius * 2.0 * canvas.width * wScale;
                 
                 // Process lines/colors (remove white background / apply custom color tint)
                 const tempCanvas = document.createElement('canvas');
@@ -2844,6 +2867,12 @@ export function updatePatternCanvasTexture(gourdMesh, state) {
                 ctx.globalAlpha = opacity;
                 ctx.translate(cx, cy);
                 ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
+                
+                // Apply skew/shear distortion
+                const skewX = zone.skewX !== undefined ? zone.skewX : 0.0;
+                const skewY = zone.skewY !== undefined ? zone.skewY : 0.0;
+                ctx.transform(1, skewY, skewX, 1, 0, 0);
+                
                 ctx.drawImage(tempCanvas, -imgSizeX / 2, -imgSizeY / 2, imgSizeX, imgSizeY);
                 ctx.restore();
             }
