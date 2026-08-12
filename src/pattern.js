@@ -165,13 +165,22 @@ export function generateDoodlePaths(zone) {
     
     const mappedPaths = [];
     for (const path of paths) {
-        const mappedPath = [];
+        let currentSubPath = [];
         for (const pt of path) {
             const theta = (pt[0] / S) * Math.PI * 2 - Math.PI;
             const t = 1.0 - (pt[1] / S);
-            mappedPath.push({ t, theta });
+            if (t >= 0.002 && t <= 0.998) {
+                currentSubPath.push({ t, theta });
+            } else {
+                if (currentSubPath.length >= 2) {
+                    mappedPaths.push(currentSubPath);
+                }
+                currentSubPath = [];
+            }
         }
-        mappedPaths.push(mappedPath);
+        if (currentSubPath.length >= 2) {
+            mappedPaths.push(currentSubPath);
+        }
     }
     
     return mappedPaths;
