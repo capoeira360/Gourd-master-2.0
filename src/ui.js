@@ -198,6 +198,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'geo-triangle' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="geo-triangle" style="padding: 4px; font-size: 10px;">Geo-Triangle</button>
                             <button class="option-btn ${zone.patternType === 'flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flow" style="padding: 4px; font-size: 10px;">Flow</button>
                             <button class="option-btn ${zone.patternType === 'ribbons' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="ribbons" style="padding: 4px; font-size: 10px;">Ribbons</button>
+                            <button class="option-btn ${zone.patternType === 'doodleware' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodleware" style="padding: 4px; font-size: 10px;">Procedural</button>
                         </div>
                     </div>
                 `;
@@ -294,7 +295,35 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
-            if (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
+            if (zone.patternType === 'doodleware') {
+                styleControls = `
+                    <div class="control-row" style="margin-bottom: 8px;">
+                        <label class="control-label" style="width: 35%;">Preset</label>
+                        <select class="zone-doodle-preset-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                            <option value="flow" ${zone.doodlePreset === 'flow' ? 'selected' : ''}>Organic Flow</option>
+                            <option value="maze" ${zone.doodlePreset === 'maze' ? 'selected' : ''}>Tangle Maze</option>
+                            <option value="zebra" ${zone.doodlePreset === 'zebra' ? 'selected' : ''}>Zebra Waves</option>
+                            <option value="coral" ${zone.doodlePreset === 'coral' ? 'selected' : ''}>Coral Reef</option>
+                            <option value="weave" ${zone.doodlePreset === 'weave' ? 'selected' : ''}>Noodle Weave</option>
+                            <option value="confet" ${zone.doodlePreset === 'confet' ? 'selected' : ''}>Dot & Dash</option>
+                        </select>
+                    </div>
+                    ${sliderRow('Size / Thickness', `pat-zone-holeSize-${zone.id}`, 0.01, 0.12, 0.005, zone.holeSize || 0.05, 'cm')}
+                    ${sliderRow('Random Seed', `pat-zone-doodleSeed-${zone.id}`, 0, 9999, 1, zone.doodleSeed !== undefined ? zone.doodleSeed : 42)}
+                    ${sliderRow('Curl Factor', `pat-zone-doodleCurl-${zone.id}`, 0.0, 4.0, 0.05, zone.doodleCurl !== undefined ? zone.doodleCurl : 2.0)}
+                    ${sliderRow('Noise Frequency', `pat-zone-doodleFreq-${zone.id}`, 0.5, 5.0, 0.05, zone.doodleFreq !== undefined ? zone.doodleFreq : 1.7)}
+                    ${sliderRow('Line Spacing', `pat-zone-doodleGap-${zone.id}`, 0.35, 2.6, 0.05, zone.doodleGap !== undefined ? zone.doodleGap : 1.05)}
+                    ${sliderRow('Lines Count', `pat-zone-doodleCount-${zone.id}`, 100, 1500, 50, zone.doodleCount !== undefined ? zone.doodleCount : 800)}
+                    ${sliderRow('Line Length', `pat-zone-doodleLen-${zone.id}`, 10, 250, 5, zone.doodleLen !== undefined ? zone.doodleLen : 70)}
+                    ${sliderRow('Dots Count', `pat-zone-doodleDots-${zone.id}`, 0, 400, 10, zone.doodleDots !== undefined ? zone.doodleDots : 80)}
+                    ${sliderRow('Dashed Factor', `pat-zone-doodleDash-${zone.id}`, 0.0, 0.85, 0.05, zone.doodleDash !== undefined ? zone.doodleDash : 0.18)}
+                    <div class="control-row" style="margin-bottom: 10px;">
+                        <label class="control-label">Pattern Color</label>
+                        <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
+                        <span class="color-hex-text">${zone.color.toUpperCase()}</span>
+                    </div>
+                `;
+            } else if (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
                 styleControls = '';
             } else if (zone.style === 'lines') {
                 styleControls = `
@@ -1372,6 +1401,20 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (zone) {
                 pushUndoState(gourdMesh);
                 zone.holeShape = select.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-doodle-preset-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.doodlePreset = select.value;
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);

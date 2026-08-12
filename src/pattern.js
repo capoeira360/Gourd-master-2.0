@@ -2,6 +2,178 @@ import * as THREE from 'three';
 import { getGourdRadius, getGourdHeight, createGourdGeometry } from './gourd.js';
 import { state } from './state.js';
 
+function mulberry32(a) {
+    return function() {
+        a |= 0;
+        a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+
+function periodicField(seed, harm, scale) {
+    const r = mulberry32(seed);
+    const w = [];
+    for (let i = 0; i < harm; i++) {
+        let fx = Math.round((r() * 2 - 1) * 3 * scale);
+        let fy = Math.round((r() * 2 - 1) * 3 * scale);
+        if (fx === 0 && fy === 0) fx = Math.max(1, Math.round(scale));
+        w.push({ fx, fy, ph: r() * Math.PI * 2, a: 1 / (1 + Math.hypot(fx, fy) * 0.55) });
+    }
+    const norm = w.reduce((s, k) => s + k.a, 0) || 1;
+    return (x, y) => {
+        let s = 0;
+        for (const k of w) {
+            s += k.a * Math.sin(6.28318530718 * (k.fx * x + k.fy * y) + k.ph);
+        }
+        return s / norm;
+    };
+}
+
+const DOODLE_PRESETS = {
+    flow:   { curl: 2.15, freq: 1.7, count: 800, len: 70, lw: 11, gap: 1.05, dots: 80, dash: 0.18, harm: 6, base: 0 },
+    maze:   { curl: 3.10, freq: 2.6, count: 1000, len: 34, lw: 9,  gap: 0.95, dots: 110, dash: 0.28, harm: 7, base: 0 },
+    zebra:  { curl: 0.52, freq: 1.0, count: 600,  len: 180,lw: 13, gap: 1.00, dots: 40,  dash: 0.14, harm: 4, base: 0 },
+    coral:  { curl: 1.35, freq: 1.1, count: 550,  len: 130,lw: 15, gap: 1.10, dots: 55,  dash: 0.16, harm: 5, base: 0 },
+    weave:  { curl: 1.05, freq: 1.5, count: 700,  len: 110,lw: 12, gap: 1.00, dots: 60,  dash: 0.20, harm: 5, base: Math.PI / 2 },
+    confet: { curl: 2.60, freq: 2.1, count: 900,  len: 12, lw: 10, gap: 1.15, dots: 200, dash: 0.72, harm: 6, base: 0 }
+};
+
+export function generateDoodlePaths(zone) {
+    const presetKey = zone.doodlePreset || 'flow';
+    const preset = DOODLE_PRESETS[presetKey] || DOODLE_PRESETS.flow;
+    
+    const seed = zone.doodleSeed !== undefined ? zone.doodleSeed : 42;
+    const harm = preset.harm;
+    const freq = zone.doodleFreq !== undefined ? zone.doodleFreq : preset.freq;
+    const curl = zone.doodleCurl !== undefined ? zone.doodleCurl : preset.curl;
+    const count = Math.min(1000, zone.doodleCount !== undefined ? zone.doodleCount : preset.count);
+    const len = zone.doodleLen !== undefined ? zone.doodleLen : preset.len;
+    const gap = zone.doodleGap !== undefined ? zone.doodleGap : preset.gap;
+    const dotsQty = Math.min(300, zone.doodleDots !== undefined ? zone.doodleDots : preset.dots);
+    const dashFactor = zone.doodleDash !== undefined ? zone.doodleDash : preset.dash;
+    const base = preset.base;
+    
+    const S = 512; // compact layout grid
+    const lw = Math.max(1.1, (zone.holeSize || 0.05) * 100); 
+    const spacing = lw * (1 + gap);
+    const step = Math.max(0.9, lw * 0.55);
+    
+    const rnd = mulberry32((seed * 2654435761) >>> 0);
+    const field = periodicField((seed * 40503 + 17) >>> 0, harm, freq);
+    
+    const gw = Math.max(1, Math.floor(S / Math.max(3, spacing)));
+    const cw = S / gw;
+    const grid = new Array(gw * gw);
+    const kidx = (cx, cy) => ((cy % gw + gw) % gw) * gw + ((cx % gw + gw) % gw);
+    
+    function insert(x, y, id, idx) {
+        const wx = ((x % S) + S) % S;
+        const wy = ((y % S) + S) % S;
+        const k = kidx(Math.floor(wx / cw), Math.floor(wy / cw));
+        (grid[k] || (grid[k] = [])).push({ x: wx, y: wy, id, idx });
+    }
+    
+    const selfSkip = Math.ceil(spacing / step) + 3;
+    function busy(x, y, id, idx, minD) {
+        const wx = ((x % S) + S) % S;
+        const wy = ((y % S) + S) % S;
+        const cx = Math.floor(wx / cw);
+        const cy = Math.floor(wy / cw);
+        const m2 = minD * minD;
+        
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                const arr = grid[kidx(cx + i, cy + j)];
+                if (!arr) continue;
+                for (let n = 0; n < arr.length; n++) {
+                    const p = arr[n];
+                    if (p.id === id && Math.abs(p.idx - idx) < selfSkip) continue;
+                    let dx = wx - p.x;
+                    let dy = wy - p.y;
+                    dx -= S * Math.round(dx / S);
+                    dy -= S * Math.round(dy / S);
+                    if (dx * dx + dy * dy < m2) return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    const paths = [];
+    const dashN = Math.round(count * dashFactor);
+    let placed = 0, id = 0, tries = 0, maxTries = count * 7;
+    
+    while (placed < count && tries < maxTries) {
+        tries++;
+        const x0 = rnd() * S;
+        const y0 = rnd() * S;
+        if (busy(x0, y0, -1, 0, spacing)) continue;
+        const isDash = placed >= count - dashN;
+        const maxLen = isDash
+            ? 1 + Math.floor(rnd() * Math.max(2, len * 0.12))
+            : Math.max(1, Math.round(len * (0.3 + 0.7 * rnd())));
+        id++;
+        insert(x0, y0, id, 0);
+        const fwd = [], bwd = [];
+        let x = x0, y = y0;
+        
+        for (let s = 1; s <= maxLen; s++) {
+            const a = base + field(x / S, y / S) * curl * Math.PI;
+            x += Math.cos(a) * step;
+            y += Math.sin(a) * step;
+            if (busy(x, y, id, s, spacing)) break;
+            fwd.push([x, y]);
+            insert(x, y, id, s);
+        }
+        
+        x = x0;
+        y = y0;
+        for (let s = 1; s <= maxLen; s++) {
+            const a = base + field(x / S, y / S) * curl * Math.PI;
+            x -= Math.cos(a) * step;
+            y -= Math.sin(a) * step;
+            if (busy(x, y, id, -s, spacing)) break;
+            bwd.push([x, y]);
+            insert(x, y, id, -s);
+        }
+        
+        bwd.reverse();
+        const path = bwd.concat([[x0, y0]], fwd);
+        if (path.length >= 2) {
+            paths.push(path);
+        } else {
+            paths.push([[x0, y0], [x0 + 0.1, y0]]);
+        }
+        placed++;
+    }
+    
+    let d = 0, da = 0;
+    while (d < dotsQty && da < dotsQty * 60 + 300) {
+        da++;
+        const x = rnd() * S;
+        const y = rnd() * S;
+        if (busy(x, y, -3 - d, 0, spacing * 0.98)) continue;
+        paths.push([[x, y], [x + 0.1, y]]);
+        insert(x, y, -3 - d, 0);
+        d++;
+    }
+    
+    const mappedPaths = [];
+    for (const path of paths) {
+        const mappedPath = [];
+        for (const pt of path) {
+            const theta = (pt[0] / S) * Math.PI * 2 - Math.PI;
+            const t = 1.0 - (pt[1] / S);
+            mappedPath.push({ t, theta });
+        }
+        mappedPaths.push(mappedPath);
+    }
+    
+    return mappedPaths;
+}
+
 function starWave(x, points = 5) {
     const anglePerPoint = (2 * Math.PI) / points;
     const phase = (x % anglePerPoint) / anglePerPoint;
@@ -2333,6 +2505,36 @@ export function updatePatternGroupImmediate(group, state) {
         const patLayout = zone.patternType || 'grid';
         const renderLines = zone.style === 'lines' || zone.style === 'both';
         const renderHoles = zone.style === 'holes' || zone.style === 'both';
+
+        if (patLayout === 'doodleware') {
+            let doodlePaths = generateDoodlePaths(zone);
+            if (zone.type !== 'full') {
+                const clipped = [];
+                for (const path of doodlePaths) {
+                    clipped.push(...clipPathToZone(path, zone));
+                }
+                doodlePaths = clipped;
+            }
+            if (renderLines) {
+                hasLines = true;
+                const count = renderPatternLayer(
+                    group, doodlePaths, 'lines', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            if (renderHoles) {
+                hasHoles = true;
+                const count = renderPatternLayer(
+                    group, doodlePaths, 'holes', zone.color, zone.opacity,
+                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                    zone.dashSpacing, zone
+                );
+                totalCount += count;
+            }
+            continue;
+        }
 
         if (patLayout === 'swirls') {
             let swirlPaths = generateSwirlPaths(zone);
