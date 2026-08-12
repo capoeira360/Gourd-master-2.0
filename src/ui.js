@@ -479,12 +479,20 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             </div>
 
                             <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
-                                <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">HOLE DETAILS</div>
+                                <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">STYLE & DETAILS</div>
                                 <div class="control-row" style="margin-bottom: 0;">
-                                    <label class="control-label" style="width: 45%;">Hole Color</label>
+                                    <label class="control-label" style="width: 45%;">Render Style</label>
+                                    <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="style" style="flex: 1; font-size: 11px; padding: 2px;">
+                                        <option value="lines" ${zone.style === 'lines' ? 'selected' : ''}>Lines</option>
+                                        <option value="holes" ${(zone.style || 'holes') === 'holes' ? 'selected' : ''}>Holes</option>
+                                        <option value="both" ${zone.style === 'both' ? 'selected' : ''}>Both</option>
+                                    </select>
+                                </div>
+                                <div class="control-row" style="margin-bottom: 0;">
+                                    <label class="control-label" style="width: 45%;">Color</label>
                                     <input type="color" class="zone-color-picker-input" data-zone-id="${zone.id}" data-param="color" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
                                 </div>
-                                ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize || 0.03, 'cm')}
+                                ${sliderRow(zone.style === 'holes' ? 'Hole Size' : 'Line Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize || 0.03, 'cm')}
                                 ${sliderRow('Opacity', `pat-zone-opacity-${zone.id}`, 0.1, 1, 0.05, zone.opacity)}
                             </div>
                         </div>

@@ -2195,41 +2195,67 @@ export function updatePatternGroupImmediate(group, state) {
         if (zone.style === 'off' || zone.visible === false) continue;
 
         if (zone.type === 'custom-image') {
-            const pts = [];
-            const centerT = zone.centerT !== undefined ? zone.centerT : 0.5;
-            const centerTheta = zone.centerTheta !== undefined ? zone.centerTheta : 0.0;
-            const radius = zone.radius !== undefined ? zone.radius : 0.2;
-            
-            const r = getGourdRadius(centerT);
-            
-            // Calculate dynamic scan step size based on radius / holeSize ratio to guarantee high fidelity.
-            const holeSz = zone.holeSize || 0.03;
-            const steps = Math.min(220, Math.max(60, Math.round((radius * 3.5) / Math.max(0.002, holeSz))));
-            const tMinScan = Math.max(0.02, centerT - radius);
-            const tMaxScan = Math.min(0.98, centerT + radius);
-            
-            const thetaWidth = (radius / Math.max(0.05, r));
-            const thetaMinScan = centerTheta - thetaWidth;
-            const thetaMaxScan = centerTheta + thetaWidth;
-            
-            for (let j = 0; j <= steps; j++) {
-                const ptT = tMinScan + (j / steps) * (tMaxScan - tMinScan);
-                for (let i = 0; i <= steps; i++) {
-                    const ptTheta = thetaMinScan + (i / steps) * (thetaMaxScan - thetaMinScan);
-                    
-                    if (isPointInZone(ptT, ptTheta, zone)) {
-                        pts.push([{ t: ptT, theta: ptTheta }]);
+            const renderLines = zone.style === 'lines' || zone.style === 'both';
+            const renderHoles = zone.style === 'holes' || zone.style === 'both';
+
+            if (zone.customSvgText) {
+                // High-fidelity vector path rendering for SVG
+                const svgPaths = getSvgPaths(zone);
+                if (renderLines) {
+                    hasLines = true;
+                    const count = renderPatternLayer(
+                        group, svgPaths, 'lines', zone.color || '#D4A843', zone.opacity !== undefined ? zone.opacity : 1.0,
+                        zone.holeSize || 0.03, 'count', 1, 0, 0, zone
+                    );
+                    totalCount += count;
+                }
+                if (renderHoles) {
+                    hasHoles = true;
+                    const count = renderPatternLayer(
+                        group, svgPaths, 'holes', zone.color || '#D4A843', zone.opacity !== undefined ? zone.opacity : 1.0,
+                        zone.holeSize || 0.03, 'count', 1, 0, 0, zone
+                    );
+                    totalCount += count;
+                }
+            } else {
+                // High-density pixel scanning for raster PNG/JPG
+                const pts = [];
+                const centerT = zone.centerT !== undefined ? zone.centerT : 0.5;
+                const centerTheta = zone.centerTheta !== undefined ? zone.centerTheta : 0.0;
+                const radius = zone.radius !== undefined ? zone.radius : 0.2;
+                const r = getGourdRadius(centerT);
+                
+                const holeSz = zone.holeSize || 0.03;
+                const steps = Math.min(220, Math.max(60, Math.round((radius * 3.5) / Math.max(0.002, holeSz))));
+                const tMinScan = Math.max(0.02, centerT - radius);
+                const tMaxScan = Math.min(0.98, centerT + radius);
+                
+                const thetaWidth = (radius / Math.max(0.05, r));
+                const thetaMinScan = centerTheta - thetaWidth;
+                const thetaMaxScan = centerTheta + thetaWidth;
+                
+                for (let j = 0; j <= steps; j++) {
+                    const ptT = tMinScan + (j / steps) * (tMaxScan - tMinScan);
+                    for (let i = 0; i <= steps; i++) {
+                        const ptTheta = thetaMinScan + (i / steps) * (thetaMaxScan - thetaMinScan);
+                        
+                        if (isPointInZone(ptT, ptTheta, zone)) {
+                            pts.push([{ t: ptT, theta: ptTheta }]);
+                        }
                     }
                 }
-            }
-            
-            if (pts.length > 0) {
-                hasHoles = true;
-                const count = renderPatternLayer(
-                    group, pts, 'holes', zone.color || '#D4A843', zone.opacity !== undefined ? zone.opacity : 1.0,
-                    zone.holeSize || 0.03, 'count', 1, 0, 0, zone
-                );
-                totalCount += count;
+                
+                if (pts.length > 0) {
+                    const shapeType = renderLines ? 'lines' : 'holes';
+                    if (renderLines) hasLines = true;
+                    else hasHoles = true;
+                    
+                    const count = renderPatternLayer(
+                        group, pts, shapeType, zone.color || '#D4A843', zone.opacity !== undefined ? zone.opacity : 1.0,
+                        zone.holeSize || 0.03, 'count', 1, 0, 0, zone
+                    );
+                    totalCount += count;
+                }
             }
             continue;
         }
