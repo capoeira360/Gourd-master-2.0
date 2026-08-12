@@ -962,7 +962,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
 // Refreshes the DOM elements of properties panel and hooks event controllers
 export function renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure) {
-    const parentContainer = document.getElementById('panel-content') || document.getElementById('v2-sidebar-panels');
+    const parentContainer = document.getElementById('panel-content');
     const mobileContainer = document.getElementById('mobile-sheet-content');
     
     if (!parentContainer) return;
