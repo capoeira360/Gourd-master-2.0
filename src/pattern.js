@@ -2150,8 +2150,23 @@ function renderScatterLayer(group, points, colorHex, opacity, zone) {
     return totalRendered;
 }
 
-// Rebuilds pattern inside a parent THREE.Group (handles lines and instanced holes)
+let patternArgs = null;
+let isPatternUpdateScheduled = false;
+
 export function updatePatternGroup(group, state) {
+    patternArgs = { group, state };
+    if (!isPatternUpdateScheduled) {
+        isPatternUpdateScheduled = true;
+        requestAnimationFrame(() => {
+            if (patternArgs) {
+                updatePatternGroupImmediate(patternArgs.group, patternArgs.state);
+            }
+            isPatternUpdateScheduled = false;
+        });
+    }
+}
+
+export function updatePatternGroupImmediate(group, state) {
     // Clear old children
     while (group.children.length > 0) {
         const child = group.children[0];

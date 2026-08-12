@@ -1,6 +1,6 @@
 import { state, pushUndoState, performUndo, performRedo, addPatternZone, removePatternZone, duplicatePatternZone, movePatternZoneUp, movePatternZoneDown } from './state.js';
 import { calculateMeasurements, updateMeasureLines } from './measure.js';
-import { updatePatternGroup, getSvgPaths, isPointInZone } from './pattern.js';
+import { updatePatternGroup, updatePatternGroupImmediate, getSvgPaths, isPointInZone } from './pattern.js';
 import { updateCarveGroup, clearCarvings } from './carve.js';
 import * as THREE from 'three';
 import { getGourdRadius, createGourdGeometry } from './gourd.js';
@@ -2332,7 +2332,29 @@ export function updatePhotoGuideOverlay() {
     }
 }
 
+let gourdArgs = null;
+let isGourdUpdateScheduled = false;
+
 export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure) {
+    gourdArgs = { gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure };
+    if (!isGourdUpdateScheduled) {
+        isGourdUpdateScheduled = true;
+        requestAnimationFrame(() => {
+            if (gourdArgs) {
+                updateGourdGeometryImmediate(
+                    gourdArgs.gourdMesh,
+                    gourdArgs.patternGroup,
+                    gourdArgs.measureGroup,
+                    gourdArgs.onUpdatePattern,
+                    gourdArgs.onUpdateMeasure
+                );
+            }
+            isGourdUpdateScheduled = false;
+        });
+    }
+}
+
+export function updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure) {
     if (gourdMesh) {
         gourdMesh.geometry.dispose();
         gourdMesh.geometry = createGourdGeometry();
@@ -2359,7 +2381,7 @@ export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpd
         if (badgeH) badgeH.innerText = H.toFixed(1);
         if (badgeW) badgeW.innerText = ((state.gourdBulbRadius || 9.0) * 2.0).toFixed(1);
         
-        updatePatternGroup(patternGroup, state);
+        updatePatternGroupImmediate(patternGroup, state);
         if (onUpdatePattern) onUpdatePattern();
         if (onUpdateMeasure) onUpdateMeasure();
     }
