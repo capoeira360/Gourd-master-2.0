@@ -476,6 +476,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 </div>
                                 ${sliderRow('Horizontal Cell Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
                                 ${sliderRow('Vertical Cell Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx)}
+                                ${sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°')}
+                                ${sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°')}
                                 ${zone.patternType !== 'grid' ? `
                                     ${sliderRow(zone.patternType === 'geo-triangle' ? 'Vertical Hatch Lines' : 'Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 1, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
                                     ${sliderRow(zone.patternType === 'geo-triangle' ? 'Diagonal Hatch Lines' : 'Weave Vert. Count', `pat-zone-weaveVerCount-${zone.id}`, 1, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
