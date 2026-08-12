@@ -149,6 +149,11 @@ export const state = {
     carveDepth: 0.004, // offset (inwards or outwards relative to gourd surface)
     carvedPaths: [], // array of arrays of { t, theta }
     
+    // Texture mapping parameters
+    textureDataURL: null,
+    textureScale: 1.0,
+    textureRotation: 0,
+    
     // Undo/Redo history
     undoStack: [],
     redoStack: []
@@ -187,7 +192,10 @@ export function pushUndoState(gourdMesh) {
         gourdBendX: state.gourdBendX,
         gourdBendZ: state.gourdBendZ,
         maskMode: state.maskMode,
-        patchCount: state.patchCount
+        patchCount: state.patchCount,
+        textureDataURL: state.textureDataURL,
+        textureScale: state.textureScale,
+        textureRotation: state.textureRotation
     };
     
     state.undoStack.push(snapshot);
@@ -230,7 +238,10 @@ export function performUndo(gourdMesh, onRestore) {
         gourdBendX: state.gourdBendX,
         gourdBendZ: state.gourdBendZ,
         maskMode: state.maskMode,
-        patchCount: state.patchCount
+        patchCount: state.patchCount,
+        textureDataURL: state.textureDataURL,
+        textureScale: state.textureScale,
+        textureRotation: state.textureRotation
     };
     state.redoStack.push(snapshotToRedo);
     
@@ -264,6 +275,9 @@ export function performUndo(gourdMesh, onRestore) {
     state.gourdBendZ = prevState.gourdBendZ;
     state.maskMode = prevState.maskMode;
     state.patchCount = prevState.patchCount;
+    state.textureDataURL = prevState.textureDataURL;
+    state.textureScale = prevState.textureScale;
+    state.textureRotation = prevState.textureRotation;
     
     if (onRestore) onRestore();
     return true;
@@ -303,7 +317,10 @@ export function performRedo(gourdMesh, onRestore) {
         gourdBendX: state.gourdBendX,
         gourdBendZ: state.gourdBendZ,
         maskMode: state.maskMode,
-        patchCount: state.patchCount
+        patchCount: state.patchCount,
+        textureDataURL: state.textureDataURL,
+        textureScale: state.textureScale,
+        textureRotation: state.textureRotation
     };
     state.undoStack.push(snapshotToUndo);
     
@@ -337,6 +354,9 @@ export function performRedo(gourdMesh, onRestore) {
     state.gourdBendZ = nextState.gourdBendZ;
     state.maskMode = nextState.maskMode;
     state.patchCount = nextState.patchCount;
+    state.textureDataURL = nextState.textureDataURL;
+    state.textureScale = nextState.textureScale;
+    state.textureRotation = nextState.textureRotation;
     
     if (onRestore) onRestore();
     return true;

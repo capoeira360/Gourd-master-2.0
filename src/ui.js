@@ -25,6 +25,31 @@ export function showToast(msg, type = 'info') {
     }, 2800);
 }
 
+export function applyGourdTexture(gourdMesh, dataURL, scale = 1.0, rotation = 0) {
+    if (!gourdMesh) return;
+    if (!dataURL) {
+        gourdMesh.material.map = null;
+        gourdMesh.material.color = new THREE.Color(state.materialColor);
+        gourdMesh.material.needsUpdate = true;
+        return;
+    }
+    
+    const loader = new THREE.TextureLoader();
+    loader.load(dataURL, (texture) => {
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(scale, scale * 0.85);
+        texture.offset.set(rotation / 360, 0);
+        texture.needsUpdate = true;
+        
+        gourdMesh.material.map = texture;
+        gourdMesh.material.color = new THREE.Color(0xffffff); // Use white so the texture color is shown exactly as is!
+        gourdMesh.material.needsUpdate = true;
+    }, undefined, (err) => {
+        console.error('Failed to load texture:', err);
+    });
+}
+
 // Row template for ranges and number sync inputs
 function sliderRow(label, id, min, max, step, value, unit = '') {
     return `<div class="control-row">
@@ -791,6 +816,23 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             ${sliderRow('Roughness', 'mat-rough', 0, 1, 0.01, gourdMesh.material.roughness)}
             ${sliderRow('Metalness', 'mat-metal', 0, 1, 0.01, gourdMesh.material.metalness)}
             ${sliderRow('Opacity', 'mat-opacity', 0.1, 1, 0.05, gourdMesh.material.opacity)}
+            
+            <div class="panel-section-title">surface texture pattern</div>
+            <div class="control-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                <label class="control-label" style="margin-bottom: 2px;">Upload Pattern Image</label>
+                <input type="file" id="mat-texture-file" accept="image/*" style="font-size: 11px; padding: 2px 0; width: 100%;">
+                ${state.textureDataURL ? `
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; width: 100%;">
+                        <img src="${state.textureDataURL}" style="width: 36px; height: 36px; border-radius: 4px; object-fit: cover; border: 1px solid var(--color-bdr);">
+                        <button id="btn-clear-texture" class="btn-secondary" style="margin: 0; padding: 4px 10px; font-size: 10px; height: auto; min-height: 0;">Clear Texture</button>
+                    </div>
+                ` : ''}
+            </div>
+            ${state.textureDataURL ? `
+                ${sliderRow('Texture Scale', 'mat-texture-scale', 0.1, 8.0, 0.1, state.textureScale || 1.0)}
+                ${sliderRow('Texture Rotation', 'mat-texture-rotation', 0, 360, 1, state.textureRotation || 0, '°')}
+            ` : ''}
+
             <div class="panel-section-title">rendering modes</div>
             <div class="control-row" style="justify-content: space-between;">
                 <label class="control-label">Wireframe Mesh</label>
@@ -1515,10 +1557,84 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             gourdMesh.material.transparent = false;
             gourdMesh.material.wireframe = false;
             gourdMesh.material.flatShading = false;
+            
+            // Clear texture too!
+            state.textureDataURL = null;
+            state.textureScale = 1.0;
+            state.textureRotation = 0;
+            applyGourdTexture(gourdMesh, null);
+            
             gourdMesh.material.needsUpdate = true;
             
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             showToast('Material reset to default settings');
+        });
+    }
+
+    // 7a. Custom Texture File Uploader & Clear
+    const matTextureFileInput = document.getElementById('mat-texture-file');
+    if (matTextureFileInput) {
+        matTextureFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            pushUndoState(gourdMesh);
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    // Replicate Canvas Contrast Enhancement from index 3.html exactly!
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 1024;
+                    let cw = img.width;
+                    let ch = img.height;
+                    if (cw > maxDim || ch > maxDim) {
+                        const r = Math.min(maxDim / cw, maxDim / ch);
+                        cw = Math.round(cw * r);
+                        ch = Math.round(ch * r);
+                    }
+                    canvas.width = cw;
+                    canvas.height = ch;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, cw, ch);
+                    
+                    const imageData = ctx.getImageData(0, 0, cw, ch);
+                    const d = imageData.data;
+                    const contrast = 1.12;
+                    const intercept = 128 * (1 - contrast);
+                    for (let i = 0; i < d.length; i += 4) {
+                        d[i] = Math.min(255, Math.max(0, d[i] * contrast + intercept));
+                        d[i + 1] = Math.min(255, Math.max(0, d[i + 1] * contrast + intercept));
+                        d[i + 2] = Math.min(255, Math.max(0, d[i + 2] * contrast + intercept));
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                    
+                    const dataURL = canvas.toDataURL('image/png');
+                    state.textureDataURL = dataURL;
+                    state.textureScale = 1.0;
+                    state.textureRotation = 0;
+                    
+                    applyGourdTexture(gourdMesh, dataURL, state.textureScale, state.textureRotation);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Pattern texture applied!', 'success');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    const matClearTexBtn = document.getElementById('btn-clear-texture');
+    if (matClearTexBtn) {
+        matClearTexBtn.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            state.textureDataURL = null;
+            state.textureScale = 1.0;
+            state.textureRotation = 0;
+            applyGourdTexture(gourdMesh, null);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast('Pattern texture cleared.');
         });
     }
     
@@ -1880,6 +1996,22 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
         case 'mat-opacity':
             gourdMesh.material.transparent = valFloat < 1.0;
             gourdMesh.material.opacity = valFloat;
+            break;
+
+        case 'mat-texture-scale':
+            state.textureScale = valFloat;
+            if (gourdMesh.material.map) {
+                gourdMesh.material.map.repeat.set(state.textureScale, state.textureScale * 0.85);
+                gourdMesh.material.map.needsUpdate = true;
+            }
+            break;
+            
+        case 'mat-texture-rotation':
+            state.textureRotation = valFloat;
+            if (gourdMesh.material.map) {
+                gourdMesh.material.map.offset.set(state.textureRotation / 360, 0);
+                gourdMesh.material.map.needsUpdate = true;
+            }
             break;
             
         // Carving Offset
@@ -2328,7 +2460,12 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
                 type: 'kibuyu-project',
                 name: state.projectName || 'my-artisan-gourd',
                 shape: shapeParams,
-                layers: state.patternZones
+                layers: state.patternZones,
+                texture: {
+                    dataURL: state.textureDataURL,
+                    scale: state.textureScale,
+                    rotation: state.textureRotation
+                }
             };
             downloadJson(projectData, projectData.name);
             showToast('Project file exported!', 'success');
@@ -2362,6 +2499,15 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
                     if (data.layers) {
                         state.patternZones = data.layers;
                         state.activeZoneId = state.patternZones[0] ? state.patternZones[0].id : null;
+                    }
+                    if (data.texture) {
+                        state.textureDataURL = data.texture.dataURL || null;
+                        state.textureScale = data.texture.scale !== undefined ? data.texture.scale : 1.0;
+                        state.textureRotation = data.texture.rotation !== undefined ? data.texture.rotation : 0;
+                        applyGourdTexture(gourdMesh, state.textureDataURL, state.textureScale, state.textureRotation);
+                    } else {
+                        state.textureDataURL = null;
+                        applyGourdTexture(gourdMesh, null);
                     }
                     updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
@@ -2580,6 +2726,11 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         state.activeMobileSection = null;
         document.querySelectorAll('.gourd-hotspot').forEach(btn => btn.classList.remove('active'));
     });
+
+    // Load initial texture if present
+    if (state.textureDataURL) {
+        applyGourdTexture(gourdMesh, state.textureDataURL, state.textureScale, state.textureRotation);
+    }
 }
 
 export function updatePhotoGuideOverlay() {
