@@ -2901,6 +2901,26 @@ export function updatePatternCanvasTexture(gourdMesh, state) {
                     
                     ctx.drawImage(tempCanvas, -imgSizeX / 2, -imgSizeY / 2, imgSizeX, imgSizeY);
                     ctx.restore();
+
+                    // Handle horizontal seam wrap-around for boundary overlapping
+                    if (cx + imgSizeX / 2 > canvas.width) {
+                        ctx.save();
+                        ctx.globalAlpha = opacity;
+                        ctx.translate(cx - canvas.width, cy);
+                        ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
+                        ctx.transform(1, skewY, skewX, 1, 0, 0);
+                        ctx.drawImage(tempCanvas, -imgSizeX / 2, -imgSizeY / 2, imgSizeX, imgSizeY);
+                        ctx.restore();
+                    }
+                    if (cx - imgSizeX / 2 < 0) {
+                        ctx.save();
+                        ctx.globalAlpha = opacity;
+                        ctx.translate(cx + canvas.width, cy);
+                        ctx.rotate((zone.shapeRotation || 0) * Math.PI / 180);
+                        ctx.transform(1, skewY, skewX, 1, 0, 0);
+                        ctx.drawImage(tempCanvas, -imgSizeX / 2, -imgSizeY / 2, imgSizeX, imgSizeY);
+                        ctx.restore();
+                    }
                 }
             }
         }
