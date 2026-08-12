@@ -2261,6 +2261,270 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         });
     }
     
+    // 7. File Header Dropdown Menu and File Import/Export logic
+    const fileMenuBtn = document.getElementById('menu-file-btn');
+    const fileDropdown = document.getElementById('file-dropdown');
+    
+    if (fileMenuBtn && fileDropdown) {
+        fileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rect = fileMenuBtn.getBoundingClientRect();
+            fileDropdown.style.left = `${rect.left}px`;
+            fileDropdown.style.top = `${rect.bottom + 4}px`;
+            
+            const isVisible = fileDropdown.style.display === 'block';
+            fileDropdown.style.display = isVisible ? 'none' : 'block';
+        });
+        
+        window.addEventListener('click', () => {
+            fileDropdown.style.display = 'none';
+        });
+    }
+
+    const projectNameInput = document.getElementById('project-name-input');
+    if (projectNameInput) {
+        projectNameInput.addEventListener('change', () => {
+            let name = projectNameInput.value.trim().replace(/[^a-zA-Z0-9\-_]/g, '');
+            if (!name) name = 'gourd-project';
+            projectNameInput.value = name;
+            state.projectName = name;
+            showToast(`Project renamed to: ${name}`, 'success');
+        });
+        state.projectName = projectNameInput.value;
+    }
+
+    function downloadJson(data, filename) {
+        const str = JSON.stringify(data, null, 2);
+        const blob = new Blob([str], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // Save Project
+    const btnSaveProject = document.getElementById('menu-save-project');
+    if (btnSaveProject) {
+        btnSaveProject.addEventListener('click', () => {
+            const shapeParams = {
+                gourdHeight: state.gourdHeight,
+                gourdBaseRadius: state.gourdBaseRadius,
+                gourdBulbRadius: state.gourdBulbRadius,
+                gourdNeckRadius: state.gourdNeckRadius,
+                gourdRimRadius: state.gourdRimRadius,
+                gourdBulbPosition: state.gourdBulbPosition,
+                gourdBulbRoundness: state.gourdBulbRoundness,
+                gourdNeckPosition: state.gourdNeckPosition,
+                gourdNeckHeight: state.gourdNeckHeight,
+                gourdNeckRoundness: state.gourdNeckRoundness,
+                gourdUpperNeckWidth: state.gourdUpperNeckWidth,
+                gourdUpperNeckPosition: state.gourdUpperNeckPosition,
+                gourdBendX: state.gourdBendX,
+                gourdBendZ: state.gourdBendZ
+            };
+            const projectData = {
+                type: 'kibuyu-project',
+                name: state.projectName || 'my-artisan-gourd',
+                shape: shapeParams,
+                layers: state.patternZones
+            };
+            downloadJson(projectData, projectData.name);
+            showToast('Project file exported!', 'success');
+        });
+    }
+
+    // Trigger Load Project
+    const btnLoadProject = document.getElementById('menu-load-project');
+    const inputImportProject = document.getElementById('file-import-project');
+    if (btnLoadProject && inputImportProject) {
+        btnLoadProject.addEventListener('click', () => inputImportProject.click());
+        inputImportProject.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (data.type !== 'kibuyu-project') {
+                        showToast('Invalid project file type!', 'error');
+                        return;
+                    }
+                    pushUndoState(gourdMesh);
+                    if (data.name) {
+                        state.projectName = data.name;
+                        if (projectNameInput) projectNameInput.value = data.name;
+                    }
+                    if (data.shape) {
+                        Object.assign(state, data.shape);
+                    }
+                    if (data.layers) {
+                        state.patternZones = data.layers;
+                        state.activeZoneId = state.patternZones[0] ? state.patternZones[0].id : null;
+                    }
+                    updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Project loaded successfully!', 'success');
+                } catch (err) {
+                    showToast('Failed to parse project file!', 'error');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+    }
+
+    // Save Shape
+    const btnSaveShape = document.getElementById('menu-save-shape');
+    if (btnSaveShape) {
+        btnSaveShape.addEventListener('click', () => {
+            const shapeData = {
+                type: 'kibuyu-shape',
+                shape: {
+                    gourdHeight: state.gourdHeight,
+                    gourdBaseRadius: state.gourdBaseRadius,
+                    gourdBulbRadius: state.gourdBulbRadius,
+                    gourdNeckRadius: state.gourdNeckRadius,
+                    gourdRimRadius: state.gourdRimRadius,
+                    gourdBulbPosition: state.gourdBulbPosition,
+                    gourdBulbRoundness: state.gourdBulbRoundness,
+                    gourdNeckPosition: state.gourdNeckPosition,
+                    gourdNeckHeight: state.gourdNeckHeight,
+                    gourdNeckRoundness: state.gourdNeckRoundness,
+                    gourdUpperNeckWidth: state.gourdUpperNeckWidth,
+                    gourdUpperNeckPosition: state.gourdUpperNeckPosition,
+                    gourdBendX: state.gourdBendX,
+                    gourdBendZ: state.gourdBendZ
+                }
+            };
+            downloadJson(shapeData, (state.projectName || 'gourd') + '-shape');
+            showToast('Gourd shape exported!', 'success');
+        });
+    }
+
+    // Trigger Load Shape
+    const btnLoadShape = document.getElementById('menu-load-shape');
+    const inputImportShape = document.getElementById('file-import-shape');
+    if (btnLoadShape && inputImportShape) {
+        btnLoadShape.addEventListener('click', () => inputImportShape.click());
+        inputImportShape.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (data.type !== 'kibuyu-shape') {
+                        showToast('Invalid shape file!', 'error');
+                        return;
+                    }
+                    pushUndoState(gourdMesh);
+                    if (data.shape) {
+                        Object.assign(state, data.shape);
+                    }
+                    updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Gourd shape loaded!', 'success');
+                } catch (err) {
+                    showToast('Failed to parse shape file!', 'error');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+    }
+
+    // Copy Layout (Clipboard)
+    const btnCopyLayout = document.getElementById('menu-copy-layout');
+    if (btnCopyLayout) {
+        btnCopyLayout.addEventListener('click', () => {
+            const layoutData = {
+                type: 'kibuyu-layout',
+                layers: state.patternZones
+            };
+            navigator.clipboard.writeText(JSON.stringify(layoutData, null, 2))
+                .then(() => showToast('Layout JSON copied to clipboard!', 'success'))
+                .catch(() => {
+                    prompt('Copy this layout JSON:', JSON.stringify(layoutData));
+                });
+        });
+    }
+
+    // Paste Layout (Clipboard / Prompt)
+    const btnPasteLayout = document.getElementById('menu-paste-layout');
+    if (btnPasteLayout) {
+        btnPasteLayout.addEventListener('click', () => {
+            function loadPastedJSON(text) {
+                try {
+                    const data = JSON.parse(text);
+                    if (data.type !== 'kibuyu-layout') {
+                        showToast('Invalid layout data format!', 'error');
+                        return;
+                    }
+                    pushUndoState(gourdMesh);
+                    state.patternZones = data.layers;
+                    state.activeZoneId = state.patternZones[0] ? state.patternZones[0].id : null;
+                    updatePatternGroupImmediate(patternGroup, state);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Layout loaded successfully!', 'success');
+                } catch (err) {
+                    showToast('Invalid JSON syntax!', 'error');
+                }
+            }
+
+            navigator.clipboard.readText()
+                .then(text => loadPastedJSON(text))
+                .catch(() => {
+                    const pasted = prompt('Paste layout JSON here:');
+                    if (pasted) loadPastedJSON(pasted);
+                });
+        });
+    }
+
+    // Save Layout File
+    const btnSaveLayout = document.getElementById('menu-save-layout');
+    if (btnSaveLayout) {
+        btnSaveLayout.addEventListener('click', () => {
+            const layoutData = {
+                type: 'kibuyu-layout',
+                layers: state.patternZones
+            };
+            downloadJson(layoutData, (state.projectName || 'gourd') + '-layout');
+            showToast('Layout file exported!', 'success');
+        });
+    }
+
+    // Load Layout File
+    const btnLoadLayout = document.getElementById('menu-load-layout');
+    const inputImportLayout = document.getElementById('file-import-layout');
+    if (btnLoadLayout && inputImportLayout) {
+        btnLoadLayout.addEventListener('click', () => inputImportLayout.click());
+        inputImportLayout.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (data.type !== 'kibuyu-layout') {
+                        showToast('Invalid layout file!', 'error');
+                        return;
+                    }
+                    pushUndoState(gourdMesh);
+                    state.patternZones = data.layers;
+                    state.activeZoneId = state.patternZones[0] ? state.patternZones[0].id : null;
+                    updatePatternGroupImmediate(patternGroup, state);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Layout loaded successfully!', 'success');
+                } catch (err) {
+                    showToast('Failed to parse layout file!', 'error');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+    }
+
     // Keyboard shortcuts
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;

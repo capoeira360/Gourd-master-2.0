@@ -20,6 +20,20 @@
     <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
+    <!-- File Dropdown Menu -->
+    <div id="file-dropdown" class="dropdown-menu" style="min-width: 190px;">
+        <div class="dropdown-item" id="menu-save-project">Save Full Project <span style="font-size: 8px; color: var(--color-tx-d);">(.json)</span></div>
+        <div class="dropdown-item" id="menu-load-project">Load Full Project...</div>
+        <div style="height: 1px; background: var(--color-bdr); margin: 4px 0;"></div>
+        <div class="dropdown-item" id="menu-save-shape">Save Gourd Shape <span style="font-size: 8px; color: var(--color-tx-d);">(.json)</span></div>
+        <div class="dropdown-item" id="menu-load-shape">Load Gourd Shape...</div>
+        <div style="height: 1px; background: var(--color-bdr); margin: 4px 0;"></div>
+        <div class="dropdown-item" id="menu-copy-layout">Copy Pattern Layout <span style="font-size: 8px; color: var(--color-tx-d);">(Clipboard)</span></div>
+        <div class="dropdown-item" id="menu-paste-layout">Paste Pattern Layout...</div>
+        <div class="dropdown-item" id="menu-save-layout">Save Layout File <span style="font-size: 8px; color: var(--color-tx-d);">(.json)</span></div>
+        <div class="dropdown-item" id="menu-load-layout">Load Layout File...</div>
+    </div>
+
     <!-- View Dropdown Menu -->
     <div id="view-dropdown" class="dropdown-menu">
         <div class="dropdown-item" data-view-action="camera-front">Front View <span>1</span></div>
@@ -30,6 +44,11 @@
         <div class="dropdown-item checked" data-view-action="toggle-grid">Show Grid <i class="fas fa-check"></i></div>
         <div class="dropdown-item checked" data-view-action="toggle-patterns">Show Patterns <i class="fas fa-check"></i></div>
     </div>
+    
+    <!-- Hidden File Inputs for importing -->
+    <input type="file" id="file-import-project" accept=".json" style="display: none;">
+    <input type="file" id="file-import-shape" accept=".json" style="display: none;">
+    <input type="file" id="file-import-layout" accept=".json" style="display: none;">
 
     <div class="app-container">
         <!-- ===== TOP MENU BAR ===== -->
@@ -42,9 +61,14 @@
                 <span class="brand-name">Kibuyu Studio</span>
             </div>
             
+            <div class="project-name-container" style="display: flex; align-items: center; gap: 8px; margin-left: 20px; background: rgba(255,255,255,0.04); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+                <label for="project-name-input" style="font-size: 9px; font-weight: 600; text-transform: uppercase; color: var(--color-tx-d); letter-spacing: 0.5px; margin-bottom: 0;">Project</label>
+                <input type="text" id="project-name-input" value="my-artisan-gourd" style="background: transparent; border: none; color: var(--color-tx-m); font-size: 11px; font-weight: 600; width: 140px; padding: 2px 4px; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.25);" title="Rename project">
+            </div>
+            
             <!-- Desktop Navigation Menu -->
             <nav class="menu-nav desktop-only">
-                <button class="menu-btn" onclick="window.showToast('Use the Export button to download your work.', 'warn')">File</button>
+                <button class="menu-btn" id="menu-file-btn">File <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
                 <button class="menu-btn" onclick="window.showToast('Use Undo/Redo (Ctrl+Z / Ctrl+Shift+Z) to reverse changes.', 'warn')">Edit</button>
                 <button class="menu-btn" id="menu-view-btn">View <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
                 <button class="menu-btn" onclick="window.showToast('Select editing tools from the left toolbar.', 'warn')">Tools</button>
