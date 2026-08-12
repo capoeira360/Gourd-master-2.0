@@ -709,16 +709,18 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${patternTypeSelector}
                         ${boundsSliders}
                         
-                        <div class="btn-grid-options" style="grid-template-columns: repeat(4, 1fr); margin-top: 10px; margin-bottom: 8px;">
-                            <button class="option-btn ${zone.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="lines">Lines</button>
-                            <button class="option-btn ${zone.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="holes">Holes</button>
-                            <button class="option-btn ${zone.style === 'both' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="both">Both</button>
-                            <button class="option-btn ${zone.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="off">Off</button>
-                        </div>
+                        ${!['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType) ? `
+                            <div class="btn-grid-options" style="grid-template-columns: repeat(4, 1fr); margin-top: 10px; margin-bottom: 8px;">
+                                <button class="option-btn ${zone.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="lines">Lines</button>
+                                <button class="option-btn ${zone.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="holes">Holes</button>
+                                <button class="option-btn ${zone.style === 'both' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="both">Both</button>
+                                <button class="option-btn ${zone.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="off">Off</button>
+                            </div>
+                        ` : ''}
                         
                         ${styleControls}
                         
-                        ${zone.style !== 'off' ? sliderRow('Opacity', `pat-zone-opacity-${zone.id}`, 0.1, 1, 0.05, zone.opacity) : ''}
+                        ${(zone.style !== 'off' || ['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType)) ? sliderRow('Opacity', `pat-zone-opacity-${zone.id}`, 0.1, 1, 0.05, zone.opacity) : ''}
                     </div>
                 `;
             }
