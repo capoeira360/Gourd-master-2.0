@@ -2285,7 +2285,26 @@ export function generateRibbonPaths(zone) {
         }
     }
     
-    return paths;
+    // Clip paths to gourd model height boundaries
+    const mappedPaths = [];
+    for (const path of paths) {
+        let currentSubPath = [];
+        for (const pt of path) {
+            if (pt.t >= 0.002 && pt.t <= 0.998) {
+                currentSubPath.push(pt);
+            } else {
+                if (currentSubPath.length >= 2) {
+                    mappedPaths.push(currentSubPath);
+                }
+                currentSubPath = [];
+            }
+        }
+        if (currentSubPath.length >= 2) {
+            mappedPaths.push(currentSubPath);
+        }
+    }
+    
+    return mappedPaths;
 }
 
 function renderScatterLayer(group, points, colorHex, opacity, zone) {
