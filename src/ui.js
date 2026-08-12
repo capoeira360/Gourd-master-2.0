@@ -432,27 +432,26 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
             let cardBody = '';
             if (isActive) {
-                cardBody = `
-                    <div class="zone-card-body">
-                        <div class="control-row" style="margin-bottom: 8px;">
-                            <label class="control-label" style="width: 35%;">Layer Shape</label>
-                            <select class="zone-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
-                                <option value="full" ${zone.type === 'full' ? 'selected' : ''}>Full Gourd</option>
-                                <option value="hor-band" ${zone.type === 'hor-band' ? 'selected' : ''}>Horizontal Band</option>
-                                <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
-                                <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
-                                <option value="diagonal-frame" ${zone.type === 'diagonal-frame' ? 'selected' : ''}>Diagonal Frame</option>
-                                <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
-                                <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}>Square Patch</option>
-                                <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
-                            </select>
-                        </div>
-
-                        ${zone.type === 'custom-image' ? `
+                if (zone.type === 'custom-image') {
+                    cardBody = `
+                        <div class="zone-card-body">
                             <div class="control-row" style="margin-bottom: 8px;">
-                                <label class="control-label" style="width: 35%;">Upload Mask</label>
+                                <label class="control-label" style="width: 35%;">Layer Shape</label>
+                                <select class="zone-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                                    <option value="full" ${zone.type === 'full' ? 'selected' : ''}>Full Gourd</option>
+                                    <option value="hor-band" ${zone.type === 'hor-band' ? 'selected' : ''}>Horizontal Band</option>
+                                    <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
+                                    <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
+                                    <option value="diagonal-frame" ${zone.type === 'diagonal-frame' ? 'selected' : ''}>Diagonal Frame</option>
+                                    <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
+                                    <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}>Square Patch</option>
+                                    <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
+                                </select>
+                            </div>
+                            <div class="control-row" style="margin-bottom: 8px;">
+                                <label class="control-label" style="width: 35%;">Upload Image</label>
                                 <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                                    <input type="file" class="zone-custom-image-file" data-zone-id="${zone.id}" accept="image/png, image/jpeg, image/svg+xml" style="font-size: 11px; padding: 2px 0;">
+                                    <input type="file" class="zone-custom-image-file" data-zone-id="${zone.id}" accept="image/png, image/jpeg, image/svg+xml" style="font-size: 11px; padding: 2px 0; width: 100%;">
                                     <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
                                         <button class="option-btn btn-load-sample-svg" data-zone-id="${zone.id}" style="padding: 2px 6px; font-size: 9px; margin: 0; width: auto; flex: none; line-height: 1.2;">Load Sample SVG</button>
                                         ${zone.customImageDataUrl ? `
@@ -463,291 +462,341 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                     </div>
                                 </div>
                             </div>
-                        ` : ''}
+                            
+                            ${zone.customImageDataUrl ? `
+                                <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; margin-bottom: 12px; width: 100%;">
+                                    <img src="${zone.customImageDataUrl}" style="width: 36px; height: 36px; border-radius: 4px; object-fit: cover; border: 1px solid var(--color-bdr);">
+                                    <button class="btn-secondary btn-clear-custom-image" data-zone-id="${zone.id}" style="margin: 0; padding: 4px 10px; font-size: 10px; height: auto; min-height: 0; flex: none; width: auto; line-height: 1.2;">Clear Image</button>
+                                </div>
+                            ` : ''}
 
-                        ${zone.type !== 'full' ? `
-                            <div class="control-row" style="margin-bottom: 8px;">
-                                <label class="control-label" style="width: 50%;">Clip Background?</label>
-                                <input type="checkbox" class="zone-clip-bg-checkbox" data-zone-id="${zone.id}" ${zone.clipBackground !== false ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                            <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">IMAGE PLACEMENT</div>
+                                ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
+                                ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
+                                ${sliderRow('Image Size', `pat-zone-radius-${zone.id}`, 0.02, 0.6, 0.01, zone.radius, 'cm')}
+                                ${sliderRow('Rotation', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
                             </div>
-                        ` : ''}
-                        ${(!['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type) && zone.patternType !== 'swirls') ? `
-                            ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
-                        ` : ''}
-                        
-                        ${zone.patternType === 'swirls' ? `
-                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px;">
-                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 8px;">Swirl Configuration</div>
-                                
-                                <div class="control-row" style="margin-bottom: 8px;">
-                                    <label class="control-label" style="width: 50%;">Connected Swirls</label>
-                                    <input type="checkbox" class="zone-swirl-connected-checkbox" data-zone-id="${zone.id}" ${zone.swirlConnected ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
-                                </div>
-                                ${sliderRow('Swirl Tightness', `pat-zone-swirlFreq-${zone.id}`, 1.0, 5.0, 0.25, zone.swirlFreq || 2.5, 'turns')}
-                                ${sliderRow('Swirl Size', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius !== undefined ? zone.radius : 0.2, 'cm')}
-                                ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 36, 1, zone.patchCount !== undefined ? zone.patchCount : 3)}
-                                ${sliderRow('Swirl Rows', `pat-zone-swirlRows-${zone.id}`, 1, 10, 1, zone.swirlRows !== undefined ? zone.swirlRows : 1)}
-                                ${(zone.swirlRows || 1) > 1 ? sliderRow('Row Spacing', `pat-zone-swirlRowSpacing-${zone.id}`, 0.05, 0.40, 0.01, zone.swirlRowSpacing !== undefined ? zone.swirlRowSpacing : 0.15, 'cm') : ''}
-                                ${sliderRow('Height Offset', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT !== undefined ? zone.centerT : 0.5)}
-                                ${sliderRow('Rotation Offset', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round((zone.centerTheta !== undefined ? zone.centerTheta : 0.0) * 180 / Math.PI), '°')}
-                                ${sliderRow('Rotation Angle', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
-                            </div>
-                        ` : ''}
-                        
-                        ${(zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'geo-triangle') ? `
-                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
-                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">
-                                    ${zone.patternType === 'grid' ? 'Grid Layout Configuration' : (zone.patternType === 'geo-triangle' ? 'Geo-Triangle Configuration' : 'Basket Weave Configuration')}
-                                </div>
-                                ${sliderRow('Horizontal Cell Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
-                                ${sliderRow('Vertical Cell Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx)}
-                                ${sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°')}
-                                ${sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°')}
-                                ${zone.patternType !== 'grid' ? `
-                                    ${sliderRow(zone.patternType === 'geo-triangle' ? 'Vertical Hatch Lines' : 'Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 1, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
-                                    ${sliderRow(zone.patternType === 'geo-triangle' ? 'Diagonal Hatch Lines' : 'Weave Vert. Count', `pat-zone-weaveVerCount-${zone.id}`, 1, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
-                                ` : ''}
-                                
-                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
-                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">
-                                        ${zone.patternType === 'grid' ? 'HORIZONTAL GRID LINES' : (zone.patternType === 'geo-triangle' ? 'VERTICAL LINES' : 'HORIZONTAL / ASCENDING')}
-                                    </div>
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Style</label>
-                                        <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorStyle" style="flex: 1; font-size: 11px; padding: 2px;">
-                                            <option value="both" ${zone.weaveHorStyle === 'both' ? 'selected' : ''}>Both</option>
-                                            <option value="lines" ${zone.weaveHorStyle === 'lines' ? 'selected' : ''}>Lines</option>
-                                            <option value="holes" ${zone.weaveHorStyle === 'holes' ? 'selected' : ''}>Holes</option>
-                                            <option value="off" ${zone.weaveHorStyle === 'off' ? 'selected' : ''}>Off</option>
-                                        </select>
-                                    </div>
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Color</label>
-                                        <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveHorColor" value="${zone.weaveHorColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
-                                    </div>
-                                    
-                                    ${(zone.weaveHorStyle === 'holes' || zone.weaveHorStyle === 'both') ? `
-                                        <div class="control-row" style="margin-bottom: 0;">
-                                            <label class="control-label" style="width: 45%;">Hole Shape</label>
-                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorHoleShape" style="flex: 1; font-size: 11px; padding: 2px;">
-                                                <option value="round" ${(zone.weaveHorHoleShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
-                                                <option value="wobbly" ${zone.weaveHorHoleShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
-                                                <option value="star" ${zone.weaveHorHoleShape === 'star' ? 'selected' : ''}>Star Shape</option>
-                                            </select>
-                                        </div>
-                                        ${sliderRow('Hole Size', `pat-zone-weaveHorHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveHorHoleSize !== undefined ? zone.weaveHorHoleSize : 0.03, 'cm')}
-                                        ${['wobbly', 'star'].includes(zone.weaveHorHoleShape) ? `
-                                            ${sliderRow(zone.weaveHorHoleShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-weaveHorHoleWobbleFreq-${zone.id}`, 3, 12, 1, zone.weaveHorHoleWobbleFreq !== undefined ? zone.weaveHorHoleWobbleFreq : 5)}
-                                            ${sliderRow(zone.weaveHorHoleShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-weaveHorHoleWobbleAmp-${zone.id}`, 0, 100, 1, zone.weaveHorHoleWobbleAmp !== undefined ? zone.weaveHorHoleWobbleAmp : 0)}
-                                        ` : ''}
-                                        ${sliderRow('Big Hole Freq.', `pat-zone-weaveHorBigHoleFreq-${zone.id}`, 0, 10, 1, zone.weaveHorBigHoleFreq !== undefined ? zone.weaveHorBigHoleFreq : 0)}
-                                        ${(zone.weaveHorBigHoleFreq || 0) > 0 ? sliderRow('Big Line Freq.', `pat-zone-weaveHorBigLineFreq-${zone.id}`, 1, 5, 1, zone.weaveHorBigLineFreq !== undefined ? zone.weaveHorBigLineFreq : 1) : ''}
-                                        ${(zone.weaveHorBigHoleFreq || 0) > 0 ? sliderRow('Big Hole Scale', `pat-zone-weaveHorBigHoleScale-${zone.id}`, 1.1, 3.0, 0.1, zone.weaveHorBigHoleScale !== undefined ? zone.weaveHorBigHoleScale : 1.5, 'x') : ''}
-                                    ` : ''}
-                                    
-                                    ${(zone.weaveHorStyle === 'holes' || zone.weaveHorStyle === 'both') ? `
-                                        <div class="control-row" style="margin-bottom: 0;">
-                                            <label class="control-label" style="width: 45%;">Hole Spacing Mode</label>
-                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorDistMode" style="flex: 1; font-size: 11px; padding: 2px;">
-                                                <option value="count" ${(zone.weaveHorDistMode || 'count') === 'count' ? 'selected' : ''}>Hole Count</option>
-                                                <option value="distance" ${zone.weaveHorDistMode === 'distance' ? 'selected' : ''}>Hole Distance</option>
-                                            </select>
-                                        </div>
-                                        ${(zone.weaveHorDistMode || 'count') === 'count' ? 
-                                            sliderRow('Hole Count', `pat-zone-weaveHorHoleCount-${zone.id}`, 1, 800, 1, zone.weaveHorHoleCount !== undefined ? zone.weaveHorHoleCount : 30) :
-                                            sliderRow('Hole Distance', `pat-zone-weaveHorHoleDistance-${zone.id}`, 0, 100, 1, zone.weaveHorHoleDistance !== undefined ? Math.round(100 * (0.30 - zone.weaveHorHoleDistance) / 0.298) : 80)
-                                        }
-                                    ` : ''}
-                                    
-                                    ${sliderRow('Dash Gap', `pat-zone-weaveHorDashSpacing-${zone.id}`, 0, 100, 1, zone.weaveHorDashSpacing !== undefined ? zone.weaveHorDashSpacing : 0)}
-                                </div>
-                                
-                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
-                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">
-                                        ${zone.patternType === 'grid' ? 'VERTICAL GRID LINES' : (zone.patternType === 'geo-triangle' ? 'DIAGONAL LINES' : 'VERTICAL / DESCENDING')}
-                                    </div>
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Style</label>
-                                        <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveVerStyle" style="flex: 1; font-size: 11px; padding: 2px;">
-                                            <option value="both" ${zone.weaveVerStyle === 'both' ? 'selected' : ''}>Both</option>
-                                            <option value="lines" ${zone.weaveVerStyle === 'lines' ? 'selected' : ''}>Lines</option>
-                                            <option value="holes" ${zone.weaveVerStyle === 'holes' ? 'selected' : ''}>Holes</option>
-                                            <option value="off" ${zone.weaveVerStyle === 'off' ? 'selected' : ''}>Off</option>
-                                        </select>
-                                    </div>
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Color</label>
-                                        <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveVerColor" value="${zone.weaveVerColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
-                                    </div>
-                                    
-                                    ${(zone.weaveVerStyle === 'holes' || zone.weaveVerStyle === 'both') ? `
-                                        <div class="control-row" style="margin-bottom: 0;">
-                                            <label class="control-label" style="width: 45%;">Hole Shape</label>
-                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveVerHoleShape" style="flex: 1; font-size: 11px; padding: 2px;">
-                                                <option value="round" ${(zone.weaveVerHoleShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
-                                                <option value="wobbly" ${zone.weaveVerHoleShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
-                                                <option value="star" ${zone.weaveVerHoleShape === 'star' ? 'selected' : ''}>Star Shape</option>
-                                            </select>
-                                        </div>
-                                        ${sliderRow('Hole Size', `pat-zone-weaveVerHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveVerHoleSize !== undefined ? zone.weaveVerHoleSize : 0.03, 'cm')}
-                                        ${['wobbly', 'star'].includes(zone.weaveVerHoleShape) ? `
-                                            ${sliderRow(zone.weaveVerHoleShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-weaveVerHoleWobbleFreq-${zone.id}`, 3, 12, 1, zone.weaveVerHoleWobbleFreq !== undefined ? zone.weaveVerHoleWobbleFreq : 5)}
-                                            ${sliderRow(zone.weaveVerHoleShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-weaveVerHoleWobbleAmp-${zone.id}`, 0, 100, 1, zone.weaveVerHoleWobbleAmp !== undefined ? zone.weaveVerHoleWobbleAmp : 0)}
-                                        ` : ''}
-                                        ${sliderRow('Big Hole Freq.', `pat-zone-weaveVerBigHoleFreq-${zone.id}`, 0, 10, 1, zone.weaveVerBigHoleFreq !== undefined ? zone.weaveVerBigHoleFreq : 0)}
-                                        ${(zone.weaveVerBigHoleFreq || 0) > 0 ? sliderRow('Big Line Freq.', `pat-zone-weaveVerBigLineFreq-${zone.id}`, 1, 5, 1, zone.weaveVerBigLineFreq !== undefined ? zone.weaveVerBigLineFreq : 1) : ''}
-                                        ${(zone.weaveVerBigHoleFreq || 0) > 0 ? sliderRow('Big Hole Scale', `pat-zone-weaveVerBigHoleScale-${zone.id}`, 1.1, 3.0, 0.1, zone.weaveVerBigHoleScale !== undefined ? zone.weaveVerBigHoleScale : 1.5, 'x') : ''}
-                                    ` : ''}
-                                    
-                                    ${(zone.weaveVerStyle === 'holes' || zone.weaveVerStyle === 'both') ? `
-                                        <div class="control-row" style="margin-bottom: 0;">
-                                            <label class="control-label" style="width: 45%;">Hole Spacing Mode</label>
-                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveVerDistMode" style="flex: 1; font-size: 11px; padding: 2px;">
-                                                <option value="count" ${(zone.weaveVerDistMode || 'count') === 'count' ? 'selected' : ''}>Hole Count</option>
-                                                <option value="distance" ${zone.weaveVerDistMode === 'distance' ? 'selected' : ''}>Hole Distance</option>
-                                            </select>
-                                        </div>
-                                        ${(zone.weaveVerDistMode || 'count') === 'count' ? 
-                                            sliderRow('Hole Count', `pat-zone-weaveVerHoleCount-${zone.id}`, 1, 800, 1, zone.weaveVerHoleCount !== undefined ? zone.weaveVerHoleCount : 30) :
-                                            sliderRow('Hole Distance', `pat-zone-weaveVerHoleDistance-${zone.id}`, 0, 100, 1, zone.weaveVerHoleDistance !== undefined ? Math.round(100 * (0.30 - zone.weaveVerHoleDistance) / 0.298) : 80)
-                                        }
-                                    ` : ''}
-                                    
-                                    ${sliderRow('Dash Gap', `pat-zone-weaveVerDashSpacing-${zone.id}`, 0, 100, 1, zone.weaveVerDashSpacing !== undefined ? zone.weaveVerDashSpacing : 0)}
-                                </div>
-                            </div>
-                        ` : ''}
-                        
-                        ${zone.patternType === 'scatter' ? `
-                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
-                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Scatter Configuration (Stars)</div>
-                                ${sliderRow('Size Categories', `pat-zone-scatterSizeGroupsCount-${zone.id}`, 1, 5, 1, zone.scatterSizeGroupsCount || 3)}
-                                ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
-                                
-                                ${scatterGroupsHTML}
-                            </div>
-                        ` : ''}
-                        
-                        ${zone.patternType === 'flow' ? `
-                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
-                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Organic Flow Configuration</div>
-                                ${sliderRow('Flow Turbulence', `pat-zone-flowScale-${zone.id}`, 0.0, 5.0, 0.1, zone.flowScale !== undefined ? zone.flowScale : 2.0)}
-                                ${sliderRow('Flow Wave Frequency', `pat-zone-flowFreq-${zone.id}`, 0.5, 8.0, 0.1, zone.flowFreq !== undefined ? zone.flowFreq : 3.0)}
-                                ${sliderRow('Stream Quantity', `pat-zone-flowCount-${zone.id}`, 5, 50, 1, zone.flowCount !== undefined ? zone.flowCount : 25)}
-                                ${sliderRow('Stream Length', `pat-zone-flowLength-${zone.id}`, 10, 100, 5, zone.flowLength !== undefined ? zone.flowLength : 40)}
-                                ${sliderRow('Flow Angle Offset', `pat-zone-flowBaseAngle-${zone.id}`, -180, 180, 5, zone.flowBaseAngle !== undefined ? zone.flowBaseAngle : 0, '°')}
-                                ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
-                                
-                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
-                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">SCATTERED GAP DOTS</div>
-                                    ${sliderRow('Dot Quantity', `pat-zone-flowDotCount-${zone.id}`, 0, 300, 5, zone.flowDotCount !== undefined ? zone.flowDotCount : 80)}
-                                    ${sliderRow('Dot Size', `pat-zone-flowDotSize-${zone.id}`, 0.01, 0.10, 0.005, zone.flowDotSize !== undefined ? zone.flowDotSize : 0.03, 'cm')}
-                                </div>
-                                
-                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
-                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">STREAM CHANNELS</div>
-                                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Style</label>
-                                        <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="style" style="flex: 1; font-size: 11px; padding: 2px;">
-                                            <option value="lines" ${zone.style === 'lines' ? 'selected' : ''}>Lines</option>
-                                            <option value="holes" ${zone.style === 'holes' ? 'selected' : ''}>Holes</option>
-                                            <option value="both" ${zone.style === 'both' ? 'selected' : ''}>Both</option>
-                                            <option value="off" ${zone.style === 'off' ? 'selected' : ''}>Off</option>
-                                        </select>
-                                    </div>
-                                    <div class="control-row" style="margin-bottom: 8px;">
-                                        <label class="control-label">Layout Mode</label>
-                                        <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
-                                            <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
-                                            <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
-                                        </div>
-                                    </div>
-                                    ${zone.distMode === 'count' ? `
-                                        ${sliderRow('Hole Count', `pat-zone-holeCount-${zone.id}`, 0, 100, 1, holeCountProx)}
-                                    ` : `
-                                        ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${zone.id}`, 0, 100, 1, holeDistProx)}
-                                    `}
-                                    ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx)}
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Color</label>
-                                        <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
-                                    </div>
-                                </div>
-                            </div>
-                        ` : ''}
-                        
-                        ${zone.patternType === 'ribbons' ? `
-                            <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
-                                <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Noodle Ribbon Configuration</div>
-                                ${sliderRow('Ribbon Quantity', `pat-zone-ribbonCount-${zone.id}`, 2, 20, 1, zone.ribbonCount !== undefined ? zone.ribbonCount : 8)}
-                                ${sliderRow('Lines Per Ribbon', `pat-zone-ribbonLines-${zone.id}`, 1, 9, 1, zone.ribbonLines !== undefined ? zone.ribbonLines : 5)}
-                                ${sliderRow('Line Spacing', `pat-zone-ribbonSpacing-${zone.id}`, 0.004, 0.030, 0.001, zone.ribbonSpacing !== undefined ? zone.ribbonSpacing : 0.012, 'cm')}
-                                ${sliderRow('Ribbon Waviness', `pat-zone-ribbonAmp-${zone.id}`, 0.0, 0.40, 0.01, zone.ribbonAmp !== undefined ? zone.ribbonAmp : 0.15)}
-                                ${sliderRow('Wave Frequency', `pat-zone-ribbonFreq-${zone.id}`, 1.0, 6.0, 0.1, zone.ribbonFreq !== undefined ? zone.ribbonFreq : 2.0)}
-                                ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
-                                
+
+                            <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                                <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">HOLE DETAILS</div>
                                 <div class="control-row" style="margin-bottom: 0;">
-                                    <label class="control-label" style="width: 45%;">Direction</label>
-                                    <select class="zone-ribbon-direction-select" data-zone-id="${zone.id}" style="flex: 1; font-size: 11px; padding: 2px;">
-                                        <option value="both" ${zone.ribbonDirection === 'both' ? 'selected' : ''}>Both Directions</option>
-                                        <option value="horizontal" ${zone.ribbonDirection === 'horizontal' ? 'selected' : ''}>Horizontal Only</option>
-                                        <option value="vertical" ${zone.ribbonDirection === 'vertical' ? 'selected' : ''}>Vertical Only</option>
-                                    </select>
+                                    <label class="control-label" style="width: 45%;">Hole Color</label>
+                                    <input type="color" class="zone-color-picker-input" data-zone-id="${zone.id}" data-param="color" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
                                 </div>
-                                
-                                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
-                                    <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">RIBBON STYLE</div>
-                                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Style</label>
-                                        <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="style" style="flex: 1; font-size: 11px; padding: 2px;">
-                                            <option value="lines" ${zone.style === 'lines' ? 'selected' : ''}>Lines</option>
-                                            <option value="holes" ${zone.style === 'holes' ? 'selected' : ''}>Holes</option>
-                                            <option value="both" ${zone.style === 'both' ? 'selected' : ''}>Both</option>
-                                            <option value="off" ${zone.style === 'off' ? 'selected' : ''}>Off</option>
-                                        </select>
-                                    </div>
-                                    <div class="control-row" style="margin-bottom: 8px;">
-                                        <label class="control-label">Layout Mode</label>
-                                        <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
-                                            <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
-                                            <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
+                                ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize || 0.03, 'cm')}
+                                ${sliderRow('Opacity', `pat-zone-opacity-${zone.id}`, 0.1, 1, 0.05, zone.opacity)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    cardBody = `
+                        <div class="zone-card-body">
+                            <div class="control-row" style="margin-bottom: 8px;">
+                                <label class="control-label" style="width: 35%;">Layer Shape</label>
+                                <select class="zone-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                                    <option value="full" ${zone.type === 'full' ? 'selected' : ''}>Full Gourd</option>
+                                    <option value="hor-band" ${zone.type === 'hor-band' ? 'selected' : ''}>Horizontal Band</option>
+                                    <option value="ver-strip" ${zone.type === 'ver-strip' ? 'selected' : ''}>Vertical Strip</option>
+                                    <option value="diagonal-stripe" ${zone.type === 'diagonal-stripe' ? 'selected' : ''}>Diagonal Stripe</option>
+                                    <option value="diagonal-frame" ${zone.type === 'diagonal-frame' ? 'selected' : ''}>Diagonal Frame</option>
+                                    <option value="circular-patch" ${zone.type === 'circular-patch' ? 'selected' : ''}>Circular Patch</option>
+                                    <option value="square-patch" ${zone.type === 'square-patch' ? 'selected' : ''}>Square Patch</option>
+                                    <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
+                                </select>
+                            </div>
+                            
+                            ${zone.type === 'custom-image' ? `
+                                <div class="control-row" style="margin-bottom: 8px;">
+                                    <label class="control-label" style="width: 35%;">Upload Mask</label>
+                                    <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                                        <input type="file" class="zone-custom-image-file" data-zone-id="${zone.id}" accept="image/png, image/jpeg, image/svg+xml" style="font-size: 11px; padding: 2px 0;">
+                                        <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
+                                            <button class="option-btn btn-load-sample-svg" data-zone-id="${zone.id}" style="padding: 2px 6px; font-size: 9px; margin: 0; width: auto; flex: none; line-height: 1.2;">Load Sample SVG</button>
+                                            ${zone.customImageDataUrl ? `
+                                                <span style="font-size: 10px; color: #4CAF50; font-weight: 500;">✓ Loaded</span>
+                                            ` : `
+                                                <span style="font-size: 10px; color: var(--color-tx-m); font-style: italic;">PNG or SVG</span>
+                                            `}
                                         </div>
                                     </div>
-                                    ${zone.distMode === 'count' ? `
-                                        ${sliderRow('Hole Count', `pat-zone-holeCount-${zone.id}`, 0, 100, 1, holeCountProx)}
-                                    ` : `
-                                        ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${zone.id}`, 0, 100, 1, holeDistProx)}
-                                    `}
-                                    ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx)}
-                                    <div class="control-row" style="margin-bottom: 0;">
-                                        <label class="control-label" style="width: 45%;">Color</label>
-                                        <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                </div>
+                            ` : ''}
+
+                            ${zone.type !== 'full' ? `
+                                <div class="control-row" style="margin-bottom: 8px;">
+                                    <label class="control-label" style="width: 50%;">Clip Background?</label>
+                                    <input type="checkbox" class="zone-clip-bg-checkbox" data-zone-id="${zone.id}" ${zone.clipBackground !== false ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                                </div>
+                            ` : ''}
+                            ${(!['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type) && zone.patternType !== 'swirls') ? `
+                                ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
+                            ` : ''}
+                            
+                            ${zone.patternType === 'swirls' ? `
+                                <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px;">
+                                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 8px;">Swirl Configuration</div>
+                                    
+                                    <div class="control-row" style="margin-bottom: 8px;">
+                                        <label class="control-label" style="width: 50%;">Connected Swirls</label>
+                                        <input type="checkbox" class="zone-swirl-connected-checkbox" data-zone-id="${zone.id}" ${zone.swirlConnected ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
+                                    </div>
+                                    ${sliderRow('Swirl Tightness', `pat-zone-swirlFreq-${zone.id}`, 1.0, 5.0, 0.25, zone.swirlFreq || 2.5, 'turns')}
+                                    ${sliderRow('Swirl Size', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius !== undefined ? zone.radius : 0.2, 'cm')}
+                                    ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 36, 1, zone.patchCount !== undefined ? zone.patchCount : 3)}
+                                    ${sliderRow('Swirl Rows', `pat-zone-swirlRows-${zone.id}`, 1, 10, 1, zone.swirlRows !== undefined ? zone.swirlRows : 1)}
+                                    ${(zone.swirlRows || 1) > 1 ? sliderRow('Row Spacing', `pat-zone-swirlRowSpacing-${zone.id}`, 0.05, 0.40, 0.01, zone.swirlRowSpacing !== undefined ? zone.swirlRowSpacing : 0.15, 'cm') : ''}
+                                    ${sliderRow('Height Offset', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT !== undefined ? zone.centerT : 0.5)}
+                                    ${sliderRow('Rotation Offset', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round((zone.centerTheta !== undefined ? zone.centerTheta : 0.0) * 180 / Math.PI), '°')}
+                                    ${sliderRow('Rotation Angle', `pat-zone-shapeRotation-${zone.id}`, 0, 360, 1, zone.shapeRotation || 0, '°')}
+                                </div>
+                            ` : ''}
+                            
+                            ${(zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'geo-triangle') ? `
+                                <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">
+                                        ${zone.patternType === 'grid' ? 'Grid Layout Configuration' : (zone.patternType === 'geo-triangle' ? 'Geo-Triangle Configuration' : 'Basket Weave Configuration')}
+                                    </div>
+                                    ${sliderRow('Horizontal Cell Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
+                                    ${sliderRow('Vertical Cell Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx)}
+                                    ${sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°')}
+                                    ${sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°')}
+                                    ${zone.patternType !== 'grid' ? `
+                                        ${sliderRow(zone.patternType === 'geo-triangle' ? 'Vertical Hatch Lines' : 'Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 1, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
+                                        ${sliderRow(zone.patternType === 'geo-triangle' ? 'Diagonal Hatch Lines' : 'Weave Vert. Count', `pat-zone-weaveVerCount-${zone.id}`, 1, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
+                                    ` : ''}
+                                    
+                                    <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                        <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">
+                                            ${zone.patternType === 'grid' ? 'HORIZONTAL GRID LINES' : (zone.patternType === 'geo-triangle' ? 'VERTICAL LINES' : 'HORIZONTAL / ASCENDING')}
+                                        </div>
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Style</label>
+                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorStyle" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                <option value="both" ${zone.weaveHorStyle === 'both' ? 'selected' : ''}>Both</option>
+                                                <option value="lines" ${zone.weaveHorStyle === 'lines' ? 'selected' : ''}>Lines</option>
+                                                <option value="holes" ${zone.weaveHorStyle === 'holes' ? 'selected' : ''}>Holes</option>
+                                                <option value="off" ${zone.weaveHorStyle === 'off' ? 'selected' : ''}>Off</option>
+                                            </select>
+                                        </div>
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Color</label>
+                                            <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveHorColor" value="${zone.weaveHorColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                        </div>
+                                        
+                                        ${(zone.weaveHorStyle === 'holes' || zone.weaveHorStyle === 'both') ? `
+                                            <div class="control-row" style="margin-bottom: 0;">
+                                                <label class="control-label" style="width: 45%;">Hole Shape</label>
+                                                <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorHoleShape" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                    <option value="round" ${(zone.weaveHorHoleShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
+                                                    <option value="wobbly" ${zone.weaveHorHoleShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                                    <option value="star" ${zone.weaveHorHoleShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                                                </select>
+                                            </div>
+                                            ${sliderRow('Hole Size', `pat-zone-weaveHorHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveHorHoleSize !== undefined ? zone.weaveHorHoleSize : 0.03, 'cm')}
+                                            ${['wobbly', 'star'].includes(zone.weaveHorHoleShape) ? `
+                                                ${sliderRow(zone.weaveHorHoleShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-weaveHorHoleWobbleFreq-${zone.id}`, 3, 12, 1, zone.weaveHorHoleWobbleFreq !== undefined ? zone.weaveHorHoleWobbleFreq : 5)}
+                                                ${sliderRow(zone.weaveHorHoleShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-weaveHorHoleWobbleAmp-${zone.id}`, 0, 100, 1, zone.weaveHorHoleWobbleAmp !== undefined ? zone.weaveHorHoleWobbleAmp : 0)}
+                                            ` : ''}
+                                            ${sliderRow('Big Hole Freq.', `pat-zone-weaveHorBigHoleFreq-${zone.id}`, 0, 10, 1, zone.weaveHorBigHoleFreq !== undefined ? zone.weaveHorBigHoleFreq : 0)}
+                                            ${(zone.weaveHorBigHoleFreq || 0) > 0 ? sliderRow('Big Line Freq.', `pat-zone-weaveHorBigLineFreq-${zone.id}`, 1, 5, 1, zone.weaveHorBigLineFreq !== undefined ? zone.weaveHorBigLineFreq : 1) : ''}
+                                            ${(zone.weaveHorBigHoleFreq || 0) > 0 ? sliderRow('Big Hole Scale', `pat-zone-weaveHorBigHoleScale-${zone.id}`, 1.1, 3.0, 0.1, zone.weaveHorBigHoleScale !== undefined ? zone.weaveHorBigHoleScale : 1.5, 'x') : ''}
+                                        ` : ''}
+                                        
+                                        ${(zone.weaveHorStyle === 'holes' || zone.weaveHorStyle === 'both') ? `
+                                            <div class="control-row" style="margin-bottom: 0;">
+                                                <label class="control-label" style="width: 45%;">Hole Spacing Mode</label>
+                                                <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveHorDistMode" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                    <option value="count" ${(zone.weaveHorDistMode || 'count') === 'count' ? 'selected' : ''}>Hole Count</option>
+                                                    <option value="distance" ${zone.weaveHorDistMode === 'distance' ? 'selected' : ''}>Hole Distance</option>
+                                                </select>
+                                            </div>
+                                            ${(zone.weaveHorDistMode || 'count') === 'count' ? 
+                                                sliderRow('Hole Count', `pat-zone-weaveHorHoleCount-${zone.id}`, 1, 800, 1, zone.weaveHorHoleCount !== undefined ? zone.weaveHorHoleCount : 30) :
+                                                sliderRow('Hole Distance', `pat-zone-weaveHorHoleDistance-${zone.id}`, 0, 100, 1, zone.weaveHorHoleDistance !== undefined ? Math.round(100 * (0.30 - zone.weaveHorHoleDistance) / 0.298) : 80)
+                                            }
+                                        ` : ''}
+                                        
+                                        ${sliderRow('Dash Gap', `pat-zone-weaveHorDashSpacing-${zone.id}`, 0, 100, 1, zone.weaveHorDashSpacing !== undefined ? zone.weaveHorDashSpacing : 0)}
+                                    </div>
+                                    
+                                    <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                        <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">
+                                            ${zone.patternType === 'grid' ? 'VERTICAL GRID LINES' : (zone.patternType === 'geo-triangle' ? 'DIAGONAL LINES' : 'VERTICAL / DESCENDING')}
+                                        </div>
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Style</label>
+                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveVerStyle" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                <option value="both" ${zone.weaveVerStyle === 'both' ? 'selected' : ''}>Both</option>
+                                                <option value="lines" ${zone.weaveVerStyle === 'lines' ? 'selected' : ''}>Lines</option>
+                                                <option value="holes" ${zone.weaveVerStyle === 'holes' ? 'selected' : ''}>Holes</option>
+                                                <option value="off" ${zone.weaveVerStyle === 'off' ? 'selected' : ''}>Off</option>
+                                            </select>
+                                        </div>
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Color</label>
+                                            <input type="color" class="zone-weave-color-input" data-zone-id="${zone.id}" data-param="weaveVerColor" value="${zone.weaveVerColor || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                        </div>
+                                        
+                                        ${(zone.weaveVerStyle === 'holes' || zone.weaveVerStyle === 'both') ? `
+                                            <div class="control-row" style="margin-bottom: 0;">
+                                                <label class="control-label" style="width: 45%;">Hole Shape</label>
+                                                <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveVerHoleShape" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                    <option value="round" ${(zone.weaveVerHoleShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
+                                                    <option value="wobbly" ${zone.weaveVerHoleShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                                    <option value="star" ${zone.weaveVerHoleShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                                                </select>
+                                            </div>
+                                            ${sliderRow('Hole Size', `pat-zone-weaveVerHoleSize-${zone.id}`, 0.01, 0.10, 0.005, zone.weaveVerHoleSize !== undefined ? zone.weaveVerHoleSize : 0.03, 'cm')}
+                                            ${['wobbly', 'star'].includes(zone.weaveVerHoleShape) ? `
+                                                ${sliderRow(zone.weaveVerHoleShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-weaveVerHoleWobbleFreq-${zone.id}`, 3, 12, 1, zone.weaveVerHoleWobbleFreq !== undefined ? zone.weaveVerHoleWobbleFreq : 5)}
+                                                ${sliderRow(zone.weaveVerHoleShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-weaveVerHoleWobbleAmp-${zone.id}`, 0, 100, 1, zone.weaveVerHoleWobbleAmp !== undefined ? zone.weaveVerHoleWobbleAmp : 0)}
+                                            ` : ''}
+                                            ${sliderRow('Big Hole Freq.', `pat-zone-weaveVerBigHoleFreq-${zone.id}`, 0, 10, 1, zone.weaveVerBigHoleFreq !== undefined ? zone.weaveVerBigHoleFreq : 0)}
+                                            ${(zone.weaveVerBigHoleFreq || 0) > 0 ? sliderRow('Big Line Freq.', `pat-zone-weaveVerBigLineFreq-${zone.id}`, 1, 5, 1, zone.weaveVerBigLineFreq !== undefined ? zone.weaveVerBigLineFreq : 1) : ''}
+                                            ${(zone.weaveVerBigHoleFreq || 0) > 0 ? sliderRow('Big Hole Scale', `pat-zone-weaveVerBigHoleScale-${zone.id}`, 1.1, 3.0, 0.1, zone.weaveVerBigHoleScale !== undefined ? zone.weaveVerBigHoleScale : 1.5, 'x') : ''}
+                                        ` : ''}
+                                        
+                                        ${(zone.weaveVerStyle === 'holes' || zone.weaveVerStyle === 'both') ? `
+                                            <div class="control-row" style="margin-bottom: 0;">
+                                                <label class="control-label" style="width: 45%;">Hole Spacing Mode</label>
+                                                <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="weaveVerDistMode" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                    <option value="count" ${(zone.weaveVerDistMode || 'count') === 'count' ? 'selected' : ''}>Hole Count</option>
+                                                    <option value="distance" ${zone.weaveVerDistMode === 'distance' ? 'selected' : ''}>Hole Distance</option>
+                                                </select>
+                                            </div>
+                                            ${(zone.weaveVerDistMode || 'count') === 'count' ? 
+                                                sliderRow('Hole Count', `pat-zone-weaveVerHoleCount-${zone.id}`, 1, 800, 1, zone.weaveVerHoleCount !== undefined ? zone.weaveVerHoleCount : 30) :
+                                                sliderRow('Hole Distance', `pat-zone-weaveVerHoleDistance-${zone.id}`, 0, 100, 1, zone.weaveVerHoleDistance !== undefined ? Math.round(100 * (0.30 - zone.weaveVerHoleDistance) / 0.298) : 80)
+                                            }
+                                        ` : ''}
+                                        
+                                        ${sliderRow('Dash Gap', `pat-zone-weaveVerDashSpacing-${zone.id}`, 0, 100, 1, zone.weaveVerDashSpacing !== undefined ? zone.weaveVerDashSpacing : 0)}
                                     </div>
                                 </div>
-                            </div>
-                        ` : ''}
-                        
-                        ${fillTypeSelect}
-                        ${orientationSelect}
-                        ${patternTypeSelector}
-                        ${boundsSliders}
-                        
-                        ${!['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType) ? `
-                            <div class="btn-grid-options" style="grid-template-columns: repeat(4, 1fr); margin-top: 10px; margin-bottom: 8px;">
-                                <button class="option-btn ${zone.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="lines">Lines</button>
-                                <button class="option-btn ${zone.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="holes">Holes</button>
-                                <button class="option-btn ${zone.style === 'both' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="both">Both</button>
-                                <button class="option-btn ${zone.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="off">Off</button>
-                            </div>
-                        ` : ''}
-                        
-                        ${styleControls}
-                        
-                        ${(zone.style !== 'off' || ['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType)) ? sliderRow('Opacity', `pat-zone-opacity-${zone.id}`, 0.1, 1, 0.05, zone.opacity) : ''}
-                    </div>
-                `;
+                            ` : ''}
+                            
+                            ${zone.patternType === 'scatter' ? `
+                                <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Scatter Configuration (Stars)</div>
+                                    ${sliderRow('Size Categories', `pat-zone-scatterSizeGroupsCount-${zone.id}`, 1, 5, 1, zone.scatterSizeGroupsCount || 3)}
+                                    ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
+                                    
+                                    ${scatterGroupsHTML}
+                                </div>
+                            ` : ''}
+                            
+                            ${zone.patternType === 'flow' ? `
+                                <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Organic Flow Configuration</div>
+                                    ${sliderRow('Flow Turbulence', `pat-zone-flowScale-${zone.id}`, 0.0, 5.0, 0.1, zone.flowScale !== undefined ? zone.flowScale : 2.0)}
+                                    ${sliderRow('Flow Wave Frequency', `pat-zone-flowFreq-${zone.id}`, 0.5, 8.0, 0.1, zone.flowFreq !== undefined ? zone.flowFreq : 3.0)}
+                                    ${sliderRow('Stream Quantity', `pat-zone-flowCount-${zone.id}`, 5, 50, 1, zone.flowCount !== undefined ? zone.flowCount : 25)}
+                                    ${sliderRow('Stream Length', `pat-zone-flowLength-${zone.id}`, 10, 100, 5, zone.flowLength !== undefined ? zone.flowLength : 40)}
+                                    ${sliderRow('Flow Angle Offset', `pat-zone-flowBaseAngle-${zone.id}`, -180, 180, 5, zone.flowBaseAngle !== undefined ? zone.flowBaseAngle : 0, '°')}
+                                    ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
+                                    
+                                    <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                        <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">SCATTERED GAP DOTS</div>
+                                        ${sliderRow('Dot Quantity', `pat-zone-flowDotCount-${zone.id}`, 0, 300, 5, zone.flowDotCount !== undefined ? zone.flowDotCount : 80)}
+                                        ${sliderRow('Dot Size', `pat-zone-flowDotSize-${zone.id}`, 0.01, 0.10, 0.005, zone.flowDotSize !== undefined ? zone.flowDotSize : 0.03, 'cm')}
+                                    </div>
+                                    
+                                    <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                        <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">STREAM CHANNELS</div>
+                                        ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Style</label>
+                                            <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="style" style="flex: 1; font-size: 11px; padding: 2px;">
+                                                <option value="lines" ${zone.style === 'lines' ? 'selected' : ''}>Lines</option>
+                                                <option value="holes" ${zone.style === 'holes' ? 'selected' : ''}>Holes</option>
+                                                <option value="both" ${zone.style === 'both' ? 'selected' : ''}>Both</option>
+                                                <option value="off" ${zone.style === 'off' ? 'selected' : ''}>Off</option>
+                                            </select>
+                                        </div>
+                                        <div class="control-row" style="margin-bottom: 8px;">
+                                            <label class="control-label">Layout Mode</label>
+                                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
+                                                <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
+                                                <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
+                                            </div>
+                                        </div>
+                                        ${zone.distMode === 'count' ? `
+                                            ${sliderRow('Hole Count', `pat-zone-holeCount-${zone.id}`, 0, 100, 1, holeCountProx)}
+                                        ` : `
+                                            ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${zone.id}`, 0, 100, 1, holeDistProx)}
+                                        `}
+                                        ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx)}
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Color</label>
+                                            <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            ${zone.patternType === 'ribbons' ? `
+                                <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Noodle Ribbon Configuration</div>
+                                    ${sliderRow('Ribbon Quantity', `pat-zone-ribbonCount-${zone.id}`, 2, 20, 1, zone.ribbonCount !== undefined ? zone.ribbonCount : 8)}
+                                    ${sliderRow('Lines Per Ribbon', `pat-zone-ribbonLines-${zone.id}`, 1, 9, 1, zone.ribbonLines !== undefined ? zone.ribbonLines : 5)}
+                                    ${sliderRow('Line Spacing', `pat-zone-ribbonSpacing-${zone.id}`, 0.004, 0.030, 0.001, zone.ribbonSpacing !== undefined ? zone.ribbonSpacing : 0.012, 'cm')}
+                                    ${sliderRow('Ribbon Waviness', `pat-zone-ribbonAmp-${zone.id}`, 0.0, 0.40, 0.01, zone.ribbonAmp !== undefined ? zone.ribbonAmp : 0.15)}
+                                    ${sliderRow('Wave Frequency', `pat-zone-ribbonFreq-${zone.id}`, 1.0, 6.0, 0.1, zone.ribbonFreq !== undefined ? zone.ribbonFreq : 2.0)}
+                                    ${sliderRow('Random Seed', `pat-zone-scatterSeed-${zone.id}`, 1, 100, 1, zone.scatterSeed !== undefined ? zone.scatterSeed : 42)}
+                                    
+                                    <div class="control-row" style="margin-bottom: 0;">
+                                        <label class="control-label" style="width: 45%;">Direction</label>
+                                        <select class="zone-ribbon-direction-select" data-zone-id="${zone.id}" style="flex: 1; font-size: 11px; padding: 2px;">
+                                            <option value="both" ${zone.ribbonDirection === 'both' ? 'selected' : ''}>Both Directions</option>
+                                            <option value="horizontal" ${zone.ribbonDirection === 'horizontal' ? 'selected' : ''}>Horizontal Only</option>
+                                            <option value="vertical" ${zone.ribbonDirection === 'vertical' ? 'selected' : ''}>Vertical Only</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                        <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">RIBBON STYLE</div>
+                                        <div class="control-row" style="margin-bottom: 8px;">
+                                            <label class="control-label">Layout Mode</label>
+                                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
+                                                <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
+                                                <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
+                                            </div>
+                                        </div>
+                                        ${zone.distMode === 'count' ? `
+                                            ${sliderRow('Hole Count', `pat-zone-holeCount-${zone.id}`, 0, 100, 1, holeCountProx)}
+                                        ` : `
+                                            ${sliderRow('Hole Spacing', `pat-zone-holeDistance-${zone.id}`, 0, 100, 1, holeDistProx)}
+                                        `}
+                                        ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx)}
+                                        <div class="control-row" style="margin-bottom: 0;">
+                                            <label class="control-label" style="width: 45%;">Color</label>
+                                            <input type="color" class="zone-scatter-color-input" data-zone-id="${zone.id}" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            ${fillTypeSelect}
+                            ${orientationSelect}
+                            ${patternTypeSelector}
+                            ${boundsSliders}
+                            
+                            ${!['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType) ? `
+                                <div class="btn-grid-options" style="grid-template-columns: repeat(4, 1fr); margin-top: 10px; margin-bottom: 8px;">
+                                    <button class="option-btn ${zone.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="lines">Lines</button>
+                                    <button class="option-btn ${zone.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="holes">Holes</button>
+                                    <button class="option-btn ${zone.style === 'both' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="both">Both</button>
+                                    <button class="option-btn ${zone.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="off">Off</button>
+                                </div>
+                            ` : ''}
+                            
+                            ${styleControls}
+                            
+                            ${(zone.style !== 'off' || ['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType)) ? sliderRow('Opacity', `pat-zone-opacity-${zone.id}`, 0.1, 1, 0.05, zone.opacity) : ''}
+                        </div>
+                    `;
+                }
             }
 
             return `
@@ -1200,6 +1249,22 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    document.querySelectorAll('.btn-clear-custom-image').forEach(btn => {
+        btn.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            const zoneId = btn.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                zone.customImageDataUrl = null;
+                zone.customSvgText = null;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                showToast("Image cleared.");
+            }
+        });
+    });
+
     const shapeFriendlyNames = {
         'full': 'Full Gourd',
         'hor-band': 'Height Band',
@@ -1359,6 +1424,21 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                 zone.color = picker.value;
                 const labelText = picker.nextElementSibling;
                 if (labelText) labelText.textContent = zone.color.toUpperCase();
+                updatePatternGroup(patternGroup, state);
+            }
+        });
+        picker.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+        });
+    });
+
+    document.querySelectorAll('.zone-color-picker-input').forEach(picker => {
+        picker.addEventListener('input', () => {
+            const zoneId = picker.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                state.activeZoneId = zoneId;
+                zone.color = picker.value;
                 updatePatternGroup(patternGroup, state);
             }
         });
