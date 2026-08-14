@@ -2035,15 +2035,22 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
     });
 
     document.querySelectorAll('.carve-text-font-family').forEach(sel => {
-        sel.addEventListener('change', () => {
+        const handleFontUpdate = () => {
             pushUndoState(gourdMesh);
             const item = state.carveTextItems.find(it => it.id === sel.dataset.textId);
             if (item) {
                 item.fontFamily = sel.value;
                 updateCarveGroup(carveGroup, state);
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                if (document.fonts) {
+                    document.fonts.load(`bold 90px "${item.fontFamily}"`).then(() => {
+                        updateCarveGroup(carveGroup, state);
+                    }).catch(() => {});
+                }
             }
-        });
+        };
+        sel.addEventListener('change', handleFontUpdate);
+        sel.addEventListener('input', handleFontUpdate);
     });
 
     document.querySelectorAll('button[data-text-prop]').forEach(btn => {
@@ -2135,7 +2142,7 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         hasNeckCheck.addEventListener('change', () => {
             pushUndoState(gourdMesh);
             state.gourdHasNeck = hasNeckCheck.checked;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
         });
     }
@@ -2153,46 +2160,46 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
         const param = id.replace('gourd-', '');
         if (param === 'height') {
             state.gourdHeight = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'baseRadius') {
             state.gourdBaseRadius = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'bulbRadius') {
             state.gourdBulbRadius = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'neckRadius') {
             state.gourdNeckRadius = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'rimRadius') {
             state.gourdRimRadius = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'bulbPosition') {
             state.gourdBulbPosition = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'bulbRoundness') {
             state.gourdBulbRoundness = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'neckPosition') {
             state.gourdNeckPosition = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'neckHeight') {
             state.gourdNeckHeight = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'neckRoundness') {
             state.gourdNeckRoundness = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'upperNeckWidth') {
             state.gourdUpperNeckWidth = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'upperNeckPosition') {
             state.gourdUpperNeckPosition = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'bendX') {
             state.gourdBendX = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'bendZ') {
             state.gourdBendZ = valFloat;
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
         } else if (param === 'photoOpacity') {
             state.gourdPhotoOpacity = valFloat / 100.0;
             updatePhotoGuideOverlay();
@@ -2730,7 +2737,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
             const unscaledMeas = calculateMeasurements(1.0, 1.0);
             updateMeasureLines(measureGroup, unscaledMeas);
             
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
             updatePhotoGuideOverlay();
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
         });
@@ -2749,7 +2756,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
             const unscaledMeas = calculateMeasurements(1.0, 1.0);
             updateMeasureLines(measureGroup, unscaledMeas);
             
-            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+            updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
             updatePhotoGuideOverlay();
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
         });
@@ -2932,7 +2939,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
                         state.textureDataURL = null;
                         applyGourdTexture(gourdMesh, null);
                     }
-                    updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+                    updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                     showToast('Project loaded successfully!', 'success');
                 } catch (err) {
@@ -2992,7 +2999,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
                     if (data.shape) {
                         Object.assign(state, data.shape);
                     }
-                    updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+                    updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
                     showToast('Gourd shape loaded!', 'success');
                 } catch (err) {
                     showToast('Failed to parse shape file!', 'error');
@@ -3173,8 +3180,8 @@ export function updatePhotoGuideOverlay() {
 let gourdArgs = null;
 let isGourdUpdateScheduled = false;
 
-export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure) {
-    gourdArgs = { gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure };
+export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup) {
+    gourdArgs = { gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup };
     if (!isGourdUpdateScheduled) {
         isGourdUpdateScheduled = true;
         requestAnimationFrame(() => {
@@ -3184,7 +3191,8 @@ export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpd
                     gourdArgs.patternGroup,
                     gourdArgs.measureGroup,
                     gourdArgs.onUpdatePattern,
-                    gourdArgs.onUpdateMeasure
+                    gourdArgs.onUpdateMeasure,
+                    gourdArgs.carveGroup
                 );
             }
             isGourdUpdateScheduled = false;
@@ -3192,7 +3200,7 @@ export function updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpd
     }
 }
 
-export function updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure) {
+export function updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup) {
     if (gourdMesh) {
         gourdMesh.geometry.dispose();
         gourdMesh.geometry = createGourdGeometry();
@@ -3220,6 +3228,9 @@ export function updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGro
         if (badgeW) badgeW.innerText = ((state.gourdBulbRadius || 9.0) * 2.0).toFixed(1);
         
         updatePatternGroupImmediate(patternGroup, state);
+        if (carveGroup) {
+            updateCarveGroup(carveGroup, state);
+        }
         if (onUpdatePattern) onUpdatePattern();
         if (onUpdateMeasure) onUpdateMeasure();
     }
@@ -3351,7 +3362,7 @@ export function openMobileAdjustments(section, gourdMesh, carveGroup, measureGro
             hasNeckCheck.addEventListener('change', () => {
                 pushUndoState(gourdMesh);
                 state.gourdHasNeck = hasNeckCheck.checked;
-                updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure);
+                updateGourdGeometry(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
                 openMobileAdjustments(section, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, true);
             });
         }
