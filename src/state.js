@@ -22,6 +22,7 @@ export const state = {
             opacity: 1.0,
             density: 1.0,
             distMode: 'count', // 'count' or 'distance'
+            holeSize: 0.03,
             holeCount: 30,
             holeDistance: 0.06,
             dashSpacing: 0.0,
@@ -143,11 +144,9 @@ export const state = {
     materialWireframe: false,
     materialFlatShading: false,
     
-    // Carving parameters
-    carveWidth: 0.015,
-    carveColor: '#523620',
-    carveDepth: 0.004, // offset (inwards or outwards relative to gourd surface)
-    carvedPaths: [], // array of arrays of { t, theta }
+    // Lettering & Typography Carving parameters
+    activeCarveTextId: null,
+    carveTextItems: [], // array of lettering items: { id, name, text, fontFamily, fontWeight, fontStyle, textCase, fontSize, letterSpacing, lineHeight, centerT, centerTheta, rotation, wrapMode, archAngle, slantAngle, taper, aspectWidth, carveStyle, carveColor, carveDepth, strokeWidth, hatchDensity, hatchAngle, dotSpacing, dotSize, visible }
     
     // Texture mapping parameters
     textureDataURL: null,
@@ -167,7 +166,8 @@ export function pushUndoState(gourdMesh) {
         pos: gourdMesh.position.clone(),
         rot: gourdMesh.rotation.clone(),
         scl: gourdMesh.scale.clone(),
-        carvedPaths: JSON.parse(JSON.stringify(state.carvedPaths)),
+        carveTextItems: JSON.parse(JSON.stringify(state.carveTextItems)),
+        activeCarveTextId: state.activeCarveTextId,
         patternZones: JSON.parse(JSON.stringify(state.patternZones)),
         patRotation: state.patRotation,
         patTilt: state.patTilt,
@@ -213,7 +213,8 @@ export function performUndo(gourdMesh, onRestore) {
         pos: gourdMesh.position.clone(),
         rot: gourdMesh.rotation.clone(),
         scl: gourdMesh.scale.clone(),
-        carvedPaths: JSON.parse(JSON.stringify(state.carvedPaths)),
+        carveTextItems: JSON.parse(JSON.stringify(state.carveTextItems)),
+        activeCarveTextId: state.activeCarveTextId,
         patternZones: JSON.parse(JSON.stringify(state.patternZones)),
         patRotation: state.patRotation,
         patTilt: state.patTilt,
@@ -249,7 +250,8 @@ export function performUndo(gourdMesh, onRestore) {
     gourdMesh.position.copy(prevState.pos);
     gourdMesh.rotation.copy(prevState.rot);
     gourdMesh.scale.copy(prevState.scl);
-    state.carvedPaths = prevState.carvedPaths;
+    state.carveTextItems = prevState.carveTextItems || [];
+    state.activeCarveTextId = prevState.activeCarveTextId || null;
     state.patternZones = prevState.patternZones;
     state.patRotation = prevState.patRotation;
     state.patTilt = prevState.patTilt;
@@ -291,7 +293,8 @@ export function performRedo(gourdMesh, onRestore) {
         pos: gourdMesh.position.clone(),
         rot: gourdMesh.rotation.clone(),
         scl: gourdMesh.scale.clone(),
-        carvedPaths: JSON.parse(JSON.stringify(state.carvedPaths)),
+        carveTextItems: JSON.parse(JSON.stringify(state.carveTextItems)),
+        activeCarveTextId: state.activeCarveTextId,
         patternZones: JSON.parse(JSON.stringify(state.patternZones)),
         patternType: state.patternType,
         patRotation: state.patRotation,
@@ -328,7 +331,8 @@ export function performRedo(gourdMesh, onRestore) {
     gourdMesh.position.copy(nextState.pos);
     gourdMesh.rotation.copy(nextState.rot);
     gourdMesh.scale.copy(nextState.scl);
-    state.carvedPaths = nextState.carvedPaths;
+    state.carveTextItems = nextState.carveTextItems || [];
+    state.activeCarveTextId = nextState.activeCarveTextId || null;
     state.patternZones = nextState.patternZones;
     state.patRotation = nextState.patRotation;
     state.patTilt = nextState.patTilt;
@@ -374,6 +378,7 @@ export function addPatternZone() {
         opacity: 1.0,
         density: 1.0,
         distMode: 'count',
+        holeSize: 0.03,
         holeCount: 30,
         holeDistance: 0.06,
         dashSpacing: 0.0,
@@ -493,4 +498,76 @@ export function movePatternZoneDown(id) {
     const tmp = state.patternZones[idx];
     state.patternZones[idx] = state.patternZones[idx + 1];
     state.patternZones[idx + 1] = tmp;
+}
+
+// Lettering & Text Carving Management Helpers
+export function addCarveTextItem() {
+    const id = 'carve-text-' + Math.random().toString(36).substr(2, 9);
+    const newItem = {
+        id: id,
+        name: 'Lettering ' + (state.carveTextItems.length + 1),
+        text: 'KIBUYU',
+        fontFamily: 'Cinzel Decorative',
+        fontWeight: 'bold',
+        fontStyle: 'normal',
+        textCase: 'none', // 'none', 'uppercase', 'lowercase'
+        fontSize: 0.08, // cm scale on gourd
+        letterSpacing: 0.02,
+        lineHeight: 1.2,
+        centerT: 0.5,
+        centerTheta: Math.PI / 2, // 90 deg (front facing camera)
+        rotation: 0, // deg
+        wrapMode: 'horizontal', // 'horizontal', 'vertical'
+        archAngle: 0, // -180 to 180 deg
+        slantAngle: 0, // -45 to 45 deg
+        taper: 0.0, // -1.0 to 1.0 (perspective taper)
+        aspectWidth: 1.0,
+        carveStyle: 'solid', // 'solid', 'outline', 'gold', 'hatch', 'dots'
+        carveColor: '#3A1E08',
+        carveDepth: 0.005,
+        strokeWidth: 1.5,
+        hatchDensity: 12,
+        hatchAngle: 45,
+        dotSpacing: 0.02,
+        dotSize: 0.03,
+        visible: true
+    };
+    state.carveTextItems.push(newItem);
+    state.activeCarveTextId = id;
+    return newItem;
+}
+
+export function removeCarveTextItem(id) {
+    state.carveTextItems = state.carveTextItems.filter(item => item.id !== id);
+    if (state.activeCarveTextId === id) {
+        state.activeCarveTextId = state.carveTextItems.length > 0 ? state.carveTextItems[0].id : null;
+    }
+}
+
+export function duplicateCarveTextItem(id) {
+    const item = state.carveTextItems.find(it => it.id === id);
+    if (!item) return null;
+    const clone = JSON.parse(JSON.stringify(item));
+    clone.id = 'carve-text-' + Math.random().toString(36).substr(2, 9);
+    clone.name = clone.name + ' (Copy)';
+    clone.centerTheta = (clone.centerTheta || 0) + 0.2; // Slight offset so it's visible
+    state.carveTextItems.push(clone);
+    state.activeCarveTextId = clone.id;
+    return clone;
+}
+
+export function moveCarveTextItemUp(id) {
+    const idx = state.carveTextItems.findIndex(it => it.id === id);
+    if (idx <= 0) return;
+    const tmp = state.carveTextItems[idx];
+    state.carveTextItems[idx] = state.carveTextItems[idx - 1];
+    state.carveTextItems[idx - 1] = tmp;
+}
+
+export function moveCarveTextItemDown(id) {
+    const idx = state.carveTextItems.findIndex(it => it.id === id);
+    if (idx < 0 || idx >= state.carveTextItems.length - 1) return;
+    const tmp = state.carveTextItems[idx];
+    state.carveTextItems[idx] = state.carveTextItems[idx + 1];
+    state.carveTextItems[idx + 1] = tmp;
 }

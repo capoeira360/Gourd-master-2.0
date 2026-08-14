@@ -31,7 +31,7 @@ function periodicField(seed, harm, scale) {
     };
 }
 
-const DOODLE_PRESETS = {
+export const DOODLE_PRESETS = {
     flow:   { curl: 2.15, freq: 1.7, count: 800, len: 70, lw: 11, gap: 1.05, dots: 80, dash: 0.18, harm: 6, base: 0 },
     maze:   { curl: 3.10, freq: 2.6, count: 1000, len: 34, lw: 9,  gap: 0.95, dots: 110, dash: 0.28, harm: 7, base: 0 },
     zebra:  { curl: 0.52, freq: 1.0, count: 600,  len: 180,lw: 13, gap: 1.00, dots: 40,  dash: 0.14, harm: 4, base: 0 },
@@ -59,7 +59,7 @@ export function generateDoodlePaths(zone) {
     const base = preset.base;
     
     const S = 512; // compact layout grid
-    const lw = Math.max(1.1, (zone.holeSize || 0.05) * 100); 
+    const lw = preset.lw || 11;
     const spacing = lw * (1 + gap);
     const step = Math.max(0.9, lw * 0.55);
     

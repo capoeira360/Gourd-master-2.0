@@ -1,7 +1,7 @@
-import { state, pushUndoState, performUndo, performRedo, addPatternZone, removePatternZone, duplicatePatternZone, movePatternZoneUp, movePatternZoneDown } from './state.js';
+import { state, pushUndoState, performUndo, performRedo, addPatternZone, removePatternZone, duplicatePatternZone, movePatternZoneUp, movePatternZoneDown, addCarveTextItem, removeCarveTextItem, duplicateCarveTextItem, moveCarveTextItemUp, moveCarveTextItemDown } from './state.js';
 import { calculateMeasurements, updateMeasureLines } from './measure.js';
-import { updatePatternGroup, updatePatternGroupImmediate, getSvgPaths, isPointInZone } from './pattern.js';
-import { updateCarveGroup, clearCarvings } from './carve.js';
+import { updatePatternGroup, updatePatternGroupImmediate, getSvgPaths, isPointInZone, DOODLE_PRESETS } from './pattern.js';
+import { updateCarveGroup } from './carve.js';
 import * as THREE from 'three';
 import { getGourdRadius, createGourdGeometry } from './gourd.js';
 
@@ -300,33 +300,18 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
-            if (zone.patternType && zone.patternType.startsWith('doodle-')) {
-                styleControls = `
-                    ${sliderRow('Size / Thickness', `pat-zone-holeSize-${zone.id}`, 0.01, 0.12, 0.005, zone.holeSize || 0.05, 'cm')}
-                    ${sliderRow('Random Seed', `pat-zone-doodleSeed-${zone.id}`, 0, 9999, 1, zone.doodleSeed !== undefined ? zone.doodleSeed : 42)}
-                    ${sliderRow('Curl Factor', `pat-zone-doodleCurl-${zone.id}`, 0.0, 4.0, 0.05, zone.doodleCurl !== undefined ? zone.doodleCurl : 2.0)}
-                    ${sliderRow('Noise Frequency', `pat-zone-doodleFreq-${zone.id}`, 0.5, 5.0, 0.05, zone.doodleFreq !== undefined ? zone.doodleFreq : 1.7)}
-                    ${sliderRow('Line Spacing', `pat-zone-doodleGap-${zone.id}`, 0.35, 2.6, 0.05, zone.doodleGap !== undefined ? zone.doodleGap : 1.05)}
-                    ${sliderRow('Lines Count', `pat-zone-doodleCount-${zone.id}`, 100, 1500, 50, zone.doodleCount !== undefined ? zone.doodleCount : 800)}
-                    ${sliderRow('Line Length', `pat-zone-doodleLen-${zone.id}`, 10, 250, 5, zone.doodleLen !== undefined ? zone.doodleLen : 70)}
-                    ${sliderRow('Dots Count', `pat-zone-doodleDots-${zone.id}`, 0, 400, 10, zone.doodleDots !== undefined ? zone.doodleDots : 80)}
-                    ${sliderRow('Dashed Factor', `pat-zone-doodleDash-${zone.id}`, 0.0, 0.85, 0.05, zone.doodleDash !== undefined ? zone.doodleDash : 0.18)}
-                    <div class="control-row" style="margin-bottom: 10px;">
-                        <label class="control-label">Pattern Color</label>
-                        <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
-                        <span class="color-hex-text">${zone.color.toUpperCase()}</span>
-                    </div>
-                `;
-            } else if (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
+            const isDoodle = zone.patternType && zone.patternType.startsWith('doodle-');
+
+            if (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
                 styleControls = '';
             } else if (zone.style === 'lines') {
                 styleControls = `
-                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
-                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
                     ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
                     ${zone.type !== 'custom-image' ? sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx) : ''}
-                    ${zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
-                    ${zone.type !== 'custom-image' ? sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°') : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' ? sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°') : ''}
                     <div class="control-row" style="margin-bottom: 10px;">
                         <label class="control-label">Line Color</label>
                         <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
@@ -338,21 +323,21 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 const wobbleAmpProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeWobbleAmp || 0) / 0.4)));
 
                 styleControls = `
-                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
-                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
                     ${zone.patternType === 'box-grid' ? sliderRow('Holes per Box', `pat-zone-patchCount-${zone.id}`, 1, 9, 1, zone.patchCount || 1) : ''}
                     ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
-                    ${zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
-                    ${zone.type !== 'custom-image' ? sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°') : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' ? sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°') : ''}
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Hole Shape</label>
                         <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
-                            <option value="round" ${zone.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
+                            <option value="round" ${(zone.holeShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
                             <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
                             <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
                         </select>
                     </div>
-                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize, 'cm')}
+                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.12, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
                     ${showWobble ? `
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
@@ -372,7 +357,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     ${zone.patternType === 'box-grid' ? '' : `
                         <div class="control-row" style="margin-bottom: 8px;">
                             <label class="control-label">Layout Mode</label>
-                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-cols: 1fr 1fr;">
+                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
                                 <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
                                 <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
                             </div>
@@ -389,14 +374,14 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 const wobbleAmpProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeWobbleAmp || 0) / 0.4)));
 
                 styleControls = `
-                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
-                    ${zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' && (direction === 'both' || direction === 'horizontal') ? sliderRow(zone.patternType === 'box-grid' ? 'Box Grid Spacing' : 'Horizontal Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx) : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' && (direction === 'both' || direction === 'vertical') && zone.patternType !== 'spiral' ? sliderRow('Vertical Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx) : ''}
                     ${zone.patternType === 'box-grid' ? sliderRow('Holes per Box', `pat-zone-patchCount-${zone.id}`, 1, 9, 1, zone.patchCount || 1) : ''}
                     ${['flower', 'star', 'organic'].includes(zone.patternType) ? sliderRow('Wave Depth', `pat-zone-flowerDepth-${zone.id}`, 0.005, 0.08, 0.001, zone.flowerDepth || 0.02) : ''}
                     ${zone.type !== 'custom-image' ? sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx) : ''}
                     
-                    ${zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
-                    ${zone.type !== 'custom-image' ? sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°') : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' ? sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°') : ''}
+                    ${!isDoodle && zone.type !== 'custom-image' ? sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°') : ''}
                     
                     <div class="control-row" style="margin-bottom: 10px;">
                         <label class="control-label">Line Color</label>
@@ -408,12 +393,12 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Hole Shape</label>
                         <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
-                            <option value="round" ${zone.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
+                            <option value="round" ${(zone.holeShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
                             <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
                             <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
                         </select>
                     </div>
-                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize, 'cm')}
+                    ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.12, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
                     ${showWobble ? `
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Points' : 'Wobble Waves', `pat-zone-holeWobbleFreq-${zone.id}`, 3, 12, 1, zone.holeWobbleFreq || 5)}
                         ${sliderRow(zone.holeShape === 'star' ? 'Star Point Depth' : 'Wobble Depth', `pat-zone-holeWobbleAmp-${zone.id}`, 0, 100, 1, wobbleAmpProx)}
@@ -428,7 +413,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     ${zone.patternType === 'box-grid' ? '' : `
                         <div class="control-row" style="margin-bottom: 8px;">
                             <label class="control-label">Layout Mode</label>
-                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-cols: 1fr 1fr;">
+                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
                                 <button class="option-btn ${zone.distMode === 'count' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="count" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Count</button>
                                 <button class="option-btn ${zone.distMode === 'distance' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-dist-mode="distance" style="padding: 4px 6px; font-size: 9px; min-height: 20px;">By Distance</button>
                             </div>
@@ -807,6 +792,27 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 </div>
                             ` : ''}
                             
+                            ${zone.patternType && zone.patternType.startsWith('doodle-') ? `
+                                <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">
+                                        ${zone.patternType === 'doodle-flow' ? 'Org Flow Layout Configuration' :
+                                          zone.patternType === 'doodle-maze' ? 'Maze Layout Configuration' :
+                                          zone.patternType === 'doodle-zebra' ? 'Zebra Waves Layout Configuration' :
+                                          zone.patternType === 'doodle-coral' ? 'Coral Reef Layout Configuration' :
+                                          zone.patternType === 'doodle-weave' ? 'Organic Weave Layout Configuration' :
+                                          zone.patternType === 'doodle-confet' ? 'Dot & Dash Layout Configuration' : 'Doodle Layout Configuration'}
+                                    </div>
+                                    ${sliderRow('Random Seed', `pat-zone-doodleSeed-${zone.id}`, 0, 9999, 1, zone.doodleSeed !== undefined ? zone.doodleSeed : 42)}
+                                    ${sliderRow('Curl Factor', `pat-zone-doodleCurl-${zone.id}`, 0.0, 4.0, 0.05, zone.doodleCurl !== undefined ? zone.doodleCurl : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.curl || 2.0))}
+                                    ${sliderRow('Noise Frequency', `pat-zone-doodleFreq-${zone.id}`, 0.5, 5.0, 0.05, zone.doodleFreq !== undefined ? zone.doodleFreq : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.freq || 1.7))}
+                                    ${sliderRow('Line Spacing', `pat-zone-doodleGap-${zone.id}`, 0.35, 2.6, 0.05, zone.doodleGap !== undefined ? zone.doodleGap : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.gap || 1.05))}
+                                    ${sliderRow('Lines Count', `pat-zone-doodleCount-${zone.id}`, 100, 1500, 50, zone.doodleCount !== undefined ? zone.doodleCount : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.count || 800))}
+                                    ${sliderRow('Line Length', `pat-zone-doodleLen-${zone.id}`, 10, 250, 5, zone.doodleLen !== undefined ? zone.doodleLen : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.len || 70))}
+                                    ${sliderRow('Dots Count', `pat-zone-doodleDots-${zone.id}`, 0, 400, 10, zone.doodleDots !== undefined ? zone.doodleDots : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.dots || 80))}
+                                    ${sliderRow('Dashed Factor', `pat-zone-doodleDash-${zone.id}`, 0.0, 0.85, 0.05, zone.doodleDash !== undefined ? zone.doodleDash : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.dash || 0.18))}
+                                </div>
+                            ` : ''}
+                            
                             ${fillTypeSelect}
                             ${orientationSelect}
                             ${patternTypeSelector}
@@ -959,24 +965,193 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
     }
     
     if (tab === 'carve') {
+        const textItems = state.carveTextItems || [];
+        const activeTextItem = textItems.length > 0
+            ? (textItems.find(it => it.id === state.activeCarveTextId) || null)
+            : null;
+
+        const fontOptions = [
+            { label: 'Cinzel Decorative (Classical Ornate)', value: 'Cinzel Decorative' },
+            { label: 'Playfair Display (Editorial Serif)', value: 'Playfair Display' },
+            { label: 'Cinzel (Roman Monumental)', value: 'Cinzel' },
+            { label: 'Great Vibes (Calligraphy Script)', value: 'Great Vibes' },
+            { label: 'Dancing Script (Casual Cursive)', value: 'Dancing Script' },
+            { label: 'Pacifico (Brush Script)', value: 'Pacifico' },
+            { label: 'MedievalSharp (Gothic Script)', value: 'MedievalSharp' },
+            { label: 'UnifrakturCook (Fraktur Blackletter)', value: 'UnifrakturCook' },
+            { label: 'Rye (Vintage Woodcut / Wild West)', value: 'Rye' },
+            { label: 'Lobster (Bold Vintage Display)', value: 'Lobster' },
+            { label: 'Montserrat (Geometric Modern)', value: 'Montserrat' },
+            { label: 'Outfit (Clean Studio Sans)', value: 'Outfit' },
+            { label: 'Space Mono (Craft Monospace)', value: 'Space Mono' }
+        ];
+
+        const craftColorSwatches = [
+            { name: 'Dark Walnut', hex: '#3A1E08' },
+            { name: 'Ebony Char', hex: '#1A110B' },
+            { name: 'Burnt Mahogany', hex: '#5C2C16' },
+            { name: 'Terracotta', hex: '#A0522D' },
+            { name: 'Metallic Gold', hex: '#D4AF37' },
+            { name: 'Copper Bronze', hex: '#C87533' },
+            { name: 'Ivory Cream', hex: '#F5EFE6' },
+            { name: 'Pure White', hex: '#FFFFFF' },
+            { name: 'Crimson Wood', hex: '#8B1E1E' },
+            { name: 'Turquoise', hex: '#1E7B85' },
+            { name: 'Royal Indigo', hex: '#2E3A87' },
+            { name: 'Forest Emerald', hex: '#235C32' }
+        ];
+
         return `
-            <div class="panel-section-title">Carve tool settings</div>
-            <p style="color: var(--color-tx-m); font-size: 11px; margin-bottom: 12px; line-height: 1.4;">
-                Draw directly onto the gourd surface by holding down left-click (or touching on mobile) and dragging.
-            </p>
-            ${sliderRow('Depth Offset', 'carve-width', 0.001, 0.015, 0.001, state.carveDepth, 'm')}
-            <div class="panel-section-title">Carve Aesthetics</div>
-            <div class="control-row">
-                <label class="control-label">Carve Color</label>
-                <input type="color" id="carve-color" value="${state.carveColor}">
-                <span class="color-hex-text">${state.carveColor.toUpperCase()}</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div class="panel-section-title" style="margin: 0;">Lettering & Words (${textItems.length})</div>
+                <button id="btn-add-carve-text" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-color: var(--color-acc-d); color: var(--color-tx-h);">
+                    <i class="fas fa-plus" style="margin-right: 4px;"></i> Add Word
+                </button>
             </div>
-            <div class="panel-section-title">actions</div>
-            <div class="stats-list" style="margin-bottom: 8px;">
-                <div class="stat-item"><span class="stat-item-label">Custom Carved Lines</span><span class="stat-item-val">${state.carvedPaths.length}</span></div>
-            </div>
-            <button id="btn-clear-carvings" class="btn-secondary" style="border-color: var(--color-err); color: var(--color-err);">Clear All Carvings</button>
-        `;
+
+            ${textItems.length === 0 ? `
+                <div style="text-align: center; padding: 24px 14px; background: rgba(0,0,0,0.16); border: 1px dashed rgba(255,255,255,0.12); border-radius: 6px; color: var(--color-tx-d); margin-bottom: 12px;">
+                    <i class="fas fa-font" style="font-size: 24px; color: var(--color-acc-m); display: block; margin-bottom: 8px;"></i>
+                    <p style="margin: 0 0 6px 0; font-size: 12px; color: var(--color-tx-h); font-weight: 600;">No Words on Gourd</p>
+                    <p style="margin: 0 0 12px 0; font-size: 11px; line-height: 1.4;">Click below to add a word, title, or quote to the gourd.</p>
+                    <button id="btn-add-carve-text-empty" class="btn-primary" style="padding: 6px 14px; font-size: 11px;">
+                        <i class="fas fa-plus" style="margin-right: 5px;"></i> Add First Word
+                    </button>
+                </div>
+            ` : `
+                <div class="zone-cards-list" style="max-height: 140px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px;">
+                    ${textItems.map((item, idx) => {
+                        const isSelected = item.id === state.activeCarveTextId;
+                        return `
+                            <div class="zone-card ${isSelected ? 'active' : ''}" data-carve-text-id="${item.id}" style="padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: ${isSelected ? 'rgba(212, 168, 67, 0.15)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${isSelected ? 'var(--color-acc-m)' : 'rgba(255,255,255,0.06)'};">
+                                <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
+                                    <button class="btn-icon-subtle btn-carve-text-vis" data-text-id="${item.id}" title="Toggle Visibility" style="color: ${item.visible !== false ? 'var(--color-tx-m)' : 'var(--color-tx-d)'}; padding: 2px;">
+                                        <i class="fas ${item.visible !== false ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                                    </button>
+                                    <span style="width: 10px; height: 10px; border-radius: 50%; background: ${item.carveColor || '#3A1E08'}; display: inline-block; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.3);"></span>
+                                    <span style="font-size: 11px; font-weight: ${isSelected ? '600' : 'normal'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: ${isSelected ? 'var(--color-tx-h)' : 'var(--color-tx-m)'};">
+                                        ${item.text || item.name || 'Untitled Text'}
+                                    </span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <button class="btn-icon-subtle btn-carve-text-dup" data-text-id="${item.id}" title="Duplicate" style="padding: 2px 4px; font-size: 10px;">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="btn-icon-subtle btn-carve-text-del" data-text-id="${item.id}" title="Delete" style="padding: 2px 4px; font-size: 10px; color: var(--color-err);">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+
+                ${activeTextItem ? `
+                    <div style="border: 1px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 6px; background: rgba(0,0,0,0.18); display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+                        <div class="panel-section-title" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
+                            <span>Adjust Word: "${activeTextItem.text || 'Text'}"</span>
+                        </div>
+                        
+                        <div class="control-row" style="flex-direction: column; align-items: stretch; gap: 4px; margin-bottom: 4px;">
+                            <label class="control-label" style="width: 100%;">Carving Text</label>
+                            <textarea class="carve-text-input" data-text-id="${activeTextItem.id}" rows="2" style="width: 100%; background: var(--color-bg-d); border: 1px solid var(--color-bdr); border-radius: 4px; color: var(--color-tx-h); padding: 6px 8px; font-size: 12px; resize: vertical; font-family: inherit;">${activeTextItem.text !== undefined ? activeTextItem.text : 'KIBUYU'}</textarea>
+                        </div>
+
+                        <div class="control-row" style="margin-bottom: 4px;">
+                            <label class="control-label">Font Family</label>
+                            <select class="carve-text-font-family" data-text-id="${activeTextItem.id}" style="flex: 1; font-size: 11px; padding: 4px;">
+                                ${fontOptions.map(opt => `
+                                    <option value="${opt.value}" ${activeTextItem.fontFamily === opt.value ? 'selected' : ''} style="font-family: '${opt.value}', serif;">
+                                        ${opt.label}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+
+                        <div class="control-row" style="margin-bottom: 4px;">
+                            <label class="control-label">Text Style</label>
+                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: repeat(3, 1fr);">
+                                <button class="option-btn ${activeTextItem.fontWeight === 'bold' ? 'active' : ''}" data-text-id="${activeTextItem.id}" data-text-prop="fontWeight" data-text-val="${activeTextItem.fontWeight === 'bold' ? 'normal' : 'bold'}" style="padding: 4px 6px; font-size: 10px;">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button class="option-btn ${activeTextItem.fontStyle === 'italic' ? 'active' : ''}" data-text-id="${activeTextItem.id}" data-text-prop="fontStyle" data-text-val="${activeTextItem.fontStyle === 'italic' ? 'normal' : 'italic'}" style="padding: 4px 6px; font-size: 10px;">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button class="option-btn ${activeTextItem.textCase === 'uppercase' ? 'active' : ''}" data-text-id="${activeTextItem.id}" data-text-prop="textCase" data-text-val="${activeTextItem.textCase === 'uppercase' ? 'none' : 'uppercase'}" style="padding: 4px 6px; font-size: 9px; font-weight: 700;">
+                                    CAPS
+                                </button>
+                            </div>
+                        </div>
+
+                        ${sliderRow('Font Size', `carve-text-fontSize-${activeTextItem.id}`, 0.02, 0.25, 0.005, activeTextItem.fontSize !== undefined ? activeTextItem.fontSize : 0.08)}
+                        ${sliderRow('Letter Spacing', `carve-text-letterSpacing-${activeTextItem.id}`, -0.01, 0.08, 0.002, activeTextItem.letterSpacing !== undefined ? activeTextItem.letterSpacing : 0.02)}
+                        ${sliderRow('Line Spacing', `carve-text-lineHeight-${activeTextItem.id}`, 0.8, 2.5, 0.05, activeTextItem.lineHeight !== undefined ? activeTextItem.lineHeight : 1.2)}
+
+                        <div class="panel-section-title" style="margin-top: 6px;">Placement on Gourd</div>
+                        ${sliderRow('Height (t)', `carve-text-centerT-${activeTextItem.id}`, 0.05, 0.95, 0.01, activeTextItem.centerT !== undefined ? activeTextItem.centerT : 0.5)}
+                        ${sliderRow('Rotation (Around)', `carve-text-centerTheta-${activeTextItem.id}`, -180, 180, 1, Math.round((activeTextItem.centerTheta || (Math.PI / 2)) * 180 / Math.PI), '°')}
+                        ${sliderRow('Tilt Angle', `carve-text-rotation-${activeTextItem.id}`, -180, 180, 1, activeTextItem.rotation || 0, '°')}
+
+                        <div class="panel-section-title" style="margin-top: 6px;">Curvature & Gourd Fitting</div>
+                        <div class="control-row" style="margin-bottom: 4px;">
+                            <label class="control-label">Wrap Mode</label>
+                            <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: 1fr 1fr;">
+                                <button class="option-btn ${activeTextItem.wrapMode !== 'vertical' ? 'active' : ''}" data-text-id="${activeTextItem.id}" data-text-prop="wrapMode" data-text-val="horizontal" style="padding: 4px 6px; font-size: 9px;">Horizontal</button>
+                                <button class="option-btn ${activeTextItem.wrapMode === 'vertical' ? 'active' : ''}" data-text-id="${activeTextItem.id}" data-text-prop="wrapMode" data-text-val="vertical" style="padding: 4px 6px; font-size: 9px;">Vertical</button>
+                            </div>
+                        </div>
+                        ${sliderRow('Arch Bend Angle', `carve-text-archAngle-${activeTextItem.id}`, -180, 180, 2, activeTextItem.archAngle || 0, '°')}
+                        ${sliderRow('Taper (Perspective)', `carve-text-taper-${activeTextItem.id}`, -0.8, 0.8, 0.02, activeTextItem.taper || 0)}
+                        ${sliderRow('Slant (Skew)', `carve-text-slantAngle-${activeTextItem.id}`, -45, 45, 1, activeTextItem.slantAngle || 0, '°')}
+                        ${sliderRow('Aspect Width', `carve-text-aspectWidth-${activeTextItem.id}`, 0.3, 2.5, 0.05, activeTextItem.aspectWidth !== undefined ? activeTextItem.aspectWidth : 1.0)}
+
+                        <div class="panel-section-title" style="margin-top: 6px;">Carve Aesthetics & Color</div>
+                        <div class="control-row" style="margin-bottom: 4px;">
+                            <label class="control-label">Carve Style</label>
+                            <select class="carve-text-style-select" data-text-id="${activeTextItem.id}" style="flex: 1; font-size: 11px; padding: 4px;">
+                                <option value="solid" ${(activeTextItem.carveStyle === 'solid' || !activeTextItem.carveStyle) ? 'selected' : ''}>Solid Inlay Fill</option>
+                                <option value="outline" ${activeTextItem.carveStyle === 'outline' ? 'selected' : ''}>Engraved Outline</option>
+                                <option value="gold" ${activeTextItem.carveStyle === 'gold' ? 'selected' : ''}>Gold Metallic Foil</option>
+                                <option value="hatch" ${activeTextItem.carveStyle === 'hatch' ? 'selected' : ''}>Hatched Woodcut Fill</option>
+                                <option value="dots" ${activeTextItem.carveStyle === 'dots' ? 'selected' : ''}>Drilled Stipple Dots</option>
+                            </select>
+                        </div>
+
+                        <div class="control-row" style="margin-bottom: 6px;">
+                            <label class="control-label">Word Color</label>
+                            <input type="color" class="carve-text-color-input" data-text-id="${activeTextItem.id}" value="${activeTextItem.carveColor || '#3A1E08'}" style="width: 44px; height: 24px; border: none; cursor: pointer; padding: 0; border-radius: 4px;">
+                            <span class="color-hex-text">${(activeTextItem.carveColor || '#3A1E08').toUpperCase()}</span>
+                        </div>
+
+                        <!-- Craft Color Palette Preset Swatches -->
+                        <div style="margin-bottom: 6px;">
+                            <div style="font-size: 10px; color: var(--color-tx-d); margin-bottom: 4px;">Quick Color Presets:</div>
+                            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;">
+                                ${craftColorSwatches.map(swatch => {
+                                    const isCurrent = (activeTextItem.carveColor || '#3A1E08').toLowerCase() === swatch.hex.toLowerCase();
+                                    return `
+                                        <button class="carve-color-swatch" data-text-id="${activeTextItem.id}" data-color="${swatch.hex}" title="${swatch.name}" style="height: 22px; background: ${swatch.hex}; border: 1.5px solid ${isCurrent ? 'var(--color-acc-m)' : 'rgba(255,255,255,0.15)'}; border-radius: 3px; cursor: pointer; outline: none; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1.0)'">
+                                        </button>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        ${sliderRow('Depth Offset', `carve-text-carveDepth-${activeTextItem.id}`, 0.001, 0.015, 0.001, activeTextItem.carveDepth !== undefined ? activeTextItem.carveDepth : 0.005, 'm')}
+
+                        ${activeTextItem.carveStyle === 'hatch' ? `
+                            ${sliderRow('Hatch Density', `carve-text-hatchDensity-${activeTextItem.id}`, 4, 30, 1, activeTextItem.hatchDensity || 12)}
+                            ${sliderRow('Hatch Angle', `carve-text-hatchAngle-${activeTextItem.id}`, -90, 90, 5, activeTextItem.hatchAngle !== undefined ? activeTextItem.hatchAngle : 45, '°')}
+                        ` : ''}
+
+                        ${activeTextItem.carveStyle === 'dots' ? `
+                            ${sliderRow('Dot Spacing', `carve-text-dotSpacing-${activeTextItem.id}`, 0.005, 0.06, 0.002, activeTextItem.dotSpacing || 0.02)}
+                            ${sliderRow('Dot Size', `carve-text-dotSize-${activeTextItem.id}`, 0.005, 0.06, 0.002, activeTextItem.dotSize || 0.03)}
+                        ` : ''}
+                    </div>
+                ` : ''}
+            `}
+            `;
     }
     
     return '';
@@ -1777,33 +1952,153 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             measureGroup.visible = measureVis.checked;
         });
     }
-    
-    // 10. Carving Aesthetics picker
-    const carveColorPicker = document.getElementById('carve-color');
-    if (carveColorPicker) {
-        carveColorPicker.addEventListener('input', () => {
-            state.carveColor = carveColorPicker.value;
-            const labelText = carveColorPicker.nextElementSibling;
-            if (labelText) labelText.textContent = state.carveColor.toUpperCase();
-            updateCarveGroup(carveGroup, state);
-        });
-        carveColorPicker.addEventListener('change', () => {
-            pushUndoState(gourdMesh);
-        });
+
+    // 13. Add Text Carving Buttons
+    const handleAddCarveText = () => {
+        pushUndoState(gourdMesh);
+        const newItem = addCarveTextItem();
+        updateCarveGroup(carveGroup, state);
+        renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        showToast('New lettering layer added', 'success');
+    };
+
+    const btnAddText = document.getElementById('btn-add-carve-text');
+    if (btnAddText) {
+        btnAddText.addEventListener('click', handleAddCarveText);
     }
-    
-    // 11. Clear Carvings Button
-    const clearCarvingBtn = document.getElementById('btn-clear-carvings');
-    if (clearCarvingBtn) {
-        clearCarvingBtn.addEventListener('click', () => {
-            if (state.carvedPaths.length === 0) return;
-            pushUndoState(gourdMesh);
-            clearCarvings(carveGroup, state, () => {
+    const btnAddTextEmpty = document.getElementById('btn-add-carve-text-empty');
+    if (btnAddTextEmpty) {
+        btnAddTextEmpty.addEventListener('click', handleAddCarveText);
+    }
+
+    // 14. Text Layer Selection & Actions
+    document.querySelectorAll('.zone-card[data-carve-text-id]').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('button')) return;
+            const clickedId = card.dataset.carveTextId;
+            if (state.activeCarveTextId === clickedId) {
+                state.activeCarveTextId = null; // Toggle/close panel
+            } else {
+                state.activeCarveTextId = clickedId;
+            }
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    });
+
+    document.querySelectorAll('.btn-carve-text-vis').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const item = state.carveTextItems.find(it => it.id === btn.dataset.textId);
+            if (item) {
+                item.visible = item.visible === false ? true : false;
+                updateCarveGroup(carveGroup, state);
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
-                showToast('All carvings cleared', 'warn');
-            });
+            }
         });
-    }
+    });
+
+    document.querySelectorAll('.btn-carve-text-dup').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            duplicateCarveTextItem(btn.dataset.textId);
+            updateCarveGroup(carveGroup, state);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast('Lettering duplicated', 'info');
+        });
+    });
+
+    document.querySelectorAll('.btn-carve-text-del').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            removeCarveTextItem(btn.dataset.textId);
+            updateCarveGroup(carveGroup, state);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast('Lettering removed', 'warn');
+        });
+    });
+
+    // 15. Lettering Text & Font Inputs
+    document.querySelectorAll('.carve-text-input').forEach(input => {
+        input.addEventListener('input', () => {
+            const item = state.carveTextItems.find(it => it.id === input.dataset.textId);
+            if (item) {
+                item.text = input.value;
+                updateCarveGroup(carveGroup, state);
+            }
+        });
+        input.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    });
+
+    document.querySelectorAll('.carve-text-font-family').forEach(sel => {
+        sel.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            const item = state.carveTextItems.find(it => it.id === sel.dataset.textId);
+            if (item) {
+                item.fontFamily = sel.value;
+                updateCarveGroup(carveGroup, state);
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('button[data-text-prop]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            const item = state.carveTextItems.find(it => it.id === btn.dataset.textId);
+            if (item) {
+                const prop = btn.dataset.textProp;
+                item[prop] = btn.dataset.textVal;
+                updateCarveGroup(carveGroup, state);
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.carve-text-style-select').forEach(sel => {
+        sel.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            const item = state.carveTextItems.find(it => it.id === sel.dataset.textId);
+            if (item) {
+                item.carveStyle = sel.value;
+                updateCarveGroup(carveGroup, state);
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.carve-text-color-input').forEach(picker => {
+        picker.addEventListener('input', () => {
+            const item = state.carveTextItems.find(it => it.id === picker.dataset.textId);
+            if (item) {
+                item.carveColor = picker.value;
+                const labelText = picker.nextElementSibling;
+                if (labelText) labelText.textContent = picker.value.toUpperCase();
+                updateCarveGroup(carveGroup, state);
+            }
+        });
+        picker.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    });
+
+    document.querySelectorAll('.carve-color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', (e) => {
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            const item = state.carveTextItems.find(it => it.id === swatch.dataset.textId);
+            if (item) {
+                item.carveColor = swatch.dataset.color;
+                updateCarveGroup(carveGroup, state);
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
 
     // Photo Guide Upload Events
     const photoUpload = document.getElementById('gourd-photo-upload');
@@ -1910,6 +2205,24 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
         } else if (param === 'photoY') {
             state.gourdPhotoY = valFloat;
             updatePhotoGuideOverlay();
+        }
+        return;
+    }
+
+    if (id.startsWith('carve-text-')) {
+        const parts = id.replace('carve-text-', '').split('-');
+        const param = parts[0];
+        const itemId = parts.slice(1).join('-');
+        const item = state.carveTextItems.find(it => it.id === itemId);
+        if (item) {
+            if (param === 'centerTheta') {
+                item.centerTheta = valFloat * Math.PI / 180;
+            } else if (param === 'rotation' || param === 'archAngle' || param === 'slantAngle' || param === 'hatchAngle') {
+                item[param] = valFloat;
+            } else {
+                item[param] = valFloat;
+            }
+            updateCarveGroup(carveGroup, state);
         }
         return;
     }
@@ -2124,12 +2437,6 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 gourdMesh.material.map.needsUpdate = true;
             }
             break;
-            
-        // Carving Offset
-        case 'carve-width':
-            state.carveDepth = valFloat;
-            updateCarveGroup(carveGroup, state);
-            break;
     }
 }
 
@@ -2152,8 +2459,6 @@ export function selectTool(tool, gourdMesh, carveGroup, measureGroup, patternGro
             tab.classList.toggle('active', tab.dataset.tab === targetTab);
         });
         renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
-        
-
     }
     
     // Tool-specific visual actions
@@ -2161,15 +2466,22 @@ export function selectTool(tool, gourdMesh, carveGroup, measureGroup, patternGro
     const measureVisCheckbox = document.getElementById('measure-lines-vis');
     if (measureVisCheckbox) measureVisCheckbox.checked = measureGroup.visible;
     
+    const canvasEl = document.getElementById('viewport-canvas');
     if (tool === 'carve') {
-        showToast('Carve Mode active — Left click and drag on gourd to carve', 'warn');
+        showToast('Lettering Carve Mode active — Customize words & typography on gourd', 'info');
         gourdMesh.material.emissive.set(0x2a1a08);
         gourdMesh.material.emissiveIntensity = 0.25;
+        if (controls) controls.enabled = true;
+        if (canvasEl) canvasEl.style.cursor = 'default';
     } else if (tool === 'position') {
+        if (controls) controls.enabled = true;
+        if (canvasEl) canvasEl.style.cursor = 'default';
         showToast('Position Mode active — Left click and drag on gourd to place active shape', 'warn');
         gourdMesh.material.emissive.set(0x0a1020);
         gourdMesh.material.emissiveIntensity = 0.15;
     } else {
+        if (controls) controls.enabled = true;
+        if (canvasEl) canvasEl.style.cursor = 'default';
         gourdMesh.material.emissive.set(0x000000);
         gourdMesh.material.emissiveIntensity = 0;
     }

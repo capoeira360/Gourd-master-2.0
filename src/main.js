@@ -4,7 +4,7 @@ import { state, pushUndoState } from './state.js';
 import { createGourdGeometry, GOURD_HEIGHT } from './gourd.js';
 import { updatePatternGroup, animatePatternPulse } from './pattern.js';
 import { calculateMeasurements, updateMeasureLines } from './measure.js';
-import { handleCarvePointerDown, handleCarvePointerMove, handleCarvePointerUp, updateCarveGroup } from './carve.js';
+import { updateCarveGroup } from './carve.js';
 import { renderPropertiesPanel, registerGlobalUIEvents, showToast, updatePhotoGuideOverlay } from './ui.js';
 
 // Global variables
@@ -135,6 +135,12 @@ function init() {
     updateMeasureLines(measureGroup, unscaledMeas);
     updateCarveGroup(carveGroup, state);
 
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+            updateCarveGroup(carveGroup, state);
+        });
+    }
+
     // 9. Initial properties panel rendering and global events registration
     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
     updatePhotoGuideOverlay();
@@ -150,14 +156,14 @@ function init() {
     resizeObserver.observe(viewport);
     onResize();
 
-    // 11. Carving and positioning interaction event listeners (using capture phase to preempt controls)
+    // 11. Interactive positioning event listeners
     canvas.addEventListener('pointerdown', (e) => {
         idleTime = 0;
-        if (state.currentTool === 'carve') {
-            handleCarvePointerDown(e, canvas, camera, gourdMesh, carveGroup, state, controls, () => {
-                pushUndoState(gourdMesh);
-            });
-        } else if (state.currentTool === 'position') {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        if (state.currentTool === 'position') {
             if (state.positionToolMode === 'shape') {
                 raycaster.setFromCamera(mouse, camera);
                 const hits = raycaster.intersectObject(gourdMesh);
@@ -182,9 +188,7 @@ function init() {
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         
-        if (state.currentTool === 'carve') {
-            handleCarvePointerMove(e, canvas, camera, gourdMesh, carveGroup, state);
-        } else if (state.currentTool === 'position' && isPositionDragging) {
+        if (state.currentTool === 'position' && isPositionDragging) {
             raycaster.setFromCamera(mouse, camera);
             const hits = raycaster.intersectObject(gourdMesh);
             if (hits.length > 0) {
@@ -194,21 +198,16 @@ function init() {
         }
     }, true);
 
-    const onCarveEnd = (e) => {
-        if (state.currentTool === 'carve') {
-            handleCarvePointerUp(state, carveGroup, controls, () => {
-                // Re-render properties panel to update carved paths counts
-                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
-            });
-        } else if (state.currentTool === 'position' && isPositionDragging) {
+    const onPositionEnd = (e) => {
+        if (state.currentTool === 'position' && isPositionDragging) {
             isPositionDragging = false;
             controls.enabled = true;
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             e?.stopPropagation();
         }
     };
-    canvas.addEventListener('pointerup', onCarveEnd, true);
-    canvas.addEventListener('pointerleave', onCarveEnd, true);
+    canvas.addEventListener('pointerup', onPositionEnd, true);
+    canvas.addEventListener('pointerleave', onPositionEnd, true);
 
     // Dynamic direct slider synchronizer during dragging
     function updatePositionDrag(hit) {
