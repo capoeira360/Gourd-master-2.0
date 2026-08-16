@@ -31,6 +31,348 @@ function periodicField(seed, harm, scale) {
     };
 }
 
+const P_SVG = (body) => `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">${body}</svg>`;
+
+export const CERAMIC_PATTERNS = {
+    'pat-triangles': P_SVG(`
+        <polygon points="20,10 30,30 10,30" fill="none" stroke="#000" stroke-width="1.5"/>
+        <polygon points="20,15 26,28 14,28" fill="none" stroke="#000" stroke-width="1"/>
+        <polygon points="50,10 60,30 40,30" fill="none" stroke="#000" stroke-width="1.5"/>
+        <polygon points="50,15 56,28 44,28" fill="none" stroke="#000" stroke-width="1"/>
+        <polygon points="80,10 90,30 70,30" fill="none" stroke="#000" stroke-width="1.5"/>
+        <polygon points="35,55 45,75 25,75" fill="none" stroke="#000" stroke-width="1.5"/>
+        <polygon points="65,55 75,75 55,75" fill="none" stroke="#000" stroke-width="1.5"/>
+        <polygon points="20,80 26,95 14,95" fill="none" stroke="#000" stroke-width="1.5"/>
+        <polygon points="80,80 86,95 74,95" fill="none" stroke="#000" stroke-width="1.5"/>
+    `),
+    'pat-dots': P_SVG(`
+        <circle cx="20" cy="20" r="8" fill="none" stroke="#000" stroke-width="1.5"/>
+        <circle cx="50" cy="15" r="5" fill="none" stroke="#000" stroke-width="1.5"/>
+        <circle cx="75" cy="25" r="10" fill="none" stroke="#000" stroke-width="1.5"/>
+        <circle cx="30" cy="55" r="6" fill="none" stroke="#000" stroke-width="1.5"/>
+        <circle cx="60" cy="50" r="9" fill="none" stroke="#000" stroke-width="1.5"/>
+        <circle cx="85" cy="65" r="4" fill="none" stroke="#000" stroke-width="1.5"/>
+        <circle cx="15" cy="80" r="7" fill="none" stroke="#000" stroke-width="1.5"/>
+        <circle cx="45" cy="85" r="3" fill="none" stroke="#000" stroke-width="1.5"/>
+        <circle cx="90" cy="90" r="5" fill="none" stroke="#000" stroke-width="1.5"/>
+        <circle cx="5" cy="45" r="4" fill="none" stroke="#000" stroke-width="1.5"/>
+    `),
+    'pat-halftone': P_SVG(
+        [...Array(10)].map((_,i)=>[...Array(10)].map((_,j)=>{
+            const d = Math.hypot(i-4.5, j-4.5);
+            const r = Math.max(0.4, Math.min(4, d * 0.55));
+            return `<circle cx="${5+i*10}" cy="${5+j*10}" r="${r.toFixed(2)}" fill="none" stroke="#000" stroke-width="1"/>`;
+        }).join('')).join('')
+    ),
+    'pat-dashes': P_SVG(
+        [...Array(6)].map((_,i)=>[...Array(4)].map((_,j)=>{
+            const off = (j%2)*7;
+            return `<ellipse cx="${10+i*16+off}" cy="${13+j*23}" rx="2" ry="9" fill="none" stroke="#000" stroke-width="1.5"/>`;
+        }).join('')).join('')
+    ),
+    'pat-network': P_SVG(`
+        <g stroke="#000" stroke-width="1.4" fill="none">
+            <line x1="10" y1="25" x2="80" y2="25"/>
+            <line x1="35" y1="10" x2="35" y2="70"/>
+            <line x1="60" y1="35" x2="60" y2="90"/>
+            <line x1="15" y1="55" x2="85" y2="55"/>
+            <line x1="20" y1="80" x2="80" y2="80"/>
+            <circle cx="10" cy="25" r="3"/><circle cx="35" cy="25" r="6"/>
+            <circle cx="55" cy="25" r="3"/><circle cx="80" cy="25" r="4"/>
+            <circle cx="35" cy="10" r="2"/><circle cx="35" cy="45" r="4"/>
+            <circle cx="35" cy="70" r="5"/><circle cx="60" cy="35" r="3"/>
+            <circle cx="60" cy="55" r="6"/><circle cx="60" cy="90" r="3"/>
+            <circle cx="15" cy="55" r="4"/><circle cx="85" cy="55" r="3"/>
+            <circle cx="20" cy="80" r="3"/><circle cx="50" cy="80" r="5"/>
+            <circle cx="80" cy="80" r="3"/>
+        </g>
+    `),
+    'pat-seigaiha': P_SVG(
+        `<g fill="none" stroke="#000" stroke-width="1.2">` +
+        [0,1,2,3,4,5].flatMap(r=>[0,25,50,75,100].map(x=>{
+            const y = r*20;
+            return `<path d="M${x-15},${y} A15,15 0 0,1 ${x+15},${y}"/>
+            <path d="M${x-11},${y} A11,11 0 0,1 ${x+11},${y}"/>
+            <path d="M${x-7},${y} A7,7 0 0,1 ${x+7},${y}"/>
+            <path d="M${x-3},${y} A3,3 0 0,1 ${x+3},${y}"/>`;
+        })).join('') + `</g>`
+    ),
+    'pat-org-grid': P_SVG(
+        `<g fill="none" stroke="#000" stroke-width="1.2" stroke-linecap="round">` +
+        [...Array(11)].map((_,i)=>`<path d="M${i*10+Math.sin(i*1.7)*1.5},0 Q${i*10+2},50 ${i*10+Math.sin(i+2)*1.5},100"/>`).join('') +
+        [...Array(11)].map((_,i)=>`<path d="M0,${i*10+Math.sin(i*1.3)*1.5} Q50,${i*10+2} 100,${i*10+Math.sin(i+2)*1.5}"/>`).join('') +
+        `</g>`
+    ),
+    'pat-plus': P_SVG(
+        `<g stroke="#000" stroke-width="2.0" stroke-linecap="round" fill="none">` +
+        [...Array(5)].map((_,i)=>[...Array(5)].map((_,j)=>{
+            const x=10+i*20, y=10+j*20;
+            return `<line x1="${x-5}" y1="${y}" x2="${x+5}" y2="${y}"/><line x1="${x}" y1="${y-5}" x2="${x}" y2="${y+5}"/>`;
+        }).join('')).join('') + `</g>`
+    ),
+    'pat-quad-hatch': P_SVG(`
+        <g stroke="#000" stroke-width="1.6" stroke-linecap="round" fill="none">
+            <g transform="translate(5,8)">${[...Array(6)].map((_,i)=>`<line x1="${i*7}" y1="0" x2="${i*7}" y2="32"/>`).join('')}</g>
+            <g transform="translate(52,8)">${[...Array(6)].map((_,i)=>`<line x1="0" y1="${i*6}" x2="38" y2="${i*6}"/>`).join('')}</g>
+            <g transform="translate(5,55)">${[...Array(6)].map((_,i)=>`<line x1="0" y1="${i*6}" x2="38" y2="${i*6}"/>`).join('')}</g>
+            <g transform="translate(52,55)">${[...Array(6)].map((_,i)=>`<line x1="${i*7}" y1="0" x2="${i*7}" y2="32"/>`).join('')}</g>
+        </g>
+    `),
+    'pat-squiggles': P_SVG(
+        `<g fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round">` +
+        [15,40,65,90].flatMap((y,yi)=>[15,40,65,90].map(x=>{
+            const off = (yi%2)*8;
+            return `<path d="M${x-10+off},${y} q3,-6 6,0 t6,0 t6,0"/>`;
+        })).join('') + `</g>`
+    ),
+    'pat-zebra': P_SVG(
+        `<g fill="none" stroke="#000" stroke-width="1.6">` +
+        [0,14,28,42,56,70,84,98].map((x,i)=>{
+            const w = 4 + (i%2)*1.5;
+            return `<path d="M${x},0 Q${x+3},25 ${x-1},50 T${x+2},100 M${x+w},100 Q${x+3+w-4},75 ${x+w-1},50 T${x+2+w-4},0"/>`;
+        }).join('') + `</g>`
+    ),
+    'pat-arches': P_SVG(
+        `<g fill="none" stroke="#000" stroke-width="1.3">` +
+        [...Array(9)].map((_,i)=>{
+            const ins = i*2.5;
+            return `<path d="M${20+ins},100 L${20+ins},${45+ins*0.7} Q50,${15+ins*0.5} ${80-ins},${45+ins*0.7} L${80-ins},100"/>`;
+        }).join('') + `</g>`
+    ),
+    'pat-vertical-loops': P_SVG(
+        `<g fill="none" stroke="#000" stroke-width="1.4" stroke-linecap="round">` +
+        [15,40,65,90].map((x,i)=>{
+            const p = i%2 ? -1 : 1;
+            return `<path d="M${x},0 Q${x-4*p},20 ${x+3*p},40 T${x-2*p},80 T${x+1*p},100"/>
+            <ellipse cx="${x+p}" cy="${25+i*4}" rx="4" ry="8" fill="none"/>`;
+        }).join('') + `</g>`
+    ),
+    'pat-river-stones': P_SVG(`
+        <g fill="none" stroke="#000" stroke-width="1.5">
+            <path d="M20,22 Q35,15 35,30 Q28,42 15,35 Q10,25 20,22 Z"/>
+            <path d="M55,25 Q72,18 75,35 Q68,48 55,45 Q45,35 55,25 Z"/>
+            <path d="M85,20 Q95,25 92,38 Q83,42 80,32 Q80,25 85,20 Z"/>
+            <path d="M15,60 Q30,55 32,70 Q22,80 12,72 Q8,65 15,60 Z"/>
+            <path d="M50,60 Q68,55 70,72 Q60,85 45,78 Q40,68 50,60 Z"/>
+            <path d="M88,65 Q98,68 95,78 Q88,82 82,75 Q82,68 88,65 Z"/>
+            <path d="M25,90 Q40,85 42,100 L20,100 Q18,92 25,90 Z"/>
+            <path d="M60,92 Q75,88 78,100 L55,100 Q53,94 60,92 Z"/>
+        </g>
+    `),
+    'pat-diamonds': P_SVG(`
+        <g fill="none" stroke="#000" stroke-width="2.0" stroke-linejoin="round">
+            <polygon points="25,25 37,37 25,49 13,37"/>
+            <polygon points="75,25 87,37 75,49 63,37"/>
+            <polygon points="50,50 62,62 50,74 38,62"/>
+            <polygon points="25,75 37,87 25,99 13,87"/>
+            <polygon points="75,75 87,87 75,99 63,87"/>
+        </g>
+    `),
+    'pat-leopard': P_SVG(`
+        <g fill="none" stroke="#000" stroke-width="1.4">
+            <path d="M15,20 q-3,-6 3,-8 t7,3 q1,4 -2,6 q-1,-4 -3,-4 t-2,3 Z"/>
+            <path d="M40,15 q-4,-5 2,-7 t7,4 q0,4 -3,5 q0,-3 -2,-3 t-4,1 Z"/>
+            <path d="M65,25 q-3,-5 3,-7 t8,3 q0,5 -3,6 q0,-3 -3,-3 t-5,1 Z"/>
+            <path d="M85,20 q-3,-4 3,-5 t6,3 q0,3 -3,4 q-1,-2 -3,-2 t-3,0 Z"/>
+            <path d="M20,50 q-4,-6 3,-8 t8,4 q0,5 -3,6 q-1,-3 -3,-3 t-5,1 Z"/>
+            <path d="M50,45 q-3,-5 3,-7 t7,4 q0,4 -2,5 q-1,-3 -3,-3 t-5,1 Z"/>
+            <path d="M78,55 q-4,-5 2,-7 t8,3 q0,5 -3,6 q-1,-3 -3,-3 t-4,1 Z"/>
+            <path d="M15,80 q-3,-5 3,-6 t7,3 q0,4 -3,5 q-1,-3 -3,-3 t-4,1 Z"/>
+            <path d="M45,75 q-4,-6 3,-7 t8,4 q0,4 -3,5 q0,-3 -3,-3 t-5,1 Z"/>
+            <path d="M70,85 q-3,-5 3,-6 t7,3 q0,4 -3,5 q-1,-3 -3,-3 t-4,1 Z"/>
+            <path d="M92,80 q-3,-4 2,-5 t5,3 q0,3 -2,4 q0,-2 -2,-2 t-3,0 Z"/>
+        </g>
+    `)
+};
+
+const svgUnitCache = new Map();
+
+export function parseSvgToUnitPaths(svgString) {
+    if (svgUnitCache.has(svgString)) {
+        return svgUnitCache.get(svgString);
+    }
+    
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, 'image/svg+xml');
+    const svgEl = doc.querySelector('svg');
+    if (!svgEl) return [];
+    
+    const viewBox = svgEl.getAttribute('viewBox');
+    let vbW = 100, vbH = 100;
+    if (viewBox) {
+        const parts = viewBox.trim().split(/[\s,]+/).map(Number);
+        if (parts.length >= 4 && parts[2] > 0 && parts[3] > 0) {
+            vbW = parts[2];
+            vbH = parts[3];
+        }
+    }
+    
+    const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    tempSvg.style.position = 'absolute';
+    tempSvg.style.width = '0';
+    tempSvg.style.height = '0';
+    tempSvg.style.visibility = 'hidden';
+    tempSvg.style.pointerEvents = 'none';
+    tempSvg.innerHTML = svgEl.innerHTML;
+    document.body.appendChild(tempSvg);
+    
+    const paths = [];
+    const elements = tempSvg.querySelectorAll('path, line, polygon, polyline, circle, ellipse, rect');
+    
+    elements.forEach(el => {
+        const tagName = el.tagName.toLowerCase();
+        
+        if (tagName === 'circle') {
+            const cx = parseFloat(el.getAttribute('cx') || 0);
+            const cy = parseFloat(el.getAttribute('cy') || 0);
+            const r = parseFloat(el.getAttribute('r') || 1);
+            const pts = [];
+            const steps = Math.max(16, Math.round(r * 4));
+            for (let s = 0; s <= steps; s++) {
+                const a = (s / steps) * Math.PI * 2;
+                pts.push({ x: (cx + r * Math.cos(a)) / vbW, y: (cy + r * Math.sin(a)) / vbH });
+            }
+            paths.push(pts);
+            return;
+        }
+        
+        if (tagName === 'ellipse') {
+            const cx = parseFloat(el.getAttribute('cx') || 0);
+            const cy = parseFloat(el.getAttribute('cy') || 0);
+            const rx = parseFloat(el.getAttribute('rx') || 1);
+            const ry = parseFloat(el.getAttribute('ry') || 1);
+            const pts = [];
+            const steps = Math.max(16, Math.round(Math.max(rx, ry) * 4));
+            for (let s = 0; s <= steps; s++) {
+                const a = (s / steps) * Math.PI * 2;
+                pts.push({ x: (cx + rx * Math.cos(a)) / vbW, y: (cy + ry * Math.sin(a)) / vbH });
+            }
+            paths.push(pts);
+            return;
+        }
+        
+        if (tagName === 'line') {
+            const x1 = parseFloat(el.getAttribute('x1') || 0) / vbW;
+            const y1 = parseFloat(el.getAttribute('y1') || 0) / vbH;
+            const x2 = parseFloat(el.getAttribute('x2') || 0) / vbW;
+            const y2 = parseFloat(el.getAttribute('y2') || 0) / vbH;
+            const pts = [];
+            const steps = 8;
+            for (let s = 0; s <= steps; s++) {
+                pts.push({ x: x1 + (x2 - x1) * (s / steps), y: y1 + (y2 - y1) * (s / steps) });
+            }
+            paths.push(pts);
+            return;
+        }
+        
+        if (tagName === 'polygon' || tagName === 'polyline') {
+            const pointsAttr = el.getAttribute('points') || '';
+            const coords = pointsAttr.trim().split(/[\s,]+/).map(Number);
+            const rawPts = [];
+            for (let i = 0; i < coords.length; i += 2) {
+                if (!isNaN(coords[i]) && !isNaN(coords[i+1])) {
+                    rawPts.push({ x: coords[i] / vbW, y: coords[i+1] / vbH });
+                }
+            }
+            if (tagName === 'polygon' && rawPts.length > 0) {
+                rawPts.push({ ...rawPts[0] });
+            }
+            if (rawPts.length >= 2) {
+                const resampled = [];
+                for (let i = 0; i < rawPts.length - 1; i++) {
+                    const p1 = rawPts[i];
+                    const p2 = rawPts[i + 1];
+                    const segSteps = 5;
+                    for (let s = 0; s < segSteps; s++) {
+                        resampled.push({
+                            x: p1.x + (p2.x - p1.x) * (s / segSteps),
+                            y: p1.y + (p2.y - p1.y) * (s / segSteps)
+                        });
+                    }
+                }
+                resampled.push(rawPts[rawPts.length - 1]);
+                paths.push(resampled);
+            }
+            return;
+        }
+        
+        if (tagName === 'path') {
+            const len = el.getTotalLength ? el.getTotalLength() : 0;
+            if (len > 0) {
+                const steps = Math.max(12, Math.round(len * 1.5));
+                const pts = [];
+                for (let s = 0; s <= steps; s++) {
+                    const pt = el.getPointAtLength((s / steps) * len);
+                    pts.push({ x: pt.x / vbW, y: pt.y / vbH });
+                }
+                if (pts.length >= 2) {
+                    paths.push(pts);
+                }
+            }
+        }
+    });
+    
+    document.body.removeChild(tempSvg);
+    svgUnitCache.set(svgString, paths);
+    return paths;
+}
+
+export function generateTiledSvgPaths(zone, svgString, verDensityVal) {
+    const rawPaths = parseSvgToUnitPaths(svgString);
+    if (!rawPaths || rawPaths.length === 0) return [];
+    
+    const density = zone.density || 1.0;
+    const vDensity = verDensityVal || density;
+    
+    const Nu = Math.max(1, Math.round(density * 8));
+    const Nv = Math.max(1, Math.round(vDensity * 6));
+    
+    const tiltSkew = (zone.tiltSkew || 0) * Math.PI / 180;
+    const leanAngle = (zone.leanAngle || 0) * Math.PI / 180;
+    
+    const allPaths = [];
+    
+    const addSegment = (pts) => {
+        let cur = [];
+        for (const p of pts) {
+            if (cur.length > 0) {
+                const prev = cur[cur.length - 1];
+                if (Math.abs(p.theta - prev.theta) > Math.PI) {
+                    if (cur.length >= 2) allPaths.push(cur);
+                    cur = [];
+                }
+            }
+            cur.push(p);
+        }
+        if (cur.length >= 2) allPaths.push(cur);
+    };
+    
+    for (let i = 0; i < Nu; i++) {
+        for (let j = 0; j < Nv; j++) {
+            for (const unitPath of rawPaths) {
+                const mappedPts = [];
+                for (const pt of unitPath) {
+                    let u = (pt.x + i) / Nu;
+                    let v = (pt.y + j) / Nv;
+                    
+                    // Skew
+                    u += Math.tan(tiltSkew) * (v - 0.5);
+                    v += Math.tan(leanAngle) * (u - 0.5);
+                    
+                    const t = Math.max(0.001, Math.min(0.999, v));
+                    let theta = u * Math.PI * 2 - Math.PI;
+                    theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+                    
+                    mappedPts.push({ t, theta, rOffset: 0 });
+                }
+                addSegment(mappedPts);
+            }
+        }
+    }
+    
+    return allPaths;
+}
+
 export const DOODLE_PRESETS = {
     flow:   { curl: 2.15, freq: 1.7, count: 800, len: 70, lw: 11, gap: 1.05, dots: 80, dash: 0.18, harm: 6, base: 0 },
     maze:   { curl: 3.10, freq: 2.6, count: 1000, len: 34, lw: 9,  gap: 0.95, dots: 110, dash: 0.28, harm: 7, base: 0 },
@@ -2565,6 +2907,40 @@ export function updatePatternGroupImmediate(group, state) {
                 totalCount += count;
             }
             continue;
+        }
+
+        if (patLayout.startsWith('pat-') || CERAMIC_PATTERNS[patLayout]) {
+            const svgStr = CERAMIC_PATTERNS[patLayout];
+            if (svgStr) {
+                const verDensityVal = zone.verDensity !== undefined ? zone.verDensity : zone.density;
+                let tiledPaths = generateTiledSvgPaths(zone, svgStr, verDensityVal);
+                if (zone.type !== 'full') {
+                    const clipped = [];
+                    for (const path of tiledPaths) {
+                        clipped.push(...clipPathToZone(path, zone));
+                    }
+                    tiledPaths = clipped;
+                }
+                if (renderLines) {
+                    hasLines = true;
+                    const count = renderPatternLayer(
+                        group, tiledPaths, 'lines', zone.color, zone.opacity,
+                        zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                        zone.dashSpacing, zone
+                    );
+                    totalCount += count;
+                }
+                if (renderHoles) {
+                    hasHoles = true;
+                    const count = renderPatternLayer(
+                        group, tiledPaths, 'holes', zone.color, zone.opacity,
+                        zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
+                        zone.dashSpacing, zone
+                    );
+                    totalCount += count;
+                }
+                continue;
+            }
         }
 
         if (patLayout === 'swirls') {

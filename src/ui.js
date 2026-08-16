@@ -183,8 +183,33 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             if ((!isLocalShape || zone.fillType !== 'concentric') && zone.type !== 'custom-image') {
                 patternTypeSelector = `
                     <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: flex-start;">
-                        <label class="control-label" style="margin-bottom: 6px;">Pattern Layout</label>
-                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(3, 1fr);">
+                        <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 6px;">
+                            <label class="control-label" style="margin-bottom: 0;">Pattern Layout</label>
+                            <span style="font-size: 10px; color: var(--color-tx-d);">Studio & Generative</span>
+                        </div>
+                        
+                        <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--color-tx-d); margin-bottom: 4px; margin-top: 2px;">Ceramic Studio Patterns</div>
+                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 8px; grid-template-columns: repeat(4, 1fr);">
+                            <button class="option-btn ${zone.patternType === 'pat-seigaiha' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-seigaiha" style="padding: 4px; font-size: 9px;">Seigaiha</button>
+                            <button class="option-btn ${zone.patternType === 'pat-triangles' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-triangles" style="padding: 4px; font-size: 9px;">Triangles</button>
+                            <button class="option-btn ${zone.patternType === 'pat-diamonds' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-diamonds" style="padding: 4px; font-size: 9px;">Diamonds</button>
+                            <button class="option-btn ${zone.patternType === 'pat-arches' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-arches" style="padding: 4px; font-size: 9px;">Arches</button>
+                            <button class="option-btn ${zone.patternType === 'pat-network' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-network" style="padding: 4px; font-size: 9px;">Network</button>
+                            <button class="option-btn ${zone.patternType === 'pat-quad-hatch' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-quad-hatch" style="padding: 4px; font-size: 9px;">Quad Hatch</button>
+                            <button class="option-btn ${zone.patternType === 'pat-plus' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-plus" style="padding: 4px; font-size: 9px;">Plus Cross</button>
+                            <button class="option-btn ${zone.patternType === 'pat-dashes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-dashes" style="padding: 4px; font-size: 9px;">Dashes</button>
+                            <button class="option-btn ${zone.patternType === 'pat-halftone' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-halftone" style="padding: 4px; font-size: 9px;">Halftone</button>
+                            <button class="option-btn ${zone.patternType === 'pat-dots' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-dots" style="padding: 4px; font-size: 9px;">Dots</button>
+                            <button class="option-btn ${zone.patternType === 'pat-squiggles' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-squiggles" style="padding: 4px; font-size: 9px;">Squiggles</button>
+                            <button class="option-btn ${zone.patternType === 'pat-org-grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-org-grid" style="padding: 4px; font-size: 9px;">Wavy Grid</button>
+                            <button class="option-btn ${zone.patternType === 'pat-river-stones' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-river-stones" style="padding: 4px; font-size: 9px;">Stones</button>
+                            <button class="option-btn ${zone.patternType === 'pat-leopard' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-leopard" style="padding: 4px; font-size: 9px;">Leopard</button>
+                            <button class="option-btn ${zone.patternType === 'pat-vertical-loops' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-vertical-loops" style="padding: 4px; font-size: 9px;">Loop Stems</button>
+                            <button class="option-btn ${zone.patternType === 'pat-zebra' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-zebra" style="padding: 4px; font-size: 9px;">Zebra</button>
+                        </div>
+
+                        <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--color-tx-d); margin-bottom: 4px;">Geometric & Weave Layouts</div>
+                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 8px; grid-template-columns: repeat(3, 1fr);">
                             <button class="option-btn ${zone.patternType === 'grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="grid" style="padding: 4px; font-size: 10px;">Grid</button>
                             <button class="option-btn ${zone.patternType === 'spiral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="spiral" style="padding: 4px; font-size: 10px;">Spiral</button>
                             <button class="option-btn ${zone.patternType === 'flower' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flower" style="padding: 4px; font-size: 10px;">Flower</button>
@@ -194,10 +219,14 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'swirls' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="swirls" style="padding: 4px; font-size: 10px;">Swirls</button>
                             <button class="option-btn ${zone.patternType === 'weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave" style="padding: 4px; font-size: 10px;">Basket Weave</button>
                             <button class="option-btn ${zone.patternType === 'weave2' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave2" style="padding: 4px; font-size: 10px;">Diamond Weave</button>
-                            <button class="option-btn ${zone.patternType === 'scatter' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="scatter" style="padding: 4px; font-size: 10px;">Scatter</button>
                             <button class="option-btn ${zone.patternType === 'geo-triangle' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="geo-triangle" style="padding: 4px; font-size: 10px;">Geo-Triangle</button>
                             <button class="option-btn ${zone.patternType === 'flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flow" style="padding: 4px; font-size: 10px;">Flow</button>
                             <button class="option-btn ${zone.patternType === 'ribbons' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="ribbons" style="padding: 4px; font-size: 10px;">Ribbons</button>
+                        </div>
+
+                        <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--color-tx-d); margin-bottom: 4px;">Generative Organic Doodle</div>
+                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(3, 1fr);">
+                            <button class="option-btn ${zone.patternType === 'scatter' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="scatter" style="padding: 4px; font-size: 10px;">Scatter</button>
                             <button class="option-btn ${zone.patternType === 'doodle-flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-flow" style="padding: 4px; font-size: 10px;">Org Flow</button>
                             <button class="option-btn ${zone.patternType === 'doodle-maze' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-maze" style="padding: 4px; font-size: 10px;">Maze</button>
                             <button class="option-btn ${zone.patternType === 'doodle-zebra' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-zebra" style="padding: 4px; font-size: 10px;">Zebra Waves</button>
@@ -300,7 +329,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const hasVertical = direction === 'both' || direction === 'vertical';
             const showLean = hasVertical && (!isLocalShape || zone.fillType !== 'concentric');
 
-            const isDoodle = zone.patternType && zone.patternType.startsWith('doodle-');
+            const isDoodle = zone.patternType && (zone.patternType.startsWith('doodle-') || zone.patternType.startsWith('pat-'));
 
             if (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
                 styleControls = '';
@@ -810,6 +839,36 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                     ${sliderRow('Line Length', `pat-zone-doodleLen-${zone.id}`, 10, 250, 5, zone.doodleLen !== undefined ? zone.doodleLen : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.len || 70))}
                                     ${sliderRow('Dots Count', `pat-zone-doodleDots-${zone.id}`, 0, 400, 10, zone.doodleDots !== undefined ? zone.doodleDots : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.dots || 80))}
                                     ${sliderRow('Dashed Factor', `pat-zone-doodleDash-${zone.id}`, 0.0, 0.85, 0.05, zone.doodleDash !== undefined ? zone.doodleDash : (DOODLE_PRESETS[zone.patternType.replace('doodle-', '')]?.dash || 0.18))}
+                                </div>
+                            ` : ''}
+                            
+                            ${zone.patternType && zone.patternType.startsWith('pat-') ? `
+                                <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">
+                                        ${{
+                                            'pat-seigaiha': 'Seigaiha Waves Configuration',
+                                            'pat-triangles': 'Triangles Configuration',
+                                            'pat-diamonds': 'Diamonds Configuration',
+                                            'pat-arches': 'Cathedral Arches Configuration',
+                                            'pat-network': 'Network Grid Configuration',
+                                            'pat-quad-hatch': 'Quad Hatch Configuration',
+                                            'pat-plus': 'Plus Cross Configuration',
+                                            'pat-dashes': 'Dashes Configuration',
+                                            'pat-halftone': 'Halftone Dot Configuration',
+                                            'pat-dots': 'Dots Configuration',
+                                            'pat-squiggles': 'Squiggles Configuration',
+                                            'pat-org-grid': 'Wavy Grid Configuration',
+                                            'pat-river-stones': 'River Stones Configuration',
+                                            'pat-leopard': 'Leopard Spots Configuration',
+                                            'pat-vertical-loops': 'Loop Stems Configuration',
+                                            'pat-zebra': 'Zebra Stripes Configuration'
+                                        }[zone.patternType] || 'Ceramic Pattern Configuration'}
+                                    </div>
+                                    ${sliderRow('Horizontal Density', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
+                                    ${sliderRow('Vertical Density', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx)}
+                                    ${sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°')}
+                                    ${sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°')}
+                                    ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx)}
                                 </div>
                             ` : ''}
                             
