@@ -192,8 +192,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'organic' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="organic" style="padding: 4px; font-size: 10px;">Organic</button>
                             <button class="option-btn ${zone.patternType === 'box-grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="box-grid" style="padding: 4px; font-size: 10px;">Box Grid</button>
                             <button class="option-btn ${zone.patternType === 'swirls' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="swirls" style="padding: 4px; font-size: 10px;">Swirls</button>
-                            <button class="option-btn ${zone.patternType === 'weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave" style="padding: 4px; font-size: 10px;">Weave</button>
-                            <button class="option-btn ${zone.patternType === 'weave2' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave2" style="padding: 4px; font-size: 10px;">Weave 2</button>
+                            <button class="option-btn ${zone.patternType === 'weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave" style="padding: 4px; font-size: 10px;">Basket Weave</button>
+                            <button class="option-btn ${zone.patternType === 'weave2' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave2" style="padding: 4px; font-size: 10px;">Diamond Weave</button>
                             <button class="option-btn ${zone.patternType === 'scatter' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="scatter" style="padding: 4px; font-size: 10px;">Scatter</button>
                             <button class="option-btn ${zone.patternType === 'geo-triangle' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="geo-triangle" style="padding: 4px; font-size: 10px;">Geo-Triangle</button>
                             <button class="option-btn ${zone.patternType === 'flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flow" style="padding: 4px; font-size: 10px;">Flow</button>
@@ -202,7 +202,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <button class="option-btn ${zone.patternType === 'doodle-maze' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-maze" style="padding: 4px; font-size: 10px;">Maze</button>
                             <button class="option-btn ${zone.patternType === 'doodle-zebra' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-zebra" style="padding: 4px; font-size: 10px;">Zebra Waves</button>
                             <button class="option-btn ${zone.patternType === 'doodle-coral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-coral" style="padding: 4px; font-size: 10px;">Coral Reef</button>
-                            <button class="option-btn ${zone.patternType === 'doodle-weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-weave" style="padding: 4px; font-size: 10px;">Weave</button>
+                            <button class="option-btn ${zone.patternType === 'doodle-weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-weave" style="padding: 4px; font-size: 10px;">Org Weave</button>
                             <button class="option-btn ${zone.patternType === 'doodle-confet' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-confet" style="padding: 4px; font-size: 10px;">Dot & Dash</button>
                         </div>
                     </div>
@@ -570,15 +570,15 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             ${(zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'geo-triangle') ? `
                                 <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                     <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">
-                                        ${zone.patternType === 'grid' ? 'Grid Layout Configuration' : (zone.patternType === 'geo-triangle' ? 'Geo-Triangle Configuration' : 'Basket Weave Configuration')}
+                                        ${zone.patternType === 'grid' ? 'Grid Layout Configuration' : (zone.patternType === 'geo-triangle' ? 'Geo-Triangle Configuration' : (zone.patternType === 'weave2' ? 'Diamond Weave Configuration' : 'Basket Weave Configuration'))}
                                     </div>
                                     ${sliderRow('Horizontal Cell Spacing', `pat-zone-density-${zone.id}`, 0, 100, 1, densityProx)}
                                     ${sliderRow('Vertical Cell Spacing', `pat-zone-verDensity-${zone.id}`, 0, 100, 1, verDensityProx)}
                                     ${sliderRow('Horizontal Skew', `pat-zone-tiltSkew-${zone.id}`, -45, 45, 1, zone.tiltSkew || 0, '°')}
                                     ${sliderRow('Vertical Skew', `pat-zone-leanAngle-${zone.id}`, -45, 45, 1, zone.leanAngle || 0, '°')}
                                     ${zone.patternType !== 'grid' ? `
-                                        ${sliderRow(zone.patternType === 'geo-triangle' ? 'Vertical Hatch Lines' : 'Weave Horiz. Count', `pat-zone-weaveHorCount-${zone.id}`, 1, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
-                                        ${sliderRow(zone.patternType === 'geo-triangle' ? 'Diagonal Hatch Lines' : 'Weave Vert. Count', `pat-zone-weaveVerCount-${zone.id}`, 1, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
+                                        ${sliderRow(zone.patternType === 'geo-triangle' ? 'Vertical Hatch Lines' : (zone.patternType === 'weave2' ? 'Diamond Horiz. Count' : 'Weave Horiz. Count'), `pat-zone-weaveHorCount-${zone.id}`, 1, 10, 1, zone.weaveHorCount !== undefined ? zone.weaveHorCount : 5)}
+                                        ${sliderRow(zone.patternType === 'geo-triangle' ? 'Diagonal Hatch Lines' : (zone.patternType === 'weave2' ? 'Diamond Vert. Count' : 'Weave Vert. Count'), `pat-zone-weaveVerCount-${zone.id}`, 1, 10, 1, zone.weaveVerCount !== undefined ? zone.weaveVerCount : 5)}
                                     ` : ''}
                                     
                                     <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
