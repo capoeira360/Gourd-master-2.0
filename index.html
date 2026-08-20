@@ -55,6 +55,12 @@
         <div class="dropdown-item" id="menu-load-layout">Load Layout File...</div>
     </div>
 
+    <!-- Edit Dropdown Menu -->
+    <div id="edit-dropdown" class="dropdown-menu" style="min-width: 160px;">
+        <div class="dropdown-item" id="menu-edit-undo"><i class="fas fa-undo" style="width: 14px; margin-right: 6px;"></i> Undo <span>Ctrl+Z</span></div>
+        <div class="dropdown-item" id="menu-edit-redo"><i class="fas fa-redo" style="width: 14px; margin-right: 6px;"></i> Redo <span>Ctrl+Shift+Z</span></div>
+    </div>
+
     <!-- View Dropdown Menu -->
     <div id="view-dropdown" class="dropdown-menu">
         <div class="dropdown-item" data-view-action="camera-front">Front View <span>1</span></div>
@@ -64,6 +70,17 @@
         <div style="height: 1px; background: var(--color-bdr); margin: 4px 0;"></div>
         <div class="dropdown-item checked" data-view-action="toggle-grid">Show Grid <i class="fas fa-check"></i></div>
         <div class="dropdown-item checked" data-view-action="toggle-patterns">Show Patterns <i class="fas fa-check"></i></div>
+    </div>
+
+    <!-- Tools Dropdown Menu -->
+    <div id="tools-dropdown" class="dropdown-menu" style="min-width: 190px;">
+        <div class="dropdown-item" data-tool-action="select"><i class="fas fa-mouse-pointer" style="width: 14px; margin-right: 6px;"></i> Select Tool <span>V</span></div>
+        <div class="dropdown-item" data-tool-action="measure"><i class="fas fa-ruler-combined" style="width: 14px; margin-right: 6px;"></i> Measure Dimensions <span>M</span></div>
+        <div class="dropdown-item" data-tool-action="pattern"><i class="fas fa-shapes" style="width: 14px; margin-right: 6px;"></i> Surface Patterns <span>P</span></div>
+        <div class="dropdown-item" data-tool-action="position"><i class="fas fa-crosshairs" style="width: 14px; margin-right: 6px;"></i> Position Shape <span>L</span></div>
+        <div class="dropdown-item" data-tool-action="transform"><i class="fas fa-arrows-alt" style="width: 14px; margin-right: 6px;"></i> Scale & Transform <span>T</span></div>
+        <div class="dropdown-item" data-tool-action="carve"><i class="fas fa-pen-nib" style="width: 14px; margin-right: 6px;"></i> Freehand Carving <span>C</span></div>
+        <div class="dropdown-item" data-tool-action="camera"><i class="fas fa-video" style="width: 14px; margin-right: 6px;"></i> Camera Presets <span>K</span></div>
     </div>
     
     <!-- Hidden File Inputs for importing -->
@@ -87,13 +104,13 @@
                 <input type="text" id="project-name-input" value="my-artisan-gourd" style="background: transparent; border: none; color: var(--color-tx-m); font-size: 11px; font-weight: 600; width: 140px; padding: 2px 4px; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.25);" title="Rename project">
             </div>
             
-            <!-- Desktop Navigation Menu -->
-            <nav class="menu-nav desktop-only">
+            <!-- Navigation Menu (Available on Desktop & Mobile) -->
+            <nav class="menu-nav" id="main-menu-nav">
                 <button class="menu-btn" id="menu-file-btn">File <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
-                <button class="menu-btn" onclick="window.showToast('Use Undo/Redo (Ctrl+Z / Ctrl+Shift+Z) to reverse changes.', 'warn')">Edit</button>
+                <button class="menu-btn" id="menu-edit-btn">Edit <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
                 <button class="menu-btn" id="menu-view-btn">View <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
-                <button class="menu-btn" onclick="window.showToast('Select editing tools from the left toolbar.', 'warn')">Tools</button>
-                <button class="menu-btn" onclick="window.showToast('Kibuyu Design Studio — Artisan Gourd Customizer v2.0', 'success')">Help</button>
+                <button class="menu-btn" id="menu-tools-btn">Tools <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
+                <button class="menu-btn" id="menu-help-btn"><i class="fas fa-question-circle" style="font-size: 10px; margin-right: 3px; color: var(--color-acc);"></i> Help</button>
             </nav>
             
             <div class="header-spacer"></div>
@@ -297,6 +314,60 @@
                 <button id="btn-download-screenshot" class="btn-primary">
                     <i class="fas fa-download"></i> Save PNG
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== INTERACTIVE GUIDE & WALKTHROUGH MODAL ===== -->
+    <div id="guide-modal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px; color: #fff; font-family: system-ui, -apple-system, sans-serif;">
+        <div class="modal-content guide-modal-content" style="background: #18181f; border: 1px solid #2e2e38; border-radius: 12px; width: 95%; max-width: 850px; height: 85vh; max-height: 700px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.7);">
+            <!-- Modal Header -->
+            <div class="guide-modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); background: #1f1f28;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="brand-icon" style="width: 24px; height: 24px;">
+                        <i class="fas fa-book-open" style="font-size: 11px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #fff; letter-spacing: 0.3px;">Studio Guide & Walkthroughs</h3>
+                        <p style="margin: 0; font-size: 11px; color: var(--color-tx-d);">Learn how to navigate the studio and complete artisan gourd tasks</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="guide-search-wrap" style="position: relative;">
+                        <i class="fas fa-search" style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--color-tx-d);"></i>
+                        <input type="text" id="guide-search-input" placeholder="Search guides & tasks..." style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 4px 8px 4px 24px; font-size: 11px; color: #fff; width: 160px; outline: none;">
+                    </div>
+                    <button id="btn-close-guide" class="zone-action-btn" style="padding: 6px 12px; font-size: 11px; border-radius: 6px;"><i class="fas fa-times"></i> Close</button>
+                </div>
+            </div>
+            
+            <!-- Modal Body (Split Layout: Nav Sidebar + Content View) -->
+            <div class="guide-modal-body" style="flex: 1; display: flex; overflow: hidden;">
+                <!-- Guide Topics Navigation Sidebar -->
+                <div class="guide-nav-sidebar" style="width: 230px; background: #131318; border-right: 1px solid rgba(255,255,255,0.06); padding: 12px 8px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto;">
+                    <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--color-tx-d); letter-spacing: 0.8px; padding: 4px 8px;">GETTING STARTED</div>
+                    <button class="guide-topic-btn active" data-topic="nav"><i class="fas fa-compass"></i> Navigation & Controls</button>
+                    <button class="guide-topic-btn" data-topic="shortcuts"><i class="fas fa-keyboard"></i> Keyboard Shortcuts</button>
+                    
+                    <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--color-tx-d); letter-spacing: 0.8px; padding: 8px 8px 4px 8px; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 4px;">TASK WALKTHROUGHS</div>
+                    <button class="guide-topic-btn" data-topic="shape"><i class="fas fa-shapes"></i> 1. Sculpt Shape & Photo</button>
+                    <button class="guide-topic-btn" data-topic="pattern"><i class="fas fa-circle-nodes"></i> 2. Patterns & Hole Layouts</button>
+                    <button class="guide-topic-btn" data-topic="carve"><i class="fas fa-pen-nib"></i> 3. Carving & Lettering</button>
+                    <button class="guide-topic-btn" data-topic="material"><i class="fas fa-fill-drip"></i> 4. Clay & Glaze Finishes</button>
+                    <button class="guide-topic-btn" data-topic="measure"><i class="fas fa-ruler-combined"></i> 5. Capacity & Dimensions</button>
+                    <button class="guide-topic-btn" data-topic="export"><i class="fas fa-download"></i> 6. Save, Export & Snapshot</button>
+                </div>
+                
+                <!-- Guide Content Panel -->
+                <div id="guide-content-area" class="guide-content-area" style="flex: 1; padding: 24px; overflow-y: auto; background: #18181f;">
+                    <!-- Dynamic topic content will be injected here -->
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="guide-modal-footer" style="padding: 10px 20px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; background: #131318; font-size: 11px; color: var(--color-tx-d);">
+                <span>💡 Tip: Press <kbd style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 3px; color: #fff; font-family: monospace;">Esc</kbd> anytime to close this guide.</span>
+                <button id="btn-guide-got-it" class="btn-primary" style="height: 28px; padding: 0 16px; font-size: 11px;">Got it, Start Designing</button>
             </div>
         </div>
     </div>

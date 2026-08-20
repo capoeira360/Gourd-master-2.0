@@ -24,6 +24,7 @@ export function showToast(msg, type = 'info') {
         setTimeout(() => el.remove(), 300);
     }, 2800);
 }
+window.showToast = showToast;
 
 export function applyGourdTexture(gourdMesh, dataURL, scale = 1.0, rotation = 0) {
     if (!gourdMesh) return;
@@ -182,58 +183,51 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             let patternTypeSelector = '';
             if ((!isLocalShape || zone.fillType !== 'concentric') && zone.type !== 'custom-image') {
                 patternTypeSelector = `
-                    <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: flex-start;">
-                        <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 6px;">
-                            <label class="control-label" style="margin-bottom: 0;">Pattern Layout</label>
-                            <span style="font-size: 10px; color: var(--color-tx-d);">Studio & Generative</span>
-                        </div>
-                        
-                        <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--color-tx-d); margin-bottom: 4px; margin-top: 2px;">Ceramic Studio Patterns</div>
-                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 8px; grid-template-columns: repeat(4, 1fr);">
-                            <button class="option-btn ${zone.patternType === 'pat-seigaiha' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-seigaiha" style="padding: 4px; font-size: 9px;">Seigaiha</button>
-                            <button class="option-btn ${zone.patternType === 'pat-triangles' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-triangles" style="padding: 4px; font-size: 9px;">Triangles</button>
-                            <button class="option-btn ${zone.patternType === 'pat-diamonds' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-diamonds" style="padding: 4px; font-size: 9px;">Diamonds</button>
-                            <button class="option-btn ${zone.patternType === 'pat-arches' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-arches" style="padding: 4px; font-size: 9px;">Arches</button>
-                            <button class="option-btn ${zone.patternType === 'pat-network' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-network" style="padding: 4px; font-size: 9px;">Network</button>
-                            <button class="option-btn ${zone.patternType === 'pat-quad-hatch' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-quad-hatch" style="padding: 4px; font-size: 9px;">Quad Hatch</button>
-                            <button class="option-btn ${zone.patternType === 'pat-plus' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-plus" style="padding: 4px; font-size: 9px;">Plus Cross</button>
-                            <button class="option-btn ${zone.patternType === 'pat-dashes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-dashes" style="padding: 4px; font-size: 9px;">Dashes</button>
-                            <button class="option-btn ${zone.patternType === 'pat-halftone' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-halftone" style="padding: 4px; font-size: 9px;">Halftone</button>
-                            <button class="option-btn ${zone.patternType === 'pat-dots' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-dots" style="padding: 4px; font-size: 9px;">Dots</button>
-                            <button class="option-btn ${zone.patternType === 'pat-squiggles' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-squiggles" style="padding: 4px; font-size: 9px;">Squiggles</button>
-                            <button class="option-btn ${zone.patternType === 'pat-org-grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-org-grid" style="padding: 4px; font-size: 9px;">Wavy Grid</button>
-                            <button class="option-btn ${zone.patternType === 'pat-river-stones' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-river-stones" style="padding: 4px; font-size: 9px;">Stones</button>
-                            <button class="option-btn ${zone.patternType === 'pat-leopard' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-leopard" style="padding: 4px; font-size: 9px;">Leopard</button>
-                            <button class="option-btn ${zone.patternType === 'pat-vertical-loops' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-vertical-loops" style="padding: 4px; font-size: 9px;">Loop Stems</button>
-                            <button class="option-btn ${zone.patternType === 'pat-zebra' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="pat-zebra" style="padding: 4px; font-size: 9px;">Zebra</button>
-                        </div>
-
-                        <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--color-tx-d); margin-bottom: 4px;">Geometric & Weave Layouts</div>
-                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 8px; grid-template-columns: repeat(3, 1fr);">
-                            <button class="option-btn ${zone.patternType === 'grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="grid" style="padding: 4px; font-size: 10px;">Grid</button>
-                            <button class="option-btn ${zone.patternType === 'spiral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="spiral" style="padding: 4px; font-size: 10px;">Spiral</button>
-                            <button class="option-btn ${zone.patternType === 'flower' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flower" style="padding: 4px; font-size: 10px;">Flower</button>
-                            <button class="option-btn ${zone.patternType === 'star' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="star" style="padding: 4px; font-size: 10px;">Star</button>
-                            <button class="option-btn ${zone.patternType === 'organic' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="organic" style="padding: 4px; font-size: 10px;">Organic</button>
-                            <button class="option-btn ${zone.patternType === 'box-grid' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="box-grid" style="padding: 4px; font-size: 10px;">Box Grid</button>
-                            <button class="option-btn ${zone.patternType === 'swirls' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="swirls" style="padding: 4px; font-size: 10px;">Swirls</button>
-                            <button class="option-btn ${zone.patternType === 'weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave" style="padding: 4px; font-size: 10px;">Basket Weave</button>
-                            <button class="option-btn ${zone.patternType === 'weave2' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="weave2" style="padding: 4px; font-size: 10px;">Diamond Weave</button>
-                            <button class="option-btn ${zone.patternType === 'geo-triangle' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="geo-triangle" style="padding: 4px; font-size: 10px;">Geo-Triangle</button>
-                            <button class="option-btn ${zone.patternType === 'flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="flow" style="padding: 4px; font-size: 10px;">Flow</button>
-                            <button class="option-btn ${zone.patternType === 'ribbons' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="ribbons" style="padding: 4px; font-size: 10px;">Ribbons</button>
-                        </div>
-
-                        <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--color-tx-d); margin-bottom: 4px;">Generative Organic Doodle</div>
-                        <div class="btn-grid-options" style="width: 100%; margin-bottom: 0; grid-template-columns: repeat(3, 1fr);">
-                            <button class="option-btn ${zone.patternType === 'scatter' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="scatter" style="padding: 4px; font-size: 10px;">Scatter</button>
-                            <button class="option-btn ${zone.patternType === 'doodle-flow' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-flow" style="padding: 4px; font-size: 10px;">Org Flow</button>
-                            <button class="option-btn ${zone.patternType === 'doodle-maze' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-maze" style="padding: 4px; font-size: 10px;">Maze</button>
-                            <button class="option-btn ${zone.patternType === 'doodle-zebra' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-zebra" style="padding: 4px; font-size: 10px;">Zebra Waves</button>
-                            <button class="option-btn ${zone.patternType === 'doodle-coral' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-coral" style="padding: 4px; font-size: 10px;">Coral Reef</button>
-                            <button class="option-btn ${zone.patternType === 'doodle-weave' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-weave" style="padding: 4px; font-size: 10px;">Org Weave</button>
-                            <button class="option-btn ${zone.patternType === 'doodle-confet' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-type="doodle-confet" style="padding: 4px; font-size: 10px;">Dot & Dash</button>
-                        </div>
+                    <div class="control-row" style="margin-bottom: 8px;">
+                        <label class="control-label" style="width: 35%;">Pattern Layout</label>
+                        <select class="zone-pattern-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                            <optgroup label="Ceramic Studio Patterns">
+                                <option value="pat-seigaiha" ${zone.patternType === 'pat-seigaiha' ? 'selected' : ''}>Seigaiha Waves</option>
+                                <option value="pat-triangles" ${zone.patternType === 'pat-triangles' ? 'selected' : ''}>Triangles</option>
+                                <option value="pat-diamonds" ${zone.patternType === 'pat-diamonds' ? 'selected' : ''}>Diamonds</option>
+                                <option value="pat-arches" ${zone.patternType === 'pat-arches' ? 'selected' : ''}>Cathedral Arches</option>
+                                <option value="pat-network" ${zone.patternType === 'pat-network' ? 'selected' : ''}>Network Grid</option>
+                                <option value="pat-quad-hatch" ${zone.patternType === 'pat-quad-hatch' ? 'selected' : ''}>Quad Hatch</option>
+                                <option value="pat-plus" ${zone.patternType === 'pat-plus' ? 'selected' : ''}>Plus Cross</option>
+                                <option value="pat-dashes" ${zone.patternType === 'pat-dashes' ? 'selected' : ''}>Dashes</option>
+                                <option value="pat-halftone" ${zone.patternType === 'pat-halftone' ? 'selected' : ''}>Halftone Dots</option>
+                                <option value="pat-dots" ${zone.patternType === 'pat-dots' ? 'selected' : ''}>Polka Dots</option>
+                                <option value="pat-squiggles" ${zone.patternType === 'pat-squiggles' ? 'selected' : ''}>Squiggles</option>
+                                <option value="pat-org-grid" ${zone.patternType === 'pat-org-grid' ? 'selected' : ''}>Wavy Grid</option>
+                                <option value="pat-river-stones" ${zone.patternType === 'pat-river-stones' ? 'selected' : ''}>River Stones</option>
+                                <option value="pat-leopard" ${zone.patternType === 'pat-leopard' ? 'selected' : ''}>Leopard Spots</option>
+                                <option value="pat-vertical-loops" ${zone.patternType === 'pat-vertical-loops' ? 'selected' : ''}>Loop Stems</option>
+                                <option value="pat-zebra" ${zone.patternType === 'pat-zebra' ? 'selected' : ''}>Zebra Stripes</option>
+                            </optgroup>
+                            <optgroup label="Geometric & Weave Layouts">
+                                <option value="grid" ${zone.patternType === 'grid' ? 'selected' : ''}>Grid</option>
+                                <option value="spiral" ${zone.patternType === 'spiral' ? 'selected' : ''}>Spiral</option>
+                                <option value="flower" ${zone.patternType === 'flower' ? 'selected' : ''}>Flower</option>
+                                <option value="star" ${zone.patternType === 'star' ? 'selected' : ''}>Star</option>
+                                <option value="organic" ${zone.patternType === 'organic' ? 'selected' : ''}>Organic</option>
+                                <option value="box-grid" ${zone.patternType === 'box-grid' ? 'selected' : ''}>Box Grid</option>
+                                <option value="swirls" ${zone.patternType === 'swirls' ? 'selected' : ''}>Swirls</option>
+                                <option value="weave" ${zone.patternType === 'weave' ? 'selected' : ''}>Basket Weave</option>
+                                <option value="weave2" ${zone.patternType === 'weave2' ? 'selected' : ''}>Diamond Weave</option>
+                                <option value="geo-triangle" ${zone.patternType === 'geo-triangle' ? 'selected' : ''}>Geo-Triangle</option>
+                                <option value="flow" ${zone.patternType === 'flow' ? 'selected' : ''}>Flow</option>
+                                <option value="ribbons" ${zone.patternType === 'ribbons' ? 'selected' : ''}>Ribbons</option>
+                            </optgroup>
+                            <optgroup label="Generative Organic Doodle">
+                                <option value="scatter" ${zone.patternType === 'scatter' ? 'selected' : ''}>Scatter (Stars)</option>
+                                <option value="doodle-flow" ${zone.patternType === 'doodle-flow' ? 'selected' : ''}>Organic Flow</option>
+                                <option value="doodle-maze" ${zone.patternType === 'doodle-maze' ? 'selected' : ''}>Maze</option>
+                                <option value="doodle-zebra" ${zone.patternType === 'doodle-zebra' ? 'selected' : ''}>Zebra Waves</option>
+                                <option value="doodle-coral" ${zone.patternType === 'doodle-coral' ? 'selected' : ''}>Coral Reef</option>
+                                <option value="doodle-weave" ${zone.patternType === 'doodle-weave' ? 'selected' : ''}>Organic Weave</option>
+                                <option value="doodle-confet" ${zone.patternType === 'doodle-confet' ? 'selected' : ''}>Dot & Dash</option>
+                            </optgroup>
+                        </select>
                     </div>
                 `;
             }
@@ -549,6 +543,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                     <option value="custom-image" ${zone.type === 'custom-image' ? 'selected' : ''}>Custom Image (SVG/PNG)</option>
                                 </select>
                             </div>
+                            
+                            ${patternTypeSelector}
                             
                             ${zone.type === 'custom-image' ? `
                                 <div class="control-row" style="margin-bottom: 8px;">
@@ -874,7 +870,6 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             
                             ${fillTypeSelect}
                             ${orientationSelect}
-                            ${patternTypeSelector}
                             ${boundsSliders}
                             
                             ${!['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType) ? `
@@ -1558,6 +1553,21 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                     const idx = state.patternZones.findIndex(z => z.id === zoneId) + 1;
                     zone.name = `${shapeFriendlyNames[zone.type]} ${idx}`;
                 }
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-pattern-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const zoneId = select.dataset.zoneId;
+            const patType = select.value;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                pushUndoState(gourdMesh);
+                zone.patternType = patType;
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
                 renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
@@ -2840,6 +2850,30 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         });
     });
     
+    // Helper to position and toggle any header dropdown menu with screen edge clamping
+    function toggleHeaderDropdown(btn, dropdown) {
+        if (!btn || !dropdown) return;
+        const isVisible = dropdown.style.display === 'block';
+        // Close all dropdowns
+        document.querySelectorAll('.dropdown-menu').forEach(d => d.style.display = 'none');
+        if (!isVisible) {
+            dropdown.style.display = 'block';
+            const rect = btn.getBoundingClientRect();
+            const menuWidth = dropdown.offsetWidth || 180;
+            const maxLeft = Math.max(8, window.innerWidth - menuWidth - 8);
+            const left = Math.max(8, Math.min(rect.left, maxLeft));
+            dropdown.style.left = `${left}px`;
+            dropdown.style.top = `${rect.bottom + 4}px`;
+        }
+    }
+
+    // Global listener to close dropdowns when clicking outside
+    window.addEventListener('click', (e) => {
+        if (!e.target.closest('.dropdown-menu') && !e.target.closest('.menu-btn')) {
+            document.querySelectorAll('.dropdown-menu').forEach(d => d.style.display = 'none');
+        }
+    });
+
     // 6. View Header Dropdown Menu wireframe
     const viewMenuBtn = document.getElementById('menu-view-btn');
     const viewDropdown = document.getElementById('view-dropdown');
@@ -2847,16 +2881,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
     if (viewMenuBtn && viewDropdown) {
         viewMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const rect = viewMenuBtn.getBoundingClientRect();
-            viewDropdown.style.left = `${rect.left}px`;
-            viewDropdown.style.top = `${rect.bottom + 4}px`;
-            
-            const isVisible = viewDropdown.style.display === 'block';
-            viewDropdown.style.display = isVisible ? 'none' : 'block';
-        });
-        
-        window.addEventListener('click', () => {
-            viewDropdown.style.display = 'none';
+            toggleHeaderDropdown(viewMenuBtn, viewDropdown);
         });
         
         // Dropdown Items actions
@@ -2881,6 +2906,53 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
             });
         });
     }
+
+    // Edit Header Dropdown Menu logic
+    const editMenuBtn = document.getElementById('menu-edit-btn');
+    const editDropdown = document.getElementById('edit-dropdown');
+    if (editMenuBtn && editDropdown) {
+        editMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleHeaderDropdown(editMenuBtn, editDropdown);
+        });
+
+        document.getElementById('menu-edit-undo')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            performUndo(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            editDropdown.style.display = 'none';
+        });
+
+        document.getElementById('menu-edit-redo')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            performRedo(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            editDropdown.style.display = 'none';
+        });
+    }
+
+    // Tools Header Dropdown Menu logic
+    const toolsMenuBtn = document.getElementById('menu-tools-btn');
+    const toolsDropdown = document.getElementById('tools-dropdown');
+    if (toolsMenuBtn && toolsDropdown) {
+        toolsMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleHeaderDropdown(toolsMenuBtn, toolsDropdown);
+        });
+
+        toolsDropdown.querySelectorAll('.dropdown-item[data-tool-action]').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tool = item.dataset.toolAction;
+                const controls = window.appControls;
+                selectTool(tool, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, controls);
+                document.querySelectorAll('.tool-btn, .mobile-nav-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.tool === tool);
+                });
+                toolsDropdown.style.display = 'none';
+            });
+        });
+    }
     
     // 7. File Header Dropdown Menu and File Import/Export logic
     const fileMenuBtn = document.getElementById('menu-file-btn');
@@ -2889,16 +2961,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
     if (fileMenuBtn && fileDropdown) {
         fileMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const rect = fileMenuBtn.getBoundingClientRect();
-            fileDropdown.style.left = `${rect.left}px`;
-            fileDropdown.style.top = `${rect.bottom + 4}px`;
-            
-            const isVisible = fileDropdown.style.display === 'block';
-            fileDropdown.style.display = isVisible ? 'none' : 'block';
-        });
-        
-        window.addEventListener('click', () => {
-            fileDropdown.style.display = 'none';
+            toggleHeaderDropdown(fileMenuBtn, fileDropdown);
         });
     }
 
@@ -3219,6 +3282,438 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
     // Load initial texture if present
     if (state.textureDataURL) {
         applyGourdTexture(gourdMesh, state.textureDataURL, state.textureScale, state.textureRotation);
+    }
+
+    // Initialize Interactive Studio Guide & Walkthrough Modal
+    setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, setCameraView);
+}
+
+// ===== INTERACTIVE GUIDE & TASK WALKTHROUGHS LOGIC =====
+function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, setCameraView) {
+    const guideModal = document.getElementById('guide-modal');
+    const helpBtn = document.getElementById('menu-help-btn');
+    const closeBtn = document.getElementById('btn-close-guide');
+    const gotItBtn = document.getElementById('btn-guide-got-it');
+    const searchInput = document.getElementById('guide-search-input');
+    const contentArea = document.getElementById('guide-content-area');
+    const topicButtons = document.querySelectorAll('.guide-topic-btn');
+
+    if (!guideModal || !contentArea) return;
+
+    let activeTopic = 'nav';
+
+    const GUIDE_TOPICS = {
+        nav: {
+            title: 'Studio Navigation & 3D Controls',
+            subtitle: 'Master viewport navigation, view angles, and mobile gestures',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> 360° Orbit & Rotation</div>
+                    <div class="guide-step-desc">
+                        <b>Desktop:</b> Click and drag the left mouse button anywhere on the 3D canvas.<br>
+                        <b>Mobile / Touch:</b> Drag with a single finger on the screen to spin and inspect your gourd from any perspective.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Panning & Translating Camera</div>
+                    <div class="guide-step-desc">
+                        <b>Desktop:</b> Hold right-click (or Shift + Left Click) and drag to slide the viewport.<br>
+                        <b>Mobile / Touch:</b> Drag with two fingers simultaneously.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> Zooming & Scale</div>
+                    <div class="guide-step-desc">
+                        <b>Desktop:</b> Scroll the mouse wheel up/down.<br>
+                        <b>Mobile / Touch:</b> Pinch open or closed with two fingers.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Viewport Angle HUD & Presets</div>
+                    <div class="guide-step-desc">
+                        Use the bottom-left viewport overlay HUD buttons (<b>Front</b>, <b>Side</b>, <b>Top</b>, <b>Persp</b>) to instantly lock camera orthogonal projections.
+                    </div>
+                    <div style="display: flex; gap: 6px; margin-top: 6px;">
+                        <button class="guide-action-btn" data-guide-act="view-front"><i class="fas fa-eye"></i> Front View (1)</button>
+                        <button class="guide-action-btn" data-guide-act="view-side"><i class="fas fa-eye"></i> Side View (2)</button>
+                        <button class="guide-action-btn" data-guide-act="view-top"><i class="fas fa-eye"></i> Top View (3)</button>
+                        <button class="guide-action-btn" data-guide-act="view-persp"><i class="fas fa-cube"></i> Perspective (4)</button>
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">5</span> Mobile Hotspot Sliders</div>
+                    <div class="guide-step-desc">
+                        On mobile devices, tap the interactive floating badges on the right side of the screen (<b>Neck</b>, <b>Bend</b>, <b>Body</b>, <b>Pattern</b>) to open slide-up adjustment bars without cluttering the 3D viewport.
+                    </div>
+                </div>
+
+                <div class="guide-pro-tip">
+                    <b>💡 Pro Tip:</b> Pressing keys <b>1</b>, <b>2</b>, <b>3</b>, or <b>4</b> on your keyboard lets you toggle camera views without moving your mouse cursor!
+                </div>
+            `
+        },
+        shortcuts: {
+            title: 'Studio Keyboard Shortcuts Cheatsheet',
+            subtitle: 'Quick access keys to accelerate your artisan customization workflow',
+            html: `
+                <table class="guide-shortcuts-table">
+                    <thead>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.12); font-weight: 700; color: #fff;">
+                            <th style="text-align: left; padding: 8px 10px;">Shortcut Key</th>
+                            <th style="text-align: left; padding: 8px 10px;">Action / Tool</th>
+                            <th style="text-align: left; padding: 8px 10px;">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><kbd>V</kbd></td><td><b>Select Tool</b></td><td>Default orbit and shape selection</td></tr>
+                        <tr><td><kbd>M</kbd></td><td><b>Measure Tool</b></td><td>Dimensions and fluid volume calculation</td></tr>
+                        <tr><td><kbd>P</kbd></td><td><b>Pattern Tool</b></td><td>Pattern layering, shapes and layouts</td></tr>
+                        <tr><td><kbd>L</kbd></td><td><b>Position Tool</b></td><td>Click & drag on gourd surface to place shapes</td></tr>
+                        <tr><td><kbd>T</kbd></td><td><b>Shape Tool</b></td><td>Gourd curvature, heights & dimensions</td></tr>
+                        <tr><td><kbd>C</kbd></td><td><b>Carve Tool</b></td><td>Freehand lettering & typography carving</td></tr>
+                        <tr><td><kbd>K</kbd></td><td><b>Camera Tool</b></td><td>Camera view angle presets</td></tr>
+                        <tr><td><kbd>1</kbd></td><td><b>Front View</b></td><td>Align camera to exact front plane</td></tr>
+                        <tr><td><kbd>2</kbd></td><td><b>Side View</b></td><td>Align camera to lateral profile</td></tr>
+                        <tr><td><kbd>3</kbd></td><td><b>Top View</b></td><td>Top-down aerial rim view</td></tr>
+                        <tr><td><kbd>4</kbd></td><td><b>Perspective</b></td><td>Natural 3D perspective mode</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td><b>Undo</b></td><td>Step back to previous modification</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td><td><b>Redo</b></td><td>Restore previously undone modification</td></tr>
+                        <tr><td><kbd>Esc</kbd></td><td><b>Close Modal</b></td><td>Dismiss guide and snapshot modals</td></tr>
+                    </tbody>
+                </table>
+            `
+        },
+        shape: {
+            title: 'Task 1: Sculpt Gourd Shape & Match Photo Guide',
+            subtitle: 'Recreate physical calabashes with exact curves, junctions, and photo overlays',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Upload & Align a Photo Guide</div>
+                    <div class="guide-step-desc">
+                        Take a photo of your physical artisan gourd against a neutral background and upload it under the <b>Shape</b> tab. Switch to <b>Front View (1)</b> to see the semi-transparent photo guide behind the 3D model. Adjust Photo Scale and X/Y Offsets to align the reference image.
+                    </div>
+                    <button class="guide-action-btn" data-guide-act="tab-shape"><i class="fas fa-shapes"></i> Open Shape Tab</button>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Adjust Main Dimensions & Bulb Curvature</div>
+                    <div class="guide-step-desc">
+                        Set <b>Gourd Height</b> (10–60 cm), <b>Base Width</b>, and <b>Rim Width</b>. Use <b>Bulb Width</b> and <b>Bulb Roundness</b> to match the spherical fullness of the lower body.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> Configure Middle Neck & Waist</div>
+                    <div class="guide-step-desc">
+                        Toggle <b>Has Middle Neck?</b> to enable waist indentation. Fine-tune <b>Neck Width</b>, <b>Neck Junction</b> (where the bulb meets the neck), and <b>Neck Roundness</b> to match single-bulb vs double-bulb bottle gourds.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Add Natural Organic Bending</div>
+                    <div class="guide-step-desc">
+                        Natural gourds rarely grow perfectly vertical. Use <b>Lateral Bend (X)</b> and <b>Lateral Bend (Z)</b> to give the neck realistic natural asymmetry.
+                    </div>
+                </div>
+
+                <div class="guide-pro-tip">
+                    <b>💡 Pro Tip:</b> Tanzanian bottle gourds (<i>Lagenaria siceraria</i>) typically feature a bulb junction around 55% height with a gentle 0.5–1.5 cm lateral bend.
+                </div>
+            `
+        },
+        pattern: {
+            title: 'Task 2: Applying & Layering Pattern Layouts',
+            subtitle: 'Compose ceramic patterns, organic doodles, geometric weaves, and hole drilling',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Add Multiple Overlapping Layers</div>
+                    <div class="guide-step-desc">
+                        Click <b>+ Add Layer</b> in the <b>Pattern</b> tab. You can stack multiple layers, toggle their visibility (eye icon), reorder them (▲/▼), and duplicate existing layers.
+                    </div>
+                    <button class="guide-action-btn" data-guide-act="tab-pattern"><i class="fas fa-circle-nodes"></i> Open Pattern Layers</button>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Select Layer Shape from Dropdown</div>
+                    <div class="guide-step-desc">
+                        Choose the boundary format:
+                        <ul style="margin: 4px 0 6px 18px; padding: 0;">
+                            <li><b>Full Gourd:</b> Wraps the entire surface seamlessly.</li>
+                            <li><b>Horizontal Band / Vertical Strip:</b> Creates isolated geometric borders.</li>
+                            <li><b>Circular / Square Patch:</b> Places local rosettes and repeating medallions.</li>
+                            <li><b>Custom Image (SVG/PNG):</b> Upload your own vector logos or silhouette masks!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> Pick from 35+ Categorized Pattern Layouts</div>
+                    <div class="guide-step-desc">
+                        Click the <b>Pattern Layout</b> dropdown to choose:
+                        <ul style="margin: 4px 0 6px 18px; padding: 0;">
+                            <li><b>Ceramic Studio:</b> Seigaiha Waves, Triangles, Diamonds, Cathedral Arches, Halftones, Leopard, Zebra.</li>
+                            <li><b>Geometric & Weave:</b> Basket Weave, Diamond Weave, Geo-Triangle, Box Grid, Flow, Spiral, Ribbons.</li>
+                            <li><b>Generative Doodle:</b> Star Scatter, Organic Flow, Maze, Zebra Waves, Coral Reef, Dot & Dash.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Hole Drilling vs Carving Lines</div>
+                    <div class="guide-step-desc">
+                        Switch between <b>Lines</b>, <b>Holes</b>, or <b>Both</b>. When Holes are selected, adjust the drill bit diameter, hole count or distance spacing, and hole shapes (Round, Wobbly, Star). Enable <b>Draughts (Checkerboard)</b> for alternating woven holes!
+                    </div>
+                </div>
+
+                <div class="guide-pro-tip">
+                    <b>💡 Pro Tip:</b> Use the <b>Position Tool (L)</b> to click and drag any patch or band directly on the 3D gourd surface to place it visually!
+                </div>
+            `
+        },
+        carve: {
+            title: 'Task 3: Freehand Carving & Typography Lettering',
+            subtitle: 'Engrave custom names, Swahili proverbs, and dates with artisanal burnt finishes',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Activate Lettering Studio</div>
+                    <div class="guide-step-desc">
+                        Open the <b>Carve</b> tab (or press <kbd>C</kbd>) and click <b>+ Add Lettering Text</b> to create a new typography block.
+                    </div>
+                    <button class="guide-action-btn" data-guide-act="tab-carve"><i class="fas fa-pen-nib"></i> Open Carve Studio</button>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Choose Craft Font & Lettering Style</div>
+                    <div class="guide-step-desc">
+                        Type your desired phrase and pick from 13 craft typography styles, including <b>Cinzel Decorative</b> (Classical Ornate), <b>Playfair Display</b> (Editorial Serif), <b>UnifrakturCook</b> (Fraktur Blackletter), <b>MedievalSharp</b> (Gothic), <b>Great Vibes</b> (Calligraphy Script), and <b>Rye</b> (Vintage Woodcut).
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> Burnt Finish Tones & Curvature</div>
+                    <div class="guide-step-desc">
+                        Select an authentic woodburn / pyrographed finish color: <b>Dark Walnut</b>, <b>Ebony Char</b>, <b>Burnt Umber</b>, or <b>Terracotta</b>. Adjust <b>Arc Curvature</b> to bend the text gracefully along the gourd's circumference.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Placement & Carve Depth</div>
+                    <div class="guide-step-desc">
+                        Use <b>Height Offset</b> and <b>Rotation Angle</b> sliders to position the text onto the bulb or neck, and adjust <b>Carve Offset Depth</b> to simulate deeply engraved vs shallow pyrography.
+                    </div>
+                </div>
+            `
+        },
+        material: {
+            title: 'Task 4: Clay, Glaze & Material Finishes',
+            subtitle: 'Customize surface tones, ceramic reflectivity, and custom texture wrapping',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Base Color & Clay Tone</div>
+                    <div class="guide-step-desc">
+                        Open the <b>Material</b> tab to pick the base tone of your vessel (e.g. Ochre, Terracotta, Raw Clay, Porcelain, Sandstone).
+                    </div>
+                    <button class="guide-action-btn" data-guide-act="tab-material"><i class="fas fa-fill-drip"></i> Open Material Tab</button>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Roughness & Metallic Luster</div>
+                    <div class="guide-step-desc">
+                        Set <b>Roughness</b> to near 0 for a high-gloss reflective ceramic glaze, or increase to 0.8–1.0 for a matte unglazed earthen clay finish. Adjust <b>Metalness</b> for subtle bronze or mineral powder sheens.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> Upload Custom Surface Textures</div>
+                    <div class="guide-step-desc">
+                        Upload custom woodgrain, fabric, or cracked clay images to wrap seamlessly around the 3D gourd with customizable <b>Texture Scale</b> and <b>Rotation</b>.
+                    </div>
+                </div>
+            `
+        },
+        measure: {
+            title: 'Task 5: Dimensions, Surface Area & Fluid Capacity',
+            subtitle: 'Inspect real-world physical dimensions and volumetric liquid capacity',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Physical Height & Diameters</div>
+                    <div class="guide-step-desc">
+                        Open the <b>Measure</b> tab (<kbd>M</kbd>) to view exact calibrated dimensions: <b>Total Height</b>, <b>Max Bulb Diameter</b>, <b>Neck Diameter</b>, and <b>Base Diameter</b> in centimeters.
+                    </div>
+                    <button class="guide-action-btn" data-guide-act="tab-measure"><i class="fas fa-ruler-combined"></i> Open Measure Tab</button>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Fluid Volume (cm³ / mL) Integration</div>
+                    <div class="guide-step-desc">
+                        The app uses real-time disk volume numerical integration along the calabash profile to calculate true internal liquid capacity in <b>cm³ (milliliters)</b> and total <b>Surface Area (cm²)</b>.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> Dimension Lines HUD</div>
+                    <div class="guide-step-desc">
+                        Toggle <b>Show Dimension Lines</b> to overlay labeled measurement arrows directly onto the 3D model in the viewport.
+                    </div>
+                </div>
+            `
+        },
+        export: {
+            title: 'Task 6: Save, Export & Snapshot Studio',
+            subtitle: 'Capture presentation snapshots, save project JSON files, and copy layouts',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Take Snapshot with Design Notes</div>
+                    <div class="guide-step-desc">
+                        Click <b>Take Snapshot</b> in the top right header. The studio renders a high-res capture of your current 3D view with studio lighting. You can type custom artisan design notes and download a high-quality PNG or copy the image directly to your clipboard.
+                    </div>
+                    <button class="guide-action-btn" data-guide-act="take-snapshot"><i class="fas fa-camera"></i> Take Snapshot Now</button>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Save & Load Full Projects (.json)</div>
+                    <div class="guide-step-desc">
+                        Under the <b>File</b> menu in the top bar, click <b>Save Full Project</b> to download a complete <code>.json</code> file containing your 3D shape, material settings, and all pattern layers. Use <b>Load Full Project...</b> anytime to restore your work.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> Copy & Paste Pattern Layouts</div>
+                    <div class="guide-step-desc">
+                        Designed a pattern layout you love? Use <b>File > Copy Pattern Layout</b> to copy the entire layer arrangement to your system clipboard. You can paste it onto any other gourd shape instantly!
+                    </div>
+                </div>
+            `
+        }
+    };
+
+    function renderTopic(topicKey) {
+        activeTopic = topicKey;
+        topicButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.topic === topicKey));
+        
+        const data = GUIDE_TOPICS[topicKey];
+        if (!data) return;
+
+        contentArea.innerHTML = `
+            <div style="margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px;">
+                <h2 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #fff;">${data.title}</h2>
+                <p style="margin: 0; font-size: 12px; color: var(--color-tx-m); line-height: 1.4;">${data.subtitle}</p>
+            </div>
+            ${data.html}
+        `;
+
+        // Wire interactive guide action buttons
+        contentArea.querySelectorAll('.guide-action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const act = btn.dataset.guideAct;
+                guideModal.style.display = 'none';
+
+                if (act.startsWith('view-')) {
+                    const view = act.replace('view-', '');
+                    if (setCameraView) setCameraView(view);
+                    showToast(`Camera switched to ${view.toUpperCase()} view`, 'info');
+                } else if (act.startsWith('tab-')) {
+                    const tabName = act.replace('tab-', '');
+                    state.activeTab = tabName;
+                    document.querySelectorAll('.panel-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast(`Opened ${tabName.toUpperCase()} tab`, 'info');
+                } else if (act === 'take-snapshot') {
+                    document.getElementById('btn-export')?.click();
+                }
+            });
+        });
+    }
+
+    // Initial render
+    renderTopic('nav');
+
+    // Topic button click handlers
+    topicButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            renderTopic(btn.dataset.topic);
+        });
+    });
+
+    // Open guide modal from Help button
+    if (helpBtn) {
+        helpBtn.addEventListener('click', () => {
+            guideModal.style.display = 'flex';
+        });
+    }
+
+    // Close guide modal handlers
+    if (closeBtn) closeBtn.addEventListener('click', () => guideModal.style.display = 'none');
+    if (gotItBtn) gotItBtn.addEventListener('click', () => guideModal.style.display = 'none');
+
+    guideModal.addEventListener('click', (e) => {
+        if (e.target === guideModal) guideModal.style.display = 'none';
+    });
+
+    // Search filter across topics
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase().trim();
+            if (!query) {
+                renderTopic(activeTopic);
+                return;
+            }
+
+            let matches = [];
+            Object.keys(GUIDE_TOPICS).forEach(key => {
+                const item = GUIDE_TOPICS[key];
+                if (item.title.toLowerCase().includes(query) || item.subtitle.toLowerCase().includes(query) || item.html.toLowerCase().includes(query)) {
+                    matches.push({ key, ...item });
+                }
+            });
+
+            if (matches.length === 0) {
+                contentArea.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px; color: var(--color-tx-d);">
+                        <i class="fas fa-search" style="font-size: 24px; margin-bottom: 10px; display: block; opacity: 0.5;"></i>
+                        <p style="font-size: 13px; margin: 0;">No guides found matching "<b>${query}</b>"</p>
+                        <p style="font-size: 11px; margin-top: 6px;">Try searching for <i>carve</i>, <i>pattern</i>, <i>shape</i>, <i>photo</i>, or <i>volume</i>.</p>
+                    </div>
+                `;
+            } else {
+                contentArea.innerHTML = `
+                    <div style="margin-bottom: 14px; font-size: 12px; color: var(--color-tx-m);">
+                        Found <b>${matches.length}</b> guide topic${matches.length > 1 ? 's' : ''} matching "<b>${query}</b>":
+                    </div>
+                    ${matches.map(m => `
+                        <div style="margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 16px;">
+                            <h3 style="margin: 0 0 4px 0; font-size: 15px; color: var(--color-acc);">${m.title}</h3>
+                            <p style="margin: 0 0 10px 0; font-size: 11px; color: var(--color-tx-d);">${m.subtitle}</p>
+                            ${m.html}
+                        </div>
+                    `).join('')}
+                `;
+
+                // Wire action buttons inside search results
+                contentArea.querySelectorAll('.guide-action-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const act = btn.dataset.guideAct;
+                        guideModal.style.display = 'none';
+
+                        if (act.startsWith('view-')) {
+                            const view = act.replace('view-', '');
+                            if (setCameraView) setCameraView(view);
+                        } else if (act.startsWith('tab-')) {
+                            const tabName = act.replace('tab-', '');
+                            state.activeTab = tabName;
+                            document.querySelectorAll('.panel-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+                            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                        } else if (act === 'take-snapshot') {
+                            document.getElementById('btn-export')?.click();
+                        }
+                    });
+                });
+            }
+        });
     }
 }
 
