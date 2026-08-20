@@ -248,9 +248,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     `;
                 } else if (zone.type === 'diagonal-stripe') {
                     boundsSliders = `
-                        ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
-                        ${sliderRow('Stripe Width', `pat-zone-width-${zone.id}`, 0.02, 0.5, 0.01, zone.width, 'cm')}
-                        ${sliderRow('Slant Angle', `pat-zone-slantAngle-${zone.id}`, -90, 90, 1, zone.slantAngle, '°')}
+                        ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT !== undefined ? zone.centerT : 0.5)}
+                        ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round((zone.centerTheta !== undefined ? zone.centerTheta : 0.0) * 180 / Math.PI), '°')}
+                        ${sliderRow('Stripe Width', `pat-zone-width-${zone.id}`, 0.02, 0.5, 0.01, zone.width || 0.15, 'cm')}
+                        ${sliderRow('Slant Angle', `pat-zone-slantAngle-${zone.id}`, -90, 90, 1, zone.slantAngle !== undefined ? zone.slantAngle : 15, '°')}
                     `;
                 } else if (zone.type === 'diagonal-frame') {
                     boundsSliders = `

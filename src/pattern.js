@@ -863,9 +863,12 @@ export function isPointInZoneRaw(t, theta, zone) {
 
     if (zone.type === 'diagonal-stripe') {
         const y = t * getGourdHeight() - getGourdHeight() / 2;
-        const r = getGourdRadius(t);
-        const x = r * theta;
+        const r = Math.max(0.01, getGourdRadius(t));
+        const centerT = zone.centerT !== undefined ? zone.centerT : 0.5;
+        const centerT_y = centerT * getGourdHeight() - getGourdHeight() / 2;
+        const centerTheta = zone.centerTheta !== undefined ? zone.centerTheta : 0.0;
         const slantRad = (zone.slantAngle || 0) * Math.PI / 180;
+        const dy = y - centerT_y;
 
         let wave = 0;
         const waveAmp = depthVal * 5.0; // Scale factor matching Three.js scene dimensions
@@ -877,9 +880,25 @@ export function isPointInZoneRaw(t, theta, zone) {
             wave = organicWave(theta, 3) * waveAmp;
         }
 
-        const proj = y * Math.cos(slantRad) - x * Math.sin(slantRad);
-        const centerProj = (zone.centerT * getGourdHeight() - getGourdHeight() / 2) * Math.cos(slantRad);
-        return Math.abs(proj - centerProj - wave) <= (zone.width || 0.15);
+        const absSlant = Math.abs(slantRad);
+        if (absSlant < 0.001) {
+            return Math.abs(dy - wave) <= (zone.width || 0.15);
+        }
+
+        // Relative angular displacement around the circumference
+        let dTheta = mappedTheta - centerTheta;
+        dTheta = ((dTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+        const s = r * dTheta;
+
+        const proj = dy * Math.cos(slantRad) - s * Math.sin(slantRad);
+        const periodP = 2 * Math.PI * r * Math.sin(absSlant);
+
+        let wrappedProj = proj;
+        if (periodP > 0.001) {
+            wrappedProj = ((proj + periodP / 2) % periodP + periodP) % periodP - periodP / 2;
+        }
+
+        return Math.abs(wrappedProj - wave) <= (zone.width || 0.15);
     }
 
     if (zone.type === 'diagonal-frame') {
