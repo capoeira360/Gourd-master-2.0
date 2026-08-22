@@ -868,6 +868,200 @@ input[type="color"]::-webkit-color-swatch {
     display: none !important;
 }
 
+/* ===== WHATSAPP-STYLE FLOATING 3D PIP VIEWPORT ===== */
+.mobile-pip-viewer {
+    position: fixed;
+    top: 52px;
+    right: 12px;
+    width: 180px;
+    height: 240px;
+    min-width: 120px;
+    min-height: 160px;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 120px);
+    background: rgba(18, 18, 22, 0.92);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1.5px solid rgba(212, 168, 67, 0.45);
+    border-radius: 14px;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(212, 168, 67, 0.2);
+    z-index: 9500;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: none;
+    transform: scale(0.85) translateY(-10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, width 0.25s cubic-bezier(0.16, 1, 0.3, 1), height 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.mobile-pip-viewer.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1) translateY(0);
+}
+
+.mobile-pip-viewer.size-compact {
+    width: 150px;
+    height: 200px;
+}
+
+.mobile-pip-viewer.size-medium {
+    width: 210px;
+    height: 290px;
+}
+
+.mobile-pip-viewer.size-expanded {
+    width: 280px;
+    height: 380px;
+}
+
+.mobile-pip-viewer.size-large {
+    width: min(340px, calc(100vw - 24px));
+    height: min(460px, calc(100vh - 120px));
+}
+
+.pip-header {
+    height: 32px;
+    background: rgba(0, 0, 0, 0.55);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    cursor: grab;
+    user-select: none;
+    flex-shrink: 0;
+}
+.pip-header:active {
+    cursor: grabbing;
+}
+
+.pip-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pip-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4caf50;
+    box-shadow: 0 0 8px #4caf50;
+    animation: pipPulse 2s infinite ease-in-out;
+}
+@keyframes pipPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.pip-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.pip-title i {
+    font-size: 9px;
+    color: var(--color-acc);
+}
+
+.pip-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pip-action-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--color-tx-m);
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.pip-action-btn:hover {
+    background: rgba(212, 168, 67, 0.2);
+    border-color: var(--color-acc);
+    color: var(--color-acc);
+}
+.pip-action-btn.active {
+    background: var(--color-acc);
+    color: var(--color-bg);
+    border-color: var(--color-acc);
+}
+
+.pip-body {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #161618;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+#pip-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    cursor: grab;
+}
+#pip-canvas:active {
+    cursor: grabbing;
+}
+
+.pip-overlay-hint {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 8px;
+    color: var(--color-tx-d);
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+    white-space: nowrap;
+}
+
+.pip-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: se-resize;
+    z-index: 10;
+}
+.pip-resize-handle::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid rgba(212, 168, 67, 0.6);
+    border-bottom: 2px solid rgba(212, 168, 67, 0.6);
+}
+
 .mobile-adjustments-bar {
     position: fixed;
     bottom: 0;

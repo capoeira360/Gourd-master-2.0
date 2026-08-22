@@ -3267,7 +3267,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         });
     });
 
-    // Mobile adjustments bar close button
+    // Mobile adjustments bar close button (exit layers panel)
     document.getElementById('btn-close-adjustments')?.addEventListener('click', () => {
         const bar = document.getElementById('mobile-adjustments-bar');
         if (bar) {
@@ -3276,9 +3276,13 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
                 bar.style.display = 'none';
             }, 300);
         }
+        hideMobilePipViewer();
         state.activeMobileSection = null;
         document.querySelectorAll('.gourd-hotspot').forEach(btn => btn.classList.remove('active'));
     });
+
+    // Initialize Mobile WhatsApp-Style PiP Live Viewer Controller
+    initMobilePipController();
 
     // Load initial texture if present
     if (state.textureDataURL) {
@@ -3811,6 +3815,7 @@ export function openMobileAdjustments(section, gourdMesh, carveGroup, measureGro
 
         bar.style.display = 'block';
         setTimeout(() => bar.classList.add('open'), 10);
+        showMobilePipViewer();
     }
 
     let html = '';
@@ -3921,5 +3926,194 @@ export function openMobileAdjustments(section, gourdMesh, carveGroup, measureGro
                 openMobileAdjustments(section, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, true);
             });
         }
+    }
+}
+
+// ===== MOBILE FLOATING 3D PIP VIEWER CONTROLLER =====
+export function showMobilePipViewer() {
+    const pip = document.getElementById('mobile-pip-viewer');
+    if (!pip || window.innerWidth > 900) return;
+    pip.style.display = 'flex';
+    requestAnimationFrame(() => {
+        pip.classList.add('active');
+        if (window.appPipViewer) window.appPipViewer.show();
+    });
+
+    // Hide overlay hint after 2.5s
+    const hint = document.getElementById('pip-hint');
+    if (hint) {
+        hint.style.opacity = '1';
+        setTimeout(() => {
+            if (hint) hint.style.opacity = '0';
+        }, 2500);
+    }
+}
+
+export function hideMobilePipViewer() {
+    const pip = document.getElementById('mobile-pip-viewer');
+    if (!pip) return;
+    pip.classList.remove('active');
+    if (window.appPipViewer) window.appPipViewer.hide();
+    setTimeout(() => {
+        if (!pip.classList.contains('active')) {
+            pip.style.display = 'none';
+        }
+    }, 300);
+}
+
+function initMobilePipController() {
+    const pip = document.getElementById('mobile-pip-viewer');
+    const dragHandle = document.getElementById('pip-drag-handle');
+    const rotateBtn = document.getElementById('btn-pip-rotate');
+    const sizeBtn = document.getElementById('btn-pip-size');
+    const closeBtn = document.getElementById('btn-pip-close');
+    const resizeHandle = document.getElementById('pip-resize-handle');
+
+    if (!pip) return;
+
+    // 1. Drag & Repositioning
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let initialLeft = 0, initialTop = 0;
+
+    function onDragStart(e) {
+        if (e.target.closest('.pip-action-btn')) return;
+        isDragging = true;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        startX = clientX;
+        startY = clientY;
+
+        const rect = pip.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+
+        pip.style.transition = 'none'; // Instant drag response
+        e.preventDefault();
+    }
+
+    function onDragMove(e) {
+        if (!isDragging) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+
+        const pipW = pip.offsetWidth;
+        const pipH = pip.offsetHeight;
+
+        const newLeft = Math.max(8, Math.min(initialLeft + dx, window.innerWidth - pipW - 8));
+        const newTop = Math.max(44, Math.min(initialTop + dy, window.innerHeight - pipH - 12));
+
+        pip.style.left = `${newLeft}px`;
+        pip.style.top = `${newTop}px`;
+        pip.style.right = 'auto';
+        pip.style.bottom = 'auto';
+    }
+
+    function onDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        pip.style.transition = ''; // Restore smooth transitions
+    }
+
+    if (dragHandle) {
+        dragHandle.addEventListener('mousedown', onDragStart);
+        dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
+    }
+    window.addEventListener('mousemove', onDragMove);
+    window.addEventListener('touchmove', onDragMove, { passive: false });
+    window.addEventListener('mouseup', onDragEnd);
+    window.addEventListener('touchend', onDragEnd);
+
+    // 2. Cycle Window Size (Compact -> Medium -> Expanded -> Large)
+    const sizes = ['size-compact', 'size-medium', 'size-expanded', 'size-large'];
+    let currentSizeIdx = 1; // Default medium
+    pip.classList.add(sizes[currentSizeIdx]);
+
+    if (sizeBtn) {
+        sizeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            pip.classList.remove(...sizes);
+            currentSizeIdx = (currentSizeIdx + 1) % sizes.length;
+            pip.classList.add(sizes[currentSizeIdx]);
+            
+            // Clear custom inline dimensions if set by resize handle
+            pip.style.width = '';
+            pip.style.height = '';
+            
+            if (window.appPipViewer) {
+                setTimeout(window.appPipViewer.resize, 260);
+            }
+        });
+    }
+
+    // 3. Auto-Rotate 360 Toggle
+    if (rotateBtn) {
+        rotateBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.appPipViewer) {
+                const rotating = window.appPipViewer.toggleRotate();
+                rotateBtn.classList.toggle('active', rotating);
+                showToast(rotating ? 'Live View: 360° rotation enabled' : 'Live View: rotation paused', 'info');
+            }
+        });
+    }
+
+    // 4. Close PiP
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideMobilePipViewer();
+        });
+    }
+
+    // 5. Custom Fluid Resize Handle
+    if (resizeHandle) {
+        let isResizing = false;
+        let resizeStartX = 0, resizeStartY = 0;
+        let startW = 0, startH = 0;
+
+        function onResizeStart(e) {
+            isResizing = true;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            resizeStartX = clientX;
+            resizeStartY = clientY;
+            startW = pip.offsetWidth;
+            startH = pip.offsetHeight;
+            pip.style.transition = 'none';
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function onResizeMove(e) {
+            if (!isResizing) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const dw = clientX - resizeStartX;
+            const dh = clientY - resizeStartY;
+
+            const newW = Math.max(120, Math.min(startW + dw, window.innerWidth - 24));
+            const newH = Math.max(160, Math.min(startH + dh, window.innerHeight - 100));
+
+            pip.style.width = `${newW}px`;
+            pip.style.height = `${newH}px`;
+            if (window.appPipViewer) window.appPipViewer.resize();
+        }
+
+        function onResizeEnd() {
+            if (!isResizing) return;
+            isResizing = false;
+            pip.style.transition = '';
+            if (window.appPipViewer) window.appPipViewer.resize();
+        }
+
+        resizeHandle.addEventListener('mousedown', onResizeStart);
+        resizeHandle.addEventListener('touchstart', onResizeStart, { passive: false });
+        window.addEventListener('mousemove', onResizeMove);
+        window.addEventListener('touchmove', onResizeMove, { passive: false });
+        window.addEventListener('mouseup', onResizeEnd);
+        window.addEventListener('touchend', onResizeEnd);
     }
 }

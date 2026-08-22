@@ -277,6 +277,32 @@
         </footer>
     </div>
 
+    <!-- ===== MOBILE WHATSAPP-STYLE FLOATING 3D PIP VIEWPORT ===== -->
+    <div id="mobile-pip-viewer" class="mobile-pip-viewer mobile-only" style="display: none;">
+        <div class="pip-header" id="pip-drag-handle">
+            <div class="pip-header-left">
+                <span class="pip-status-dot"></span>
+                <span class="pip-title"><i class="fas fa-video"></i> Live View</span>
+            </div>
+            <div class="pip-header-actions">
+                <button id="btn-pip-rotate" class="pip-action-btn" title="Toggle 360° Auto-Rotate">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button id="btn-pip-size" class="pip-action-btn" title="Cycle Window Size">
+                    <i class="fas fa-expand-alt"></i>
+                </button>
+                <button id="btn-pip-close" class="pip-action-btn" title="Close Live View">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="pip-body">
+            <canvas id="pip-canvas"></canvas>
+            <div class="pip-overlay-hint" id="pip-hint">Swipe to orbit</div>
+        </div>
+        <div class="pip-resize-handle" id="pip-resize-handle" title="Drag to resize"></div>
+    </div>
+
     <!-- ===== MOBILE ADJUSTMENTS BAR ===== -->
     <div id="mobile-adjustments-bar" class="mobile-adjustments-bar mobile-only" style="display: none;">
         <div class="adjustments-bar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
