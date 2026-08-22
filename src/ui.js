@@ -4,6 +4,7 @@ import { updatePatternGroup, updatePatternGroupImmediate, getSvgPaths, isPointIn
 import { updateCarveGroup } from './carve.js';
 import * as THREE from 'three';
 import { getGourdRadius, createGourdGeometry } from './gourd.js';
+import { exportToGLB, exportToOBJ, exportToSTL, exportToUSDZ, exportToPLY, getModelStats } from './export3d.js';
 
 // Toast notifications helper
 export function showToast(msg, type = 'info') {
@@ -2711,7 +2712,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
     }
 
     let currentSnapshotDataUrl = null;
-    document.getElementById('btn-export')?.addEventListener('click', () => {
+    function openScreenshotCapture() {
         // Temporarily hide helpers to make it a clean viewpoint screenshot
         const oldGridVis = gridHelper ? gridHelper.visible : true;
         if (gridHelper) gridHelper.visible = false;
@@ -2743,7 +2744,10 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
             const overlay = document.getElementById('mobile-hotspots-overlay');
             if (overlay) overlay.style.display = 'none';
         }
-    });
+    }
+
+    document.getElementById('btn-snapshot')?.addEventListener('click', openScreenshotCapture);
+    document.getElementById('btn-export')?.addEventListener('click', openScreenshotCapture);
 
     // Close screenshot modal events
     document.getElementById('btn-close-screenshot')?.addEventListener('click', () => {
@@ -3289,8 +3293,167 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         applyGourdTexture(gourdMesh, state.textureDataURL, state.textureScale, state.textureRotation);
     }
 
+    // Initialize 3D Model Universal Exporter Studio Modal
+    setupExport3DModal(gourdMesh, carveGroup, patternGroup);
+
     // Initialize Interactive Studio Guide & Walkthrough Modal
     setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, setCameraView);
+}
+
+// ===== 3D MODEL EXPORT STUDIO MODAL LOGIC =====
+function setupExport3DModal(gourdMesh, carveGroup, patternGroup) {
+    const modal = document.getElementById('export-3d-modal');
+    const openBtn = document.getElementById('btn-export-3d');
+    const menuExportBtn = document.getElementById('menu-export-3d');
+    const closeBtn = document.getElementById('btn-close-export-3d');
+    const cancelBtn = document.getElementById('btn-cancel-export-3d');
+    const executeBtn = document.getElementById('btn-execute-export-3d');
+    const formatCards = document.querySelectorAll('.export-format-card');
+    const scaleSelect = document.getElementById('export-scale-select');
+    const filenamePreview = document.getElementById('export-filename-preview');
+
+    const statVerts = document.getElementById('export-stat-verts');
+    const statFaces = document.getElementById('export-stat-faces');
+    const statDims = document.getElementById('export-stat-dims');
+
+    let selectedFormat = 'glb';
+
+    function updatePreview() {
+        const stats = getModelStats(gourdMesh, carveGroup, patternGroup);
+        if (statVerts) statVerts.textContent = stats.vertices.toLocaleString();
+        if (statFaces) statFaces.textContent = stats.faces.toLocaleString();
+        if (statDims) statDims.textContent = `${stats.heightCm} × ${stats.widthCm} cm`;
+
+        const name = (state.projectName || 'my-artisan-gourd').replace(/[^a-zA-Z0-9\-_]/g, '_');
+        if (filenamePreview) filenamePreview.textContent = `${name}.${selectedFormat}`;
+    }
+
+    function openModal() {
+        if (!modal) return;
+        updatePreview();
+        modal.style.display = 'flex';
+        const fileDropdown = document.getElementById('file-dropdown');
+        if (fileDropdown) fileDropdown.style.display = 'none';
+    }
+
+    function closeModal() {
+        if (modal) modal.style.display = 'none';
+    }
+
+    openBtn?.addEventListener('click', openModal);
+    menuExportBtn?.addEventListener('click', openModal);
+    closeBtn?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+
+    modal?.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Format selection cards
+    formatCards.forEach(card => {
+        card.addEventListener('click', () => {
+            formatCards.forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            selectedFormat = card.dataset.format || 'glb';
+            updatePreview();
+        });
+    });
+
+    // Execute Export button
+    executeBtn?.addEventListener('click', async () => {
+        const incBody = document.getElementById('export-inc-body')?.checked ?? true;
+        const incPatterns = document.getElementById('export-inc-patterns')?.checked ?? true;
+        const incCarvings = document.getElementById('export-inc-carvings')?.checked ?? true;
+        const incMaterials = document.getElementById('export-inc-materials')?.checked ?? true;
+        const scaleUnit = scaleSelect ? scaleSelect.value : 'cm';
+
+        const options = {
+            includeGourd: incBody,
+            includePatterns: incPatterns,
+            includeCarvings: incCarvings,
+            includeMaterials: incMaterials,
+            scaleUnit: scaleUnit
+        };
+
+        const origText = executeBtn.innerHTML;
+        executeBtn.disabled = true;
+        executeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating 3D Asset...';
+
+        try {
+            if (selectedFormat === 'glb') {
+                const res = await exportToGLB(gourdMesh, carveGroup, patternGroup, options);
+                showToast(`Exported ${res.filename} (${(res.sizeBytes / 1024).toFixed(1)} KB)`, 'success');
+            } else if (selectedFormat === 'obj') {
+                const res = await exportToOBJ(gourdMesh, carveGroup, patternGroup, options);
+                showToast(`Exported ${res.filename} (${(res.sizeBytes / 1024).toFixed(1)} KB)`, 'success');
+            } else if (selectedFormat === 'stl') {
+                const res = await exportToSTL(gourdMesh, carveGroup, patternGroup, options);
+                showToast(`Exported ${res.filename} for 3D Printing (${(res.sizeBytes / 1024).toFixed(1)} KB)`, 'success');
+            } else if (selectedFormat === 'usdz') {
+                const res = await exportToUSDZ(gourdMesh, carveGroup, patternGroup, options);
+                showToast(`Exported Apple AR ${res.filename} (${(res.sizeBytes / 1024).toFixed(1)} KB)`, 'success');
+            } else if (selectedFormat === 'ply') {
+                const res = await exportToPLY(gourdMesh, carveGroup, patternGroup, options);
+                showToast(`Exported ${res.filename} (${(res.sizeBytes / 1024).toFixed(1)} KB)`, 'success');
+            }
+            closeModal();
+        } catch (err) {
+            console.error('3D Export error:', err);
+            showToast('Failed to export 3D model: ' + (err.message || 'Unknown error'), 'error');
+        } finally {
+            executeBtn.disabled = false;
+            executeBtn.innerHTML = origText;
+        }
+    });
+
+    // Quick export menu triggers
+    document.getElementById('menu-quick-export-glb')?.addEventListener('click', async () => {
+        const fileDropdown = document.getElementById('file-dropdown');
+        if (fileDropdown) fileDropdown.style.display = 'none';
+        try {
+            showToast('Generating GLB 3D model...', 'info');
+            const res = await exportToGLB(gourdMesh, carveGroup, patternGroup, { scaleUnit: 'cm' });
+            showToast(`Exported ${res.filename}!`, 'success');
+        } catch (err) {
+            showToast('GLB export failed!', 'error');
+        }
+    });
+
+    document.getElementById('menu-quick-export-obj')?.addEventListener('click', async () => {
+        const fileDropdown = document.getElementById('file-dropdown');
+        if (fileDropdown) fileDropdown.style.display = 'none';
+        try {
+            showToast('Generating OBJ mesh...', 'info');
+            const res = await exportToOBJ(gourdMesh, carveGroup, patternGroup, { scaleUnit: 'cm' });
+            showToast(`Exported ${res.filename}!`, 'success');
+        } catch (err) {
+            showToast('OBJ export failed!', 'error');
+        }
+    });
+
+    document.getElementById('menu-quick-export-stl')?.addEventListener('click', async () => {
+        const fileDropdown = document.getElementById('file-dropdown');
+        if (fileDropdown) fileDropdown.style.display = 'none';
+        try {
+            showToast('Generating STL for 3D printing...', 'info');
+            const res = await exportToSTL(gourdMesh, carveGroup, patternGroup, { scaleUnit: 'mm' });
+            showToast(`Exported ${res.filename}! Ready for slicer.`, 'success');
+        } catch (err) {
+            showToast('STL export failed!', 'error');
+        }
+    });
+
+    document.getElementById('menu-quick-export-usdz')?.addEventListener('click', async () => {
+        const fileDropdown = document.getElementById('file-dropdown');
+        if (fileDropdown) fileDropdown.style.display = 'none';
+        try {
+            showToast('Generating Apple AR USDZ...', 'info');
+            const res = await exportToUSDZ(gourdMesh, carveGroup, patternGroup, { scaleUnit: 'm' });
+            showToast(`Exported ${res.filename}!`, 'success');
+        } catch (err) {
+            showToast('USDZ export failed!', 'error');
+        }
+    });
 }
 
 // ===== INTERACTIVE GUIDE & TASK WALKTHROUGHS LOGIC =====

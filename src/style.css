@@ -1548,8 +1548,7 @@ input[type="color"]::-webkit-color-swatch {
     .guide-topic-btn {
         width: auto !important;
         padding: 5px 10px !important;
-        font-size: 10px !important;
-        flex-shrink: 0 !important;
+        font-size: 11px !important;
     }
     .guide-content-area {
         padding: 16px !important;
@@ -1559,5 +1558,75 @@ input[type="color"]::-webkit-color-swatch {
     }
 }
 
+/* ===== 3D EXPORT STUDIO MODAL STYLES ===== */
+.export-format-card {
+    background: #202029;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
+.export-format-card:hover {
+    background: #262634;
+    border-color: rgba(212, 168, 67, 0.4);
+    transform: translateY(-2px);
+}
 
+.export-format-card.active {
+    background: rgba(212, 168, 67, 0.12);
+    border-color: var(--color-acc);
+    box-shadow: 0 0 15px rgba(212, 168, 67, 0.2);
+}
+
+.export-format-card .format-icon {
+    font-size: 20px;
+    color: var(--color-acc);
+    margin-bottom: 8px;
+}
+
+.export-format-card .format-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.export-format-card .format-desc {
+    font-size: 8.5px;
+    color: var(--color-tx-d);
+    line-height: 1.3;
+}
+
+.export-format-card .format-badge {
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    background: var(--color-acc);
+    color: #121214;
+    font-size: 7px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+}
+
+.export-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--color-tx);
+    cursor: pointer;
+}
+.export-checkbox-label input[type="checkbox"] {
+    accent-color: var(--color-acc);
+    cursor: pointer;
+}

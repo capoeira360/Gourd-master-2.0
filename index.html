@@ -42,9 +42,15 @@
     <div id="toast-container"></div>
 
     <!-- File Dropdown Menu -->
-    <div id="file-dropdown" class="dropdown-menu" style="min-width: 190px;">
-        <div class="dropdown-item" id="menu-save-project">Save Full Project <span style="font-size: 8px; color: var(--color-tx-d);">(.json)</span></div>
-        <div class="dropdown-item" id="menu-load-project">Load Full Project...</div>
+    <div id="file-dropdown" class="dropdown-menu" style="min-width: 220px;">
+        <div class="dropdown-item" id="menu-export-3d" style="color: var(--color-acc); font-weight: 600;"><i class="fas fa-cube" style="width: 14px; margin-right: 6px;"></i> Export 3D Model... <span style="font-size: 8px; color: var(--color-acc);">GLB / OBJ / STL</span></div>
+        <div class="dropdown-item" id="menu-quick-export-glb"><i class="fas fa-file-export" style="width: 14px; margin-right: 6px;"></i> Quick Export GLB <span style="font-size: 8px; color: var(--color-tx-d);">(Blender / 3D)</span></div>
+        <div class="dropdown-item" id="menu-quick-export-obj"><i class="fas fa-shapes" style="width: 14px; margin-right: 6px;"></i> Quick Export OBJ <span style="font-size: 8px; color: var(--color-tx-d);">(Mesh)</span></div>
+        <div class="dropdown-item" id="menu-quick-export-stl"><i class="fas fa-print" style="width: 14px; margin-right: 6px;"></i> Quick Export STL <span style="font-size: 8px; color: var(--color-tx-d);">(3D Print)</span></div>
+        <div class="dropdown-item" id="menu-quick-export-usdz"><i class="fas fa-mobile-alt" style="width: 14px; margin-right: 6px;"></i> Quick Export USDZ <span style="font-size: 8px; color: var(--color-tx-d);">(Apple AR)</span></div>
+        <div style="height: 1px; background: var(--color-bdr); margin: 4px 0;"></div>
+        <div class="dropdown-item" id="menu-save-project"><i class="fas fa-save" style="width: 14px; margin-right: 6px;"></i> Save Full Project <span style="font-size: 8px; color: var(--color-tx-d);">(.json)</span></div>
+        <div class="dropdown-item" id="menu-load-project"><i class="fas fa-folder-open" style="width: 14px; margin-right: 6px;"></i> Load Full Project...</div>
         <div style="height: 1px; background: var(--color-bdr); margin: 4px 0;"></div>
         <div class="dropdown-item" id="menu-save-shape">Save Gourd Shape <span style="font-size: 8px; color: var(--color-tx-d);">(.json)</span></div>
         <div class="dropdown-item" id="menu-load-shape">Load Gourd Shape...</div>
@@ -64,23 +70,24 @@
     <!-- View Dropdown Menu -->
     <div id="view-dropdown" class="dropdown-menu">
         <div class="dropdown-item" data-view-action="camera-front">Front View <span>1</span></div>
-        <div class="dropdown-item" data-view-action="camera-side">Side View <span>2</span></div>
-        <div class="dropdown-item" data-view-action="camera-top">Top View <span>3</span></div>
-        <div class="dropdown-item" data-view-action="camera-persp">Perspective View <span>4</span></div>
+        <div class="dropdown-item" data-view-action="camera-side">Side View <span>3</span></div>
+        <div class="dropdown-item" data-view-action="camera-top">Top View <span>7</span></div>
+        <div class="dropdown-item" data-view-action="camera-persp">Perspective <span>5</span></div>
         <div style="height: 1px; background: var(--color-bdr); margin: 4px 0;"></div>
-        <div class="dropdown-item checked" data-view-action="toggle-grid">Show Grid <i class="fas fa-check"></i></div>
-        <div class="dropdown-item checked" data-view-action="toggle-patterns">Show Patterns <i class="fas fa-check"></i></div>
+        <div class="dropdown-item checked" data-view-action="toggle-grid">Ground Grid</div>
+        <div class="dropdown-item checked" data-view-action="toggle-patterns">Show Patterns</div>
     </div>
 
     <!-- Tools Dropdown Menu -->
-    <div id="tools-dropdown" class="dropdown-menu" style="min-width: 190px;">
+    <div id="tools-dropdown" class="dropdown-menu" style="min-width: 180px;">
         <div class="dropdown-item" data-tool-action="select"><i class="fas fa-mouse-pointer" style="width: 14px; margin-right: 6px;"></i> Select Tool <span>V</span></div>
-        <div class="dropdown-item" data-tool-action="measure"><i class="fas fa-ruler-combined" style="width: 14px; margin-right: 6px;"></i> Measure Dimensions <span>M</span></div>
-        <div class="dropdown-item" data-tool-action="pattern"><i class="fas fa-shapes" style="width: 14px; margin-right: 6px;"></i> Surface Patterns <span>P</span></div>
-        <div class="dropdown-item" data-tool-action="position"><i class="fas fa-crosshairs" style="width: 14px; margin-right: 6px;"></i> Position Shape <span>L</span></div>
-        <div class="dropdown-item" data-tool-action="transform"><i class="fas fa-arrows-alt" style="width: 14px; margin-right: 6px;"></i> Scale & Transform <span>T</span></div>
-        <div class="dropdown-item" data-tool-action="carve"><i class="fas fa-pen-nib" style="width: 14px; margin-right: 6px;"></i> Freehand Carving <span>C</span></div>
-        <div class="dropdown-item" data-tool-action="camera"><i class="fas fa-video" style="width: 14px; margin-right: 6px;"></i> Camera Presets <span>K</span></div>
+        <div class="dropdown-item" data-tool-action="neck"><i class="fas fa-bezier-curve" style="width: 14px; margin-right: 6px;"></i> Sculpt Neck <span>N</span></div>
+        <div class="dropdown-item" data-tool-action="bend"><i class="fas fa-arrows-alt" style="width: 14px; margin-right: 6px;"></i> Bend Curve <span>B</span></div>
+        <div class="dropdown-item" data-tool-action="body"><i class="fas fa-expand-arrows-alt" style="width: 14px; margin-right: 6px;"></i> Body Proportions <span>G</span></div>
+        <div class="dropdown-item" data-tool-action="pattern"><i class="fas fa-project-diagram" style="width: 14px; margin-right: 6px;"></i> Pattern Designer <span>P</span></div>
+        <div class="dropdown-item" data-tool-action="carve"><i class="fas fa-font" style="width: 14px; margin-right: 6px;"></i> Typography Carving <span>C</span></div>
+        <div class="dropdown-item" data-tool-action="measure"><i class="fas fa-ruler-combined" style="width: 14px; margin-right: 6px;"></i> Technical Measure <span>M</span></div>
+        <div class="dropdown-item" data-tool-action="material"><i class="fas fa-palette" style="width: 14px; margin-right: 6px;"></i> Clay & Glaze <span>T</span></div>
     </div>
     
     <!-- Hidden File Inputs for importing -->
@@ -89,23 +96,27 @@
     <input type="file" id="file-import-layout" accept=".json" style="display: none;">
 
     <div class="app-container">
-        <!-- ===== TOP MENU BAR ===== -->
+        <!-- ===== HEADER ===== -->
         <header class="app-header">
-            <!-- Brand Logo -->
+            <!-- Brand -->
             <div class="brand">
                 <div class="brand-icon">
                     <i class="fas fa-seedling"></i>
                 </div>
-                <span class="brand-name">Kibuyu Studio</span>
+                <div class="brand-text">
+                    <h1>KIBUYU</h1>
+                    <span class="badge">PRO 2.0</span>
+                </div>
             </div>
-            
-            <div class="project-name-container" style="display: flex; align-items: center; gap: 8px; margin-left: 20px; background: rgba(255,255,255,0.04); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
-                <label for="project-name-input" style="font-size: 9px; font-weight: 600; text-transform: uppercase; color: var(--color-tx-d); letter-spacing: 0.5px; margin-bottom: 0;">Project</label>
-                <input type="text" id="project-name-input" value="my-artisan-gourd" style="background: transparent; border: none; color: var(--color-tx-m); font-size: 11px; font-weight: 600; width: 140px; padding: 2px 4px; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.25);" title="Rename project">
+
+            <!-- Project File Input Box -->
+            <div class="project-title-container">
+                <i class="fas fa-feather-alt" style="font-size: 10px; color: var(--color-acc);"></i>
+                <input type="text" id="project-name-input" value="my-artisan-gourd" title="Click to rename project" spellcheck="false" autocomplete="off" />
             </div>
-            
-            <!-- Navigation Menu (Available on Desktop & Mobile) -->
-            <nav class="menu-nav" id="main-menu-nav">
+
+            <!-- Main Menu Bar -->
+            <nav class="main-nav">
                 <button class="menu-btn" id="menu-file-btn">File <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
                 <button class="menu-btn" id="menu-edit-btn">Edit <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
                 <button class="menu-btn" id="menu-view-btn">View <i class="fas fa-chevron-down" style="font-size: 8px; margin-left: 2px;"></i></button>
@@ -115,7 +126,7 @@
             
             <div class="header-spacer"></div>
             
-            <!-- Header Actions (Undo, Redo, Export) -->
+            <!-- Header Actions (Undo, Redo, Snapshot, Export 3D) -->
             <div class="header-actions">
                 <button id="btn-undo" class="action-icon-btn" title="Undo (Ctrl+Z)">
                     <i class="fas fa-undo"></i>
@@ -124,9 +135,12 @@
                     <i class="fas fa-redo"></i>
                 </button>
                 <div class="divider-v"></div>
-                <button id="btn-export" class="btn-primary" title="Capture Viewport Screenshot">
+                <button id="btn-snapshot" class="action-icon-btn" title="Capture Viewport Screenshot">
                     <i class="fas fa-camera"></i>
-                    <span class="desktop-only">Take Snapshot</span>
+                </button>
+                <button id="btn-export-3d" class="btn-primary" title="Export 3D Model (GLB, OBJ, STL, USDZ, PLY)">
+                    <i class="fas fa-cube"></i>
+                    <span class="desktop-only">Export 3D</span>
                 </button>
             </div>
         </header>
@@ -311,6 +325,124 @@
         </div>
         <div id="adjustments-bar-body" class="panel-body" style="padding: 0; max-height: 35vh; overflow-y: auto;">
             <!-- Sliders dynamically injected here -->
+        </div>
+    </div>
+
+    <!-- ===== 3D MODEL EXPORT STUDIO MODAL ===== -->
+    <div id="export-3d-modal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px; color: #fff; font-family: system-ui, -apple-system, sans-serif;">
+        <div class="modal-content export-modal-content" style="background: #18181f; border: 1px solid #2e2e38; border-radius: 12px; width: 95%; max-width: 680px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.75);">
+            <!-- Modal Header -->
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); background: #1f1f28;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="brand-icon" style="width: 26px; height: 26px;">
+                        <i class="fas fa-cube" style="font-size: 13px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #fff; letter-spacing: 0.3px;">Export 3D Model</h3>
+                        <p style="margin: 0; font-size: 11px; color: var(--color-tx-d);">Universal export for Blender, Maya, Unreal, 3D Printers, and Apple AR</p>
+                    </div>
+                </div>
+                <button id="btn-close-export-3d" class="zone-action-btn" style="padding: 6px 12px; font-size: 12px;"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; background: #141419;">
+                
+                <!-- Format Selector Cards -->
+                <div>
+                    <label style="font-size: 11px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Select 3D Format</label>
+                    <div class="export-format-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 10px;">
+                        <div class="export-format-card active" data-format="glb">
+                            <div class="format-badge">Recommended</div>
+                            <i class="fas fa-file-export format-icon"></i>
+                            <div class="format-title">GLTF / GLB</div>
+                            <div class="format-desc">Full PBR colors, textures & patterns for Blender, Maya, Unreal & Unity</div>
+                        </div>
+                        <div class="export-format-card" data-format="obj">
+                            <i class="fas fa-shapes format-icon"></i>
+                            <div class="format-title">Wavefront OBJ</div>
+                            <div class="format-desc">Universal 3D geometry mesh for all DCC/CAD modeling software</div>
+                        </div>
+                        <div class="export-format-card" data-format="stl">
+                            <i class="fas fa-cube format-icon"></i>
+                            <div class="format-title">STL (3D Print)</div>
+                            <div class="format-desc">Direct slicing for Cura, Prusa, Bambu Studio & CNC machining</div>
+                        </div>
+                        <div class="export-format-card" data-format="usdz">
+                            <i class="fas fa-mobile-alt format-icon"></i>
+                            <div class="format-title">Apple USDZ</div>
+                            <div class="format-desc">Augmented Reality QuickLook on iPhone, iPad, and Mac</div>
+                        </div>
+                        <div class="export-format-card" data-format="ply">
+                            <i class="fas fa-layer-group format-icon"></i>
+                            <div class="format-title">Stanford PLY</div>
+                            <div class="format-desc">High-precision polygon scan data with vertex attributes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Options & Customization -->
+                <div style="background: #1c1c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 14px 16px;">
+                    <label style="font-size: 11px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: block;">Components & Scale</label>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <label class="export-checkbox-label">
+                            <input type="checkbox" id="export-inc-body" checked>
+                            <span>Gourd Sculpted Body</span>
+                        </label>
+                        <label class="export-checkbox-label">
+                            <input type="checkbox" id="export-inc-patterns" checked>
+                            <span>Decorative Pattern Layers</span>
+                        </label>
+                        <label class="export-checkbox-label">
+                            <input type="checkbox" id="export-inc-carvings" checked>
+                            <span>3D Carved Typography</span>
+                        </label>
+                        <label class="export-checkbox-label">
+                            <input type="checkbox" id="export-inc-materials" checked>
+                            <span>Clay & Glaze PBR Textures</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; flex-wrap: wrap; gap: 8px;">
+                        <span style="font-size: 11px; color: var(--color-tx-m);">Real-World Target Scale:</span>
+                        <select id="export-scale-select" style="background: #262630; border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 4px; padding: 4px 8px; font-size: 11px; outline: none;">
+                            <option value="cm" selected>Centimeters (cm) - Standard 3D</option>
+                            <option value="mm">Millimeters (mm) - 3D Printing / CAD</option>
+                            <option value="m">Meters (m) - Game Engines / AR</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Mesh & Model Stats Card -->
+                <div style="background: rgba(212, 168, 67, 0.05); border: 1px solid rgba(212, 168, 67, 0.2); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-around; text-align: center;">
+                    <div>
+                        <div style="font-size: 10px; color: var(--color-tx-d); text-transform: uppercase;">Vertices</div>
+                        <div id="export-stat-verts" style="font-size: 14px; font-weight: 700; color: #fff;">0</div>
+                    </div>
+                    <div style="width: 1px; background: rgba(255,255,255,0.08);"></div>
+                    <div>
+                        <div style="font-size: 10px; color: var(--color-tx-d); text-transform: uppercase;">Triangles</div>
+                        <div id="export-stat-faces" style="font-size: 14px; font-weight: 700; color: #fff;">0</div>
+                    </div>
+                    <div style="width: 1px; background: rgba(255,255,255,0.08);"></div>
+                    <div>
+                        <div style="font-size: 10px; color: var(--color-tx-d); text-transform: uppercase;">Dimensions</div>
+                        <div id="export-stat-dims" style="font-size: 14px; font-weight: 700; color: var(--color-acc);">30 × 18 cm</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer" style="padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; background: #1f1f28;">
+                <span id="export-filename-preview" style="font-size: 11px; color: var(--color-tx-d); font-family: monospace;">my-artisan-gourd.glb</span>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-cancel-export-3d" class="btn-secondary" style="padding: 8px 16px; font-size: 11px;">Cancel</button>
+                    <button id="btn-execute-export-3d" class="btn-primary" style="padding: 8px 20px; font-size: 11px;">
+                        <i class="fas fa-download"></i> Download 3D Model
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
