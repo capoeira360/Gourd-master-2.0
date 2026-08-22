@@ -3989,6 +3989,12 @@ function initMobilePipController() {
         initialTop = rect.top;
 
         pip.style.transition = 'none'; // Instant drag response
+        
+        window.addEventListener('mousemove', onDragMove, { passive: true });
+        window.addEventListener('touchmove', onDragMove, { passive: false });
+        window.addEventListener('mouseup', onDragEnd);
+        window.addEventListener('touchend', onDragEnd);
+        
         e.preventDefault();
     }
 
@@ -4015,16 +4021,16 @@ function initMobilePipController() {
         if (!isDragging) return;
         isDragging = false;
         pip.style.transition = ''; // Restore smooth transitions
+        window.removeEventListener('mousemove', onDragMove);
+        window.removeEventListener('touchmove', onDragMove);
+        window.removeEventListener('mouseup', onDragEnd);
+        window.removeEventListener('touchend', onDragEnd);
     }
 
     if (dragHandle) {
         dragHandle.addEventListener('mousedown', onDragStart);
         dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
     }
-    window.addEventListener('mousemove', onDragMove);
-    window.addEventListener('touchmove', onDragMove, { passive: false });
-    window.addEventListener('mouseup', onDragEnd);
-    window.addEventListener('touchend', onDragEnd);
 
     // 2. Cycle Window Size (Compact -> Medium -> Expanded -> Large)
     const sizes = ['size-compact', 'size-medium', 'size-expanded', 'size-large'];
@@ -4083,6 +4089,12 @@ function initMobilePipController() {
             startW = pip.offsetWidth;
             startH = pip.offsetHeight;
             pip.style.transition = 'none';
+            
+            window.addEventListener('mousemove', onResizeMove, { passive: true });
+            window.addEventListener('touchmove', onResizeMove, { passive: false });
+            window.addEventListener('mouseup', onResizeEnd);
+            window.addEventListener('touchend', onResizeEnd);
+            
             e.preventDefault();
             e.stopPropagation();
         }
@@ -4106,14 +4118,14 @@ function initMobilePipController() {
             if (!isResizing) return;
             isResizing = false;
             pip.style.transition = '';
+            window.removeEventListener('mousemove', onResizeMove);
+            window.removeEventListener('touchmove', onResizeMove);
+            window.removeEventListener('mouseup', onResizeEnd);
+            window.removeEventListener('touchend', onResizeEnd);
             if (window.appPipViewer) window.appPipViewer.resize();
         }
 
         resizeHandle.addEventListener('mousedown', onResizeStart);
         resizeHandle.addEventListener('touchstart', onResizeStart, { passive: false });
-        window.addEventListener('mousemove', onResizeMove);
-        window.addEventListener('touchmove', onResizeMove, { passive: false });
-        window.addEventListener('mouseup', onResizeEnd);
-        window.addEventListener('touchend', onResizeEnd);
     }
 }
