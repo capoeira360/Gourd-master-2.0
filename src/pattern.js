@@ -1801,7 +1801,6 @@ function generateConcentricLoops(zone) {
 
     const R = Math.max(0.005, zone.radius || 0.15);
     const ringCount = zone.concentricRings !== undefined ? Math.max(1, zone.concentricRings) : (zone.density ? Math.max(1, Math.round(zone.density * 5)) : 6);
-    const spacing = (zone.type === 'circular-patch' || zone.type === 'circle' || zone.concentricRings !== undefined) ? (R / ringCount) : (1.0 / (zone.density || 1.0));
 
     const loops = [];
     const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
@@ -1811,9 +1810,23 @@ function generateConcentricLoops(zone) {
         let currentTheta = (zone.centerTheta !== undefined ? zone.centerTheta : 0.0) + offsetTheta;
         currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
-        let currentRadius = R;
-        let ringIter = 0;
-        while (currentRadius > 0.002 && ringIter < 50) {
+        for (let ringIter = 0; ringIter < ringCount; ringIter++) {
+            const ringCfg = (zone.ringConfigs && zone.ringConfigs[ringIter]) ? zone.ringConfigs[ringIter] : null;
+
+            let currentRadius;
+            if (ringCfg && ringCfg.radiusRatio !== undefined) {
+                currentRadius = R * Math.max(0.01, Math.min(1.0, ringCfg.radiusRatio));
+            } else if (ringCount === 1) {
+                currentRadius = R;
+            } else {
+                currentRadius = R * (1.0 - (ringIter / ringCount));
+            }
+
+            if (currentRadius <= 0.001) continue;
+
+            const ringRot = (ringCfg && ringCfg.rotationOffset !== undefined) ? (ringCfg.rotationOffset * Math.PI / 180) : 0;
+            const ringShapeRot = (zone.shapeRotation || 0) + ((ringCfg && ringCfg.shapeRotation !== undefined) ? ringCfg.shapeRotation : 0);
+
             const scale = currentRadius / R;
             const loopPath = [];
 
@@ -1821,22 +1834,21 @@ function generateConcentricLoops(zone) {
                 const rx = pt.u * R * scale;
                 const ry = pt.v * R * scale;
 
-                const phi = -(zone.shapeRotation || 0) * Math.PI / 180;
+                const phi = -ringShapeRot * Math.PI / 180;
                 const dx = rx * Math.cos(phi) - ry * Math.sin(phi);
                 const dy = rx * Math.sin(phi) + ry * Math.cos(phi);
 
                 const t = (zone.centerT !== undefined ? zone.centerT : 0.5) + dy / getGourdHeight();
                 const r = getGourdRadius(t);
-                let theta = currentTheta + dx / r;
+                let theta = currentTheta + ringRot + dx / r;
                 theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
                 loopPath.push({ t, theta });
             }
 
             loopPath.centerTheta = currentTheta;
+            loopPath.ringIndex = ringIter;
             loops.push(loopPath);
-            currentRadius -= spacing;
-            ringIter++;
         }
     }
 
@@ -2869,28 +2881,56 @@ export function updatePatternGroupImmediate(group, state) {
         if (zone.fillType === 'concentric' && ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle'].includes(zone.type)) {
             const concentricLoops = generateConcentricLoops(zone);
             const validLoops = concentricLoops.map(loop => {
-                return loop.filter(pt => pt.t >= 0 && pt.t <= 1);
+                const filtered = loop.filter(pt => pt.t >= 0 && pt.t <= 1);
+                filtered.centerTheta = loop.centerTheta;
+                filtered.ringIndex = loop.ringIndex;
+                return filtered;
             }).filter(loop => loop.length >= 2);
 
-            const renderLines = zone.style === 'lines' || zone.style === 'both';
-            const renderHoles = zone.style === 'holes' || zone.style === 'both';
-            if (renderLines) {
-                hasLines = true;
-                const count = renderPatternLayer(
-                    group, validLoops, 'lines', zone.color, zone.opacity,
-                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                    zone.dashSpacing, zone
-                );
-                totalCount += count;
-            }
-            if (renderHoles) {
-                hasHoles = true;
-                const count = renderPatternLayer(
-                    group, validLoops, 'holes', zone.color, zone.opacity,
-                    zone.holeSize, zone.distMode, zone.holeCount, zone.holeDistance,
-                    zone.dashSpacing, zone
-                );
-                totalCount += count;
+            for (const loop of validLoops) {
+                const ringIdx = loop.ringIndex !== undefined ? loop.ringIndex : 0;
+                const ringCfg = (zone.ringConfigs && zone.ringConfigs[ringIdx]) ? zone.ringConfigs[ringIdx] : {};
+
+                const ringStyle = (ringCfg.style && ringCfg.style !== 'inherit') ? ringCfg.style : (zone.style || 'lines');
+                if (ringStyle === 'off') continue;
+
+                const ringColor = ringCfg.color || zone.color || '#D4A843';
+                const ringOpacity = zone.opacity !== undefined ? zone.opacity : 1.0;
+                const ringHoleSize = ringCfg.holeSize !== undefined ? ringCfg.holeSize : (zone.holeSize !== undefined ? zone.holeSize : 0.03);
+                const ringHoleCount = ringCfg.holeCount !== undefined ? ringCfg.holeCount : (zone.holeCount !== undefined ? zone.holeCount : 30);
+                const ringDash = ringCfg.dashSpacing !== undefined ? ringCfg.dashSpacing : (zone.dashSpacing !== undefined ? zone.dashSpacing : 0);
+                const ringHoleShape = ringCfg.holeShape || zone.holeShape || 'round';
+
+                const effectiveZone = {
+                    ...zone,
+                    color: ringColor,
+                    holeSize: ringHoleSize,
+                    holeCount: ringHoleCount,
+                    dashSpacing: ringDash,
+                    holeShape: ringHoleShape
+                };
+
+                const renderLines = ringStyle === 'lines' || ringStyle === 'both';
+                const renderHoles = ringStyle === 'holes' || ringStyle === 'both';
+
+                if (renderLines) {
+                    hasLines = true;
+                    const count = renderPatternLayer(
+                        group, [loop], 'lines', ringColor, ringOpacity,
+                        ringHoleSize, 'count', ringHoleCount, zone.holeDistance,
+                        ringDash, effectiveZone
+                    );
+                    totalCount += count;
+                }
+                if (renderHoles) {
+                    hasHoles = true;
+                    const count = renderPatternLayer(
+                        group, [loop], 'holes', ringColor, ringOpacity,
+                        ringHoleSize, 'count', ringHoleCount, zone.holeDistance,
+                        ringDash, effectiveZone
+                    );
+                    totalCount += count;
+                }
             }
             continue;
         }

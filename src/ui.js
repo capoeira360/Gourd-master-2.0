@@ -376,6 +376,47 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                     `;
                 } else if (zone.type === 'circular-patch') {
                     const ringsVal = zone.concentricRings !== undefined ? zone.concentricRings : 6;
+                    
+                    if (!zone.ringConfigs || !Array.isArray(zone.ringConfigs)) {
+                        zone.ringConfigs = [];
+                    }
+                    while (zone.ringConfigs.length < ringsVal) {
+                        const idx = zone.ringConfigs.length;
+                        zone.ringConfigs.push({
+                            radiusRatio: Number((1.0 - (idx / ringsVal)).toFixed(2)),
+                            style: 'inherit',
+                            holeShape: 'inherit',
+                            holeSize: zone.holeSize !== undefined ? zone.holeSize : 0.03,
+                            holeCount: zone.holeCount !== undefined ? zone.holeCount : 30,
+                            dashSpacing: zone.dashSpacing !== undefined ? zone.dashSpacing : 0,
+                            rotationOffset: 0,
+                            color: zone.color || '#D4A843'
+                        });
+                    }
+
+                    const activeRingIdx = zone.activeRingTab !== undefined ? Math.min(ringsVal - 1, Math.max(0, zone.activeRingTab)) : 0;
+                    const curRing = zone.ringConfigs[activeRingIdx] || {};
+
+                    const ringRadiusPct = Math.round((curRing.radiusRatio !== undefined ? curRing.radiusRatio : (1.0 - activeRingIdx / ringsVal)) * 100);
+                    const ringDashPct = Math.round(100 * (0.30 - (curRing.dashSpacing !== undefined ? curRing.dashSpacing : (zone.dashSpacing || 0))) / 0.30);
+                    const ringEffectiveStyle = (curRing.style && curRing.style !== 'inherit') ? curRing.style : (zone.style || 'lines');
+
+                    let ringTabsHTML = '';
+                    if (ringsVal > 1) {
+                        ringTabsHTML = `
+                            <div style="display: flex; gap: 4px; overflow-x: auto; padding: 2px 2px 6px 2px; margin-bottom: 8px; scrollbar-width: thin;">
+                                ${Array.from({ length: ringsVal }).map((_, i) => `
+                                    <button class="option-btn btn-ring-tab ${activeRingIdx === i ? 'active' : ''}" 
+                                        data-zone-id="${zone.id}" 
+                                        data-ring-index="${i}" 
+                                        style="flex: 1; min-width: 52px; font-size: 10px; padding: 5px 6px; white-space: nowrap; text-align: center; text-overflow: clip;">
+                                        Ring ${i + 1}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+
                     boundsSliders = `
                         <div style="font-size: 10px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; margin: 6px 0 4px 0; letter-spacing: 0.5px;">Patch Placement & Symmetry</div>
                         ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT !== undefined ? zone.centerT : 0.5)}
@@ -384,7 +425,63 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${sliderRow('Symmetry Count', `pat-zone-patchCount-${zone.id}`, 1, 8, 1, zone.patchCount !== undefined ? zone.patchCount : 1, 'patches')}
 
                         <div style="font-size: 10px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; margin: 10px 0 4px 0; letter-spacing: 0.5px;">Concentric Outlines</div>
-                        ${sliderRow('Ring Count', `pat-zone-concentricRings-${zone.id}`, 1, 25, 1, ringsVal, 'rings')}
+                        ${sliderRow('Ring Count', `pat-zone-concentricRings-${zone.id}`, 1, 16, 1, ringsVal, 'rings')}
+
+                        ${ringsVal > 1 ? `
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 10px 8px; margin-top: 8px; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div style="font-size: 10px; font-weight: 700; color: var(--color-tx-h); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 5px;">
+                                        <span>Ring ${activeRingIdx + 1} of ${ringsVal}</span>
+                                        <span style="font-size: 8px; font-weight: 600; padding: 1px 5px; border-radius: 3px; background: rgba(212,168,67,0.18); color: var(--color-acc); text-transform: uppercase;">
+                                            ${activeRingIdx === 0 ? 'Outer Rim' : (activeRingIdx === ringsVal - 1 ? 'Center Ring' : `Layer ${activeRingIdx + 1}`)}
+                                        </span>
+                                    </div>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button class="btn-ring-copy-all" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" title="Apply this ring's style & color to all rings" style="background: rgba(212,168,67,0.15); border: 1px solid var(--color-acc); color: var(--color-acc); font-size: 8.5px; padding: 2px 6px; border-radius: 3px; cursor: pointer; white-space: nowrap;">Copy to All</button>
+                                        <button class="btn-ring-reset-spacing" data-zone-id="${zone.id}" title="Reset all rings to equal radius spacing" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: var(--color-tx-m); font-size: 8.5px; padding: 2px 6px; border-radius: 3px; cursor: pointer; white-space: nowrap;">Reset Spacing</button>
+                                    </div>
+                                </div>
+                                ${ringTabsHTML}
+
+                                ${sliderRow('Radius / Closeness', `pat-zone-ring-radiusRatio-${zone.id}-${activeRingIdx}`, 5, 100, 1, ringRadiusPct, '%')}
+                                ${sliderRow('Rotation Offset', `pat-zone-ring-rotationOffset-${zone.id}-${activeRingIdx}`, -180, 180, 1, curRing.rotationOffset || 0, '°')}
+
+                                <div class="control-row" style="margin-top: 6px; margin-bottom: 6px;">
+                                    <label class="control-label" style="width: 35%;">Ring Style</label>
+                                    <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: repeat(5, 1fr);">
+                                        <button class="option-btn btn-ring-style-opt ${(curRing.style || 'inherit') === 'inherit' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="inherit" style="font-size: 8px; padding: 2px 3px;">Auto</button>
+                                        <button class="option-btn btn-ring-style-opt ${curRing.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="lines" style="font-size: 8px; padding: 2px 3px;">Lines</button>
+                                        <button class="option-btn btn-ring-style-opt ${curRing.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="holes" style="font-size: 8px; padding: 2px 3px;">Holes</button>
+                                        <button class="option-btn btn-ring-style-opt ${curRing.style === 'both' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="both" style="font-size: 8px; padding: 2px 3px;">Both</button>
+                                        <button class="option-btn btn-ring-style-opt ${curRing.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="off" style="font-size: 8px; padding: 2px 3px;">Off</button>
+                                    </div>
+                                </div>
+
+                                ${(ringEffectiveStyle === 'lines' || ringEffectiveStyle === 'both') ? `
+                                    ${sliderRow('Dash Gap', `pat-zone-ring-dashSpacing-${zone.id}-${activeRingIdx}`, 0, 100, 1, ringDashPct, '%')}
+                                ` : ''}
+
+                                ${(ringEffectiveStyle === 'holes' || ringEffectiveStyle === 'both') ? `
+                                    <div class="control-row" style="margin-bottom: 6px;">
+                                        <label class="control-label" style="width: 35%;">Hole Design</label>
+                                        <select class="zone-ring-hole-shape-select" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" style="margin-bottom: 0; flex: 1; font-size: 10px;">
+                                            <option value="inherit" ${(curRing.holeShape || 'inherit') === 'inherit' ? 'selected' : ''}>Inherit (${zone.holeShape || 'round'})</option>
+                                            <option value="round" ${curRing.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
+                                            <option value="wobbly" ${curRing.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                            <option value="star" ${curRing.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                                        </select>
+                                    </div>
+                                    ${sliderRow('Hole Size', `pat-zone-ring-holeSize-${zone.id}-${activeRingIdx}`, 0.01, 0.12, 0.005, curRing.holeSize !== undefined ? curRing.holeSize : (zone.holeSize || 0.03), 'cm')}
+                                    ${sliderRow('Holes on Ring', `pat-zone-ring-holeCount-${zone.id}-${activeRingIdx}`, 4, 120, 2, curRing.holeCount !== undefined ? curRing.holeCount : (zone.holeCount || 30))}
+                                ` : ''}
+
+                                <div class="control-row" style="margin-bottom: 4px; margin-top: 6px;">
+                                    <label class="control-label" style="width: 35%;">Ring Color</label>
+                                    <input type="color" class="zone-ring-color-input" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" value="${curRing.color || zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                    <span class="color-hex-text">${(curRing.color || zone.color || '#D4A843').toUpperCase()}</span>
+                                </div>
+                            </div>
+                        ` : ''}
                     `;
                 } else if (zone.type === 'square-patch' || zone.type === 'square') {
                     boundsSliders = `
@@ -2053,6 +2150,121 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    // Ring tabs & per-ring controls for Concentric Patches
+    document.querySelectorAll('.btn-ring-tab').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const zoneId = btn.dataset.zoneId;
+            const ringIdx = parseInt(btn.dataset.ringIndex);
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone) {
+                zone.activeRingTab = ringIdx;
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-ring-style-opt').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            const zoneId = btn.dataset.zoneId;
+            const ringIdx = parseInt(btn.dataset.ringIndex);
+            const styleVal = btn.dataset.ringStyle;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone && zone.ringConfigs && zone.ringConfigs[ringIdx]) {
+                zone.ringConfigs[ringIdx].style = styleVal;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-ring-hole-shape-select').forEach(sel => {
+        sel.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+            const zoneId = sel.dataset.zoneId;
+            const ringIdx = parseInt(sel.dataset.ringIndex);
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone && zone.ringConfigs && zone.ringConfigs[ringIdx]) {
+                zone.ringConfigs[ringIdx].holeShape = sel.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.zone-ring-color-input').forEach(picker => {
+        picker.addEventListener('input', () => {
+            const zoneId = picker.dataset.zoneId;
+            const ringIdx = parseInt(picker.dataset.ringIndex);
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone && zone.ringConfigs && zone.ringConfigs[ringIdx]) {
+                state.activeZoneId = zoneId;
+                zone.ringConfigs[ringIdx].color = picker.value;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                const hexLabel = picker.parentElement.querySelector('.color-hex-text');
+                if (hexLabel) hexLabel.textContent = picker.value.toUpperCase();
+            }
+        });
+        picker.addEventListener('change', () => {
+            pushUndoState(gourdMesh);
+        });
+    });
+
+    document.querySelectorAll('.btn-ring-copy-all').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            const zoneId = btn.dataset.zoneId;
+            const ringIdx = parseInt(btn.dataset.ringIndex);
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone && zone.ringConfigs && zone.ringConfigs[ringIdx]) {
+                const src = zone.ringConfigs[ringIdx];
+                zone.ringConfigs.forEach(rc => {
+                    rc.style = src.style;
+                    rc.holeShape = src.holeShape;
+                    rc.holeSize = src.holeSize;
+                    rc.holeCount = src.holeCount;
+                    rc.dashSpacing = src.dashSpacing;
+                    rc.color = src.color;
+                    rc.rotationOffset = src.rotationOffset;
+                });
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                showToast("Copied settings to all rings");
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-ring-reset-spacing').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            const zoneId = btn.dataset.zoneId;
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone && zone.ringConfigs) {
+                const total = Math.max(1, zone.concentricRings || zone.ringConfigs.length);
+                zone.ringConfigs.forEach((rc, i) => {
+                    rc.radiusRatio = Number((1.0 - (i / total)).toFixed(2));
+                    rc.rotationOffset = 0;
+                });
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                showToast("Reset ring spacing to equal");
+            }
+        });
+    });
+
     document.querySelectorAll('.zone-card').forEach(card => {
         card.addEventListener('click', (e) => {
             if (e.target.closest('select, button, .zone-action-btn')) return;
@@ -2517,6 +2729,50 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
         return;
     }
     
+    if (id.startsWith('pat-zone-ring-')) {
+        const rest = id.replace('pat-zone-ring-', '');
+        const lastDash = rest.lastIndexOf('-');
+        const ringIdx = parseInt(rest.substring(lastDash + 1));
+        const beforeLast = rest.substring(0, lastDash);
+        const firstDash = beforeLast.indexOf('-');
+        const param = beforeLast.substring(0, firstDash);
+        const zoneId = beforeLast.substring(firstDash + 1);
+
+        state.activeZoneId = zoneId;
+        const zone = state.patternZones.find(z => z.id === zoneId);
+        if (zone) {
+            if (!zone.ringConfigs) zone.ringConfigs = [];
+            while (zone.ringConfigs.length <= ringIdx) {
+                const idx = zone.ringConfigs.length;
+                zone.ringConfigs.push({
+                    radiusRatio: Number((1.0 - (idx / Math.max(1, zone.concentricRings || 1))).toFixed(2)),
+                    style: 'inherit',
+                    holeShape: 'inherit',
+                    holeSize: zone.holeSize !== undefined ? zone.holeSize : 0.03,
+                    holeCount: zone.holeCount !== undefined ? zone.holeCount : 30,
+                    dashSpacing: zone.dashSpacing !== undefined ? zone.dashSpacing : 0,
+                    rotationOffset: 0,
+                    color: zone.color || '#D4A843'
+                });
+            }
+            const ring = zone.ringConfigs[ringIdx];
+            if (param === 'radiusRatio') {
+                ring.radiusRatio = valFloat / 100.0;
+            } else if (param === 'rotationOffset') {
+                ring.rotationOffset = valFloat;
+            } else if (param === 'dashSpacing') {
+                ring.dashSpacing = 0.30 - (valFloat / 100.0) * 0.30;
+            } else if (param === 'holeCount') {
+                ring.holeCount = Math.round(valFloat);
+            } else if (param === 'holeSize') {
+                ring.holeSize = valFloat;
+            }
+            updatePatternGroup(patternGroup, state);
+            if (onUpdatePattern) onUpdatePattern();
+        }
+        return;
+    }
+
     if (id.startsWith('pat-zone-')) {
         const parts = id.split('-');
         const param = parts[2];
@@ -2540,8 +2796,25 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 zone.holeWobbleAmp = (valFloat / 100.0) * 0.4;
             } else if (param === 'holeWobbleFreq') {
                 zone.holeWobbleFreq = Math.round(valFloat);
-            } else if (param === 'patchCount' || param === 'concentricRings') {
-                zone[param] = Math.round(valFloat);
+            } else if (param === 'patchCount') {
+                zone.patchCount = Math.round(valFloat);
+            } else if (param === 'concentricRings') {
+                zone.concentricRings = Math.round(valFloat);
+                if (!zone.ringConfigs) zone.ringConfigs = [];
+                while (zone.ringConfigs.length < zone.concentricRings) {
+                    const idx = zone.ringConfigs.length;
+                    zone.ringConfigs.push({
+                        radiusRatio: Number((1.0 - (idx / zone.concentricRings)).toFixed(2)),
+                        style: 'inherit',
+                        holeShape: 'inherit',
+                        holeSize: zone.holeSize !== undefined ? zone.holeSize : 0.03,
+                        holeCount: zone.holeCount !== undefined ? zone.holeCount : 30,
+                        dashSpacing: zone.dashSpacing !== undefined ? zone.dashSpacing : 0,
+                        rotationOffset: 0,
+                        color: zone.color || '#D4A843'
+                    });
+                }
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             } else if (param === 'weaveHorHoleWobbleAmp' || param === 'weaveVerHoleWobbleAmp') {
                 zone[param] = (valFloat / 100.0) * 0.4;
             } else if (param === 'weaveHorDashSpacing' || param === 'weaveVerDashSpacing') {
