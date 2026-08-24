@@ -829,7 +829,7 @@ export function isPointInZoneRaw(t, theta, zone) {
         const dy = dt * getGourdHeight();
         const dx = r * dTheta;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        return dist <= zone.radius;
+        return dist <= (zone.radius * 1.002 + 0.0005);
     }
 
     if (zone.type === 'square-patch' || zone.type === 'square') {
@@ -1556,41 +1556,50 @@ function renderPatternLayer(group, paths, style, colorHex, opacity, holeSize, di
                         lengths.push(totalLength);
                     }
 
-                    const firstPt = path[0];
-                    if (!zone || isPointInZone(firstPt.t, firstPt.theta, zone)) {
-                        const isBigHole = isBigLine && (holeFreq > 0) && (1 % holeFreq === 0);
-                        firstPt.scaleVal = isBigHole ? bigHoleScale : 1.0;
-                        holePoints.push(firstPt);
-                    }
+                    const isClosed = pts3d.length >= 3 && pts3d[0].distanceTo(pts3d[pts3d.length - 1]) < 0.005;
 
-                    for (let k = 1; k < count; k++) {
-                        const targetDist = (k / (count - 1)) * totalLength;
-                        let segIdx = 0;
-                        while (segIdx < lengths.length && lengths[segIdx] < targetDist) {
-                            segIdx++;
+                    for (let k = 0; k < count; k++) {
+                        const targetDist = isClosed ? ((k / count) * totalLength) : (count > 1 ? ((k / (count - 1)) * totalLength) : 0);
+                        
+                        let t, theta, rOffset;
+
+                        if (targetDist <= 0.0001) {
+                            t = path[0].t;
+                            theta = path[0].theta;
+                            rOffset = path[0].rOffset || 0;
+                        } else if (targetDist >= totalLength - 0.0001) {
+                            const lastPt = path[path.length - 1];
+                            t = lastPt.t;
+                            theta = lastPt.theta;
+                            rOffset = lastPt.rOffset || 0;
+                        } else {
+                            let segIdx = 0;
+                            while (segIdx < lengths.length && lengths[segIdx] < targetDist) {
+                                segIdx++;
+                            }
+
+                            const prevDist = segIdx === 0 ? 0 : lengths[segIdx - 1];
+                            const nextDist = lengths[segIdx];
+                            const segLength = nextDist - prevDist;
+                            const alpha = segLength > 0.0001 ? (targetDist - prevDist) / segLength : 0;
+
+                            const pA = path[segIdx];
+                            const pB = path[segIdx + 1];
+                            if (!pB) continue;
+
+                            t = pA.t + alpha * (pB.t - pA.t);
+
+                            let thetaA = pA.theta;
+                            let thetaB = pB.theta;
+                            if (Math.abs(thetaB - thetaA) > Math.PI) {
+                                if (thetaB > thetaA) thetaA += Math.PI * 2;
+                                else thetaB += Math.PI * 2;
+                            }
+                            theta = thetaA + alpha * (thetaB - thetaA);
+                            theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+                            rOffset = (pA.rOffset || 0) + alpha * ((pB.rOffset || 0) - (pA.rOffset || 0));
                         }
-
-                        const prevDist = segIdx === 0 ? 0 : lengths[segIdx - 1];
-                        const nextDist = lengths[segIdx];
-                        const segLength = nextDist - prevDist;
-                        const alpha = segLength > 0.0001 ? (targetDist - prevDist) / segLength : 0;
-
-                        const pA = path[segIdx];
-                        const pB = path[segIdx + 1];
-                        if (!pB) continue;
-
-                        const t = pA.t + alpha * (pB.t - pA.t);
-
-                        let thetaA = pA.theta;
-                        let thetaB = pB.theta;
-                        if (Math.abs(thetaB - thetaA) > Math.PI) {
-                            if (thetaB > thetaA) thetaA += Math.PI * 2;
-                            else thetaB += Math.PI * 2;
-                        }
-                        let theta = thetaA + alpha * (thetaB - thetaA);
-                        theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-
-                        const rOffset = (pA.rOffset || 0) + alpha * ((pB.rOffset || 0) - (pA.rOffset || 0));
 
                         const pt = { t, theta, rOffset };
                         if (zone && !isPointInZone(pt.t, pt.theta, zone)) continue;
@@ -1824,8 +1833,8 @@ function generateConcentricLoops(zone) {
 
             if (currentRadius <= 0.001) continue;
 
-            const ringRot = (ringCfg && ringCfg.rotationOffset !== undefined) ? (ringCfg.rotationOffset * Math.PI / 180) : 0;
-            const ringShapeRot = (zone.shapeRotation || 0) + ((ringCfg && ringCfg.shapeRotation !== undefined) ? ringCfg.shapeRotation : 0);
+            const spinDeg = (ringCfg && ringCfg.spinAngle !== undefined) ? ringCfg.spinAngle : (ringCfg && ringCfg.rotationOffset !== undefined ? ringCfg.rotationOffset : 0);
+            const totalInPlaneAngle = ((zone.shapeRotation || 0) + spinDeg) * Math.PI / 180;
 
             const scale = currentRadius / R;
             const loopPath = [];
@@ -1834,13 +1843,13 @@ function generateConcentricLoops(zone) {
                 const rx = pt.u * R * scale;
                 const ry = pt.v * R * scale;
 
-                const phi = -ringShapeRot * Math.PI / 180;
+                const phi = -totalInPlaneAngle;
                 const dx = rx * Math.cos(phi) - ry * Math.sin(phi);
                 const dy = rx * Math.sin(phi) + ry * Math.cos(phi);
 
                 const t = (zone.centerT !== undefined ? zone.centerT : 0.5) + dy / getGourdHeight();
                 const r = getGourdRadius(t);
-                let theta = currentTheta + ringRot + dx / r;
+                let theta = currentTheta + dx / r;
                 theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
                 loopPath.push({ t, theta });
