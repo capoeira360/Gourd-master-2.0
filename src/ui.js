@@ -422,10 +422,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT !== undefined ? zone.centerT : 0.5)}
                         ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round((zone.centerTheta !== undefined ? zone.centerTheta : 0.0) * 180 / Math.PI), '°')}
                         ${sliderRow('Patch Radius', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius !== undefined ? zone.radius : 0.15, 'cm')}
-                        ${sliderRow('Symmetry Count', `pat-zone-patchCount-${zone.id}`, 1, 8, 1, zone.patchCount !== undefined ? zone.patchCount : 1, 'patches')}
+                        ${sliderRow('Symmetry', `pat-zone-patchCount-${zone.id}`, 1, 8, 1, zone.patchCount !== undefined ? zone.patchCount : 1, '×')}
 
                         <div style="font-size: 10px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; margin: 10px 0 4px 0; letter-spacing: 0.5px;">Concentric Outlines</div>
-                        ${sliderRow('Ring Count', `pat-zone-concentricRings-${zone.id}`, 1, 16, 1, ringsVal, 'rings')}
+                        ${sliderRow('Ring Count', `pat-zone-concentricRings-${zone.id}`, 1, 16, 1, ringsVal)}
 
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 10px 8px; margin-top: 8px; margin-bottom: 8px;">
                             ${ringsVal > 1 ? `
@@ -736,18 +736,9 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
                                 <div style="font-size: 10px; font-weight: 600; color: var(--color-tx-d);">STYLE & DETAILS</div>
                                 <div class="control-row" style="margin-bottom: 0;">
-                                    <label class="control-label" style="width: 45%;">Render Style</label>
-                                    <select class="zone-weave-style-select" data-zone-id="${zone.id}" data-param="style" style="flex: 1; font-size: 11px; padding: 2px;">
-                                        <option value="lines" ${zone.style === 'lines' ? 'selected' : ''}>Lines</option>
-                                        <option value="holes" ${(zone.style || 'holes') === 'holes' ? 'selected' : ''}>Holes</option>
-                                        <option value="both" ${zone.style === 'both' ? 'selected' : ''}>Both</option>
-                                    </select>
-                                </div>
-                                <div class="control-row" style="margin-bottom: 0;">
                                     <label class="control-label" style="width: 45%;">Color</label>
                                     <input type="color" class="zone-color-picker-input" data-zone-id="${zone.id}" data-param="color" value="${zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
                                 </div>
-                                ${sliderRow(zone.style === 'holes' ? 'Hole Size' : 'Line Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.10, 0.005, zone.holeSize || 0.03, 'cm')}
                                 ${sliderRow('Opacity', `pat-zone-opacity-${zone.id}`, 0.1, 1, 0.05, zone.opacity)}
                             </div>
                         </div>
