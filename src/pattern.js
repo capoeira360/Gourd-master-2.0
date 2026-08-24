@@ -1799,19 +1799,21 @@ function generateConcentricLoops(zone) {
         }
     }
 
-    const spacing = 1.0 / zone.density;
     const R = Math.max(0.005, zone.radius || 0.15);
+    const ringCount = zone.concentricRings !== undefined ? Math.max(1, zone.concentricRings) : (zone.density ? Math.max(1, Math.round(zone.density * 5)) : 6);
+    const spacing = (zone.type === 'circular-patch' || zone.type === 'circle' || zone.concentricRings !== undefined) ? (R / ringCount) : (1.0 / (zone.density || 1.0));
 
     const loops = [];
     const patchCount = zone.patchCount !== undefined ? zone.patchCount : 1;
 
     for (let p = 0; p < patchCount; p++) {
         const offsetTheta = (p / patchCount) * Math.PI * 2;
-        let currentTheta = zone.centerTheta + offsetTheta;
+        let currentTheta = (zone.centerTheta !== undefined ? zone.centerTheta : 0.0) + offsetTheta;
         currentTheta = ((currentTheta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
         let currentRadius = R;
-        while (currentRadius > 0.002) {
+        let ringIter = 0;
+        while (currentRadius > 0.002 && ringIter < 50) {
             const scale = currentRadius / R;
             const loopPath = [];
 
@@ -1823,7 +1825,7 @@ function generateConcentricLoops(zone) {
                 const dx = rx * Math.cos(phi) - ry * Math.sin(phi);
                 const dy = rx * Math.sin(phi) + ry * Math.cos(phi);
 
-                const t = zone.centerT + dy / getGourdHeight();
+                const t = (zone.centerT !== undefined ? zone.centerT : 0.5) + dy / getGourdHeight();
                 const r = getGourdRadius(t);
                 let theta = currentTheta + dx / r;
                 theta = ((theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
@@ -1834,6 +1836,7 @@ function generateConcentricLoops(zone) {
             loopPath.centerTheta = currentTheta;
             loops.push(loopPath);
             currentRadius -= spacing;
+            ringIter++;
         }
     }
 

@@ -265,9 +265,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const holeCountProx = Math.max(0, Math.min(100, Math.round(100 * (zone.holeCount - 1) / 799)));
 
             const isLocalShape = ['circle', 'square', 'circular-patch', 'square-patch', 'fish', 'star', 'flower', 'heart', 'triangle', 'custom-image'].includes(zone.type);
+            const isConcentricOnly = (zone.type === 'circular-patch');
             
             let fillTypeSelect = '';
-            if (isLocalShape && zone.type !== 'custom-image') {
+            if (isLocalShape && zone.type !== 'custom-image' && !isConcentricOnly) {
                 fillTypeSelect = `
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Fill Type</label>
@@ -280,7 +281,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             }
             
             let orientationSelect = '';
-            if ((!isLocalShape || zone.fillType !== 'concentric') && zone.type !== 'custom-image') {
+            if ((!isLocalShape || zone.fillType !== 'concentric') && zone.type !== 'custom-image' && !isConcentricOnly) {
                 orientationSelect = `
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Orientation</label>
@@ -294,7 +295,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             }
 
             let patternTypeSelector = '';
-            if ((!isLocalShape || zone.fillType !== 'concentric') && zone.type !== 'custom-image') {
+            if ((!isLocalShape || zone.fillType !== 'concentric') && zone.type !== 'custom-image' && !isConcentricOnly) {
                 patternTypeSelector = `
                     <div class="control-row" style="margin-bottom: 8px;">
                         <label class="control-label" style="width: 35%;">Pattern Layout</label>
@@ -374,10 +375,16 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${sliderRow('Slant Angle', `pat-zone-slantAngle-${zone.id}`, -90, 90, 1, zone.slantAngle, '°')}
                     `;
                 } else if (zone.type === 'circular-patch') {
+                    const ringsVal = zone.concentricRings !== undefined ? zone.concentricRings : 6;
                     boundsSliders = `
-                        ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT)}
-                        ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round(zone.centerTheta * 180 / Math.PI), '°')}
-                        ${sliderRow('Patch Radius', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius, 'cm')}
+                        <div style="font-size: 10px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; margin: 6px 0 4px 0; letter-spacing: 0.5px;">Patch Placement & Symmetry</div>
+                        ${sliderRow('Center Height', `pat-zone-centerT-${zone.id}`, 0.0, 1.0, 0.01, zone.centerT !== undefined ? zone.centerT : 0.5)}
+                        ${sliderRow('Center Angle', `pat-zone-centerTheta-${zone.id}`, -180, 180, 1, Math.round((zone.centerTheta !== undefined ? zone.centerTheta : 0.0) * 180 / Math.PI), '°')}
+                        ${sliderRow('Patch Radius', `pat-zone-radius-${zone.id}`, 0.02, 0.5, 0.01, zone.radius !== undefined ? zone.radius : 0.15, 'cm')}
+                        ${sliderRow('Symmetry Count', `pat-zone-patchCount-${zone.id}`, 1, 8, 1, zone.patchCount !== undefined ? zone.patchCount : 1, 'patches')}
+
+                        <div style="font-size: 10px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; margin: 10px 0 4px 0; letter-spacing: 0.5px;">Concentric Outlines</div>
+                        ${sliderRow('Ring Count', `pat-zone-concentricRings-${zone.id}`, 1, 25, 1, ringsVal, 'rings')}
                     `;
                 } else if (zone.type === 'square-patch' || zone.type === 'square') {
                     boundsSliders = `
@@ -439,7 +446,36 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
             const isDoodle = zone.patternType && (zone.patternType.startsWith('doodle-') || zone.patternType.startsWith('pat-'));
 
-            if (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
+            if (zone.type === 'circular-patch') {
+                if (zone.style === 'lines') {
+                    styleControls = `
+                        ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx, '%')}
+                        <div class="control-row" style="margin-bottom: 10px;">
+                            <label class="control-label">Line Color</label>
+                            <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
+                            <span class="color-hex-text">${zone.color.toUpperCase()}</span>
+                        </div>
+                    `;
+                } else if (zone.style === 'holes') {
+                    styleControls = `
+                        ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.12, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
+                        ${sliderRow('Holes per Ring', `pat-zone-holeCount-${zone.id}`, 6, 120, 2, zone.holeCount !== undefined ? zone.holeCount : 30)}
+                        <div class="control-row" style="margin-bottom: 8px;">
+                            <label class="control-label" style="width: 35%;">Hole Shape</label>
+                            <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
+                                <option value="round" ${(zone.holeShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
+                                <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                            </select>
+                        </div>
+                        <div class="control-row" style="margin-bottom: 10px;">
+                            <label class="control-label">Hole Color</label>
+                            <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
+                            <span class="color-hex-text">${zone.color.toUpperCase()}</span>
+                        </div>
+                    `;
+                }
+            } else if (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
                 styleControls = '';
             } else if (zone.style === 'lines') {
                 styleControls = `
@@ -1723,6 +1759,10 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             if (zone) {
                 pushUndoState(gourdMesh);
                 zone.type = select.value;
+                if (zone.type === 'circular-patch') {
+                    zone.fillType = 'concentric';
+                    zone.concentricRings = zone.concentricRings || 6;
+                }
                 if (!zone.isCustomNamed) {
                     const idx = state.patternZones.findIndex(z => z.id === zoneId) + 1;
                     zone.name = `${shapeFriendlyNames[zone.type]} ${idx}`;
@@ -2500,8 +2540,8 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                 zone.holeWobbleAmp = (valFloat / 100.0) * 0.4;
             } else if (param === 'holeWobbleFreq') {
                 zone.holeWobbleFreq = Math.round(valFloat);
-            } else if (param === 'patchCount') {
-                zone.patchCount = Math.round(valFloat);
+            } else if (param === 'patchCount' || param === 'concentricRings') {
+                zone[param] = Math.round(valFloat);
             } else if (param === 'weaveHorHoleWobbleAmp' || param === 'weaveVerHoleWobbleAmp') {
                 zone[param] = (valFloat / 100.0) * 0.4;
             } else if (param === 'weaveHorDashSpacing' || param === 'weaveVerDashSpacing') {
