@@ -131,6 +131,11 @@ export const state = {
     maskMode: 'include',
     patchCount: 1,
     
+    // Model Orientation & Tilt (Pitch, Spin/Yaw, Roll)
+    modelRotationX: 0, // deg: -180 to 180 (pitch forward/back)
+    modelRotationY: 0, // deg: -180 to 180 (spin / turntable)
+    modelRotationZ: 0, // deg: -180 to 180 (roll left/right, 180 upside-down)
+
     // Decoupled stats tracking
     patternCount: 0,
     patternCountType: 'Lines',
@@ -193,6 +198,9 @@ export function pushUndoState(gourdMesh) {
         gourdBendZ: state.gourdBendZ,
         maskMode: state.maskMode,
         patchCount: state.patchCount,
+        modelRotationX: state.modelRotationX || 0,
+        modelRotationY: state.modelRotationY || 0,
+        modelRotationZ: state.modelRotationZ || 0,
         textureDataURL: state.textureDataURL,
         textureScale: state.textureScale,
         textureRotation: state.textureRotation
@@ -240,6 +248,9 @@ export function performUndo(gourdMesh, onRestore) {
         gourdBendZ: state.gourdBendZ,
         maskMode: state.maskMode,
         patchCount: state.patchCount,
+        modelRotationX: state.modelRotationX || 0,
+        modelRotationY: state.modelRotationY || 0,
+        modelRotationZ: state.modelRotationZ || 0,
         textureDataURL: state.textureDataURL,
         textureScale: state.textureScale,
         textureRotation: state.textureRotation
@@ -277,6 +288,9 @@ export function performUndo(gourdMesh, onRestore) {
     state.gourdBendZ = prevState.gourdBendZ;
     state.maskMode = prevState.maskMode;
     state.patchCount = prevState.patchCount;
+    state.modelRotationX = prevState.modelRotationX !== undefined ? prevState.modelRotationX : 0;
+    state.modelRotationY = prevState.modelRotationY !== undefined ? prevState.modelRotationY : 0;
+    state.modelRotationZ = prevState.modelRotationZ !== undefined ? prevState.modelRotationZ : 0;
     state.textureDataURL = prevState.textureDataURL;
     state.textureScale = prevState.textureScale;
     state.textureRotation = prevState.textureRotation;
@@ -321,6 +335,9 @@ export function performRedo(gourdMesh, onRestore) {
         gourdBendZ: state.gourdBendZ,
         maskMode: state.maskMode,
         patchCount: state.patchCount,
+        modelRotationX: state.modelRotationX || 0,
+        modelRotationY: state.modelRotationY || 0,
+        modelRotationZ: state.modelRotationZ || 0,
         textureDataURL: state.textureDataURL,
         textureScale: state.textureScale,
         textureRotation: state.textureRotation
@@ -358,6 +375,9 @@ export function performRedo(gourdMesh, onRestore) {
     state.gourdBendZ = nextState.gourdBendZ;
     state.maskMode = nextState.maskMode;
     state.patchCount = nextState.patchCount;
+    state.modelRotationX = nextState.modelRotationX !== undefined ? nextState.modelRotationX : 0;
+    state.modelRotationY = nextState.modelRotationY !== undefined ? nextState.modelRotationY : 0;
+    state.modelRotationZ = nextState.modelRotationZ !== undefined ? nextState.modelRotationZ : 0;
     state.textureDataURL = nextState.textureDataURL;
     state.textureScale = nextState.textureScale;
     state.textureRotation = nextState.textureRotation;

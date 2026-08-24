@@ -68,11 +68,17 @@
     </div>
 
     <!-- View Dropdown Menu -->
-    <div id="view-dropdown" class="dropdown-menu">
-        <div class="dropdown-item" data-view-action="camera-front">Front View <span>1</span></div>
-        <div class="dropdown-item" data-view-action="camera-side">Side View <span>3</span></div>
-        <div class="dropdown-item" data-view-action="camera-top">Top View <span>7</span></div>
+    <div id="view-dropdown" class="dropdown-menu" style="min-width: 210px;">
+        <div class="dropdown-item" data-view-action="camera-front">Front Camera <span>1</span></div>
+        <div class="dropdown-item" data-view-action="camera-side">Side Camera <span>3</span></div>
+        <div class="dropdown-item" data-view-action="camera-top">Top Camera <span>7</span></div>
         <div class="dropdown-item" data-view-action="camera-persp">Perspective <span>5</span></div>
+        <div style="height: 1px; background: var(--color-bdr); margin: 4px 0;"></div>
+        <div class="dropdown-item" data-view-action="orient-upright"><i class="fas fa-arrow-up" style="width: 14px; margin-right: 6px;"></i> Model: Upright (0°)</div>
+        <div class="dropdown-item" data-view-action="orient-upside-down" style="color: var(--color-acc); font-weight: 600;"><i class="fas fa-arrow-down" style="width: 14px; margin-right: 6px;"></i> Model: Upside Down (180°)</div>
+        <div class="dropdown-item" data-view-action="orient-side-right"><i class="fas fa-arrow-right" style="width: 14px; margin-right: 6px;"></i> Model: Lie Right (90°)</div>
+        <div class="dropdown-item" data-view-action="orient-side-left"><i class="fas fa-arrow-left" style="width: 14px; margin-right: 6px;"></i> Model: Lie Left (-90°)</div>
+        <div class="dropdown-item" data-view-action="orient-reset"><i class="fas fa-undo" style="width: 14px; margin-right: 6px;"></i> Reset Orientation</div>
         <div style="height: 1px; background: var(--color-bdr); margin: 4px 0;"></div>
         <div class="dropdown-item checked" data-view-action="toggle-grid">Ground Grid</div>
         <div class="dropdown-item checked" data-view-action="toggle-patterns">Show Patterns</div>
@@ -204,6 +210,14 @@
                         </button>
                     </div>
 
+                    <!-- Hotspot for Model Orientation & Rotation -->
+                    <div class="hotspot-container" style="pointer-events: auto; display: flex; align-items: center; gap: 8px;">
+                        <span class="hotspot-label-tag">Rotate</span>
+                        <button class="gourd-hotspot hotspot-rotate" data-section="orientation" style="position: static; transform: none;" title="Rotate / Flip Gourd">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+
                     <!-- Hotspot for Patterns & Holes -->
                     <div class="hotspot-container" style="pointer-events: auto; display: flex; align-items: center; gap: 8px;">
                         <!-- Horizontal row of layer indicators protruding leftwards -->
@@ -223,6 +237,16 @@
                     <button class="vp-preset-btn" data-view="side">Side</button>
                     <button class="vp-preset-btn" data-view="top">Top</button>
                     <button class="vp-preset-btn active" data-view="persp">Persp</button>
+                    <div style="width: 1px; height: 14px; background: rgba(255,255,255,0.18); margin: 0 2px;"></div>
+                    <button class="vp-orient-btn" id="vp-btn-flip" title="Flip Gourd Upside Down (180°)">
+                        <i class="fas fa-sync-alt"></i> Flip
+                    </button>
+                    <button class="vp-orient-btn" id="vp-btn-side" title="Lie on Side (90° Tilt)">
+                        <i class="fas fa-arrow-right"></i> Side
+                    </button>
+                    <button class="vp-orient-btn" id="vp-btn-upright" title="Reset Upright (0°)">
+                        <i class="fas fa-arrow-up"></i> Upright
+                    </button>
                 </div>
 
                 <!-- Gourd Geometry Info Badge HUD -->

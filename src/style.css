@@ -327,6 +327,38 @@ h1, h2, h3, h4, .font-display {
     font-weight: 600;
 }
 
+.vp-orient-btn {
+    background: rgba(26, 26, 29, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(212, 168, 67, 0.3);
+    color: #e2e2e8;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: var(--transition-fast);
+}
+
+.vp-orient-btn i {
+    font-size: 9px;
+    color: var(--color-acc);
+}
+
+.vp-orient-btn:hover {
+    background: rgba(212, 168, 67, 0.2);
+    border-color: var(--color-acc);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.vp-orient-btn:active {
+    transform: scale(0.96);
+}
+
 .viewport-overlay-right {
     position: absolute;
     top: 12px;
@@ -1629,4 +1661,45 @@ input[type="color"]::-webkit-color-swatch {
 .export-checkbox-label input[type="checkbox"] {
     accent-color: var(--color-acc);
     cursor: pointer;
+}
+
+/* ===== MODEL ORIENTATION & TILT STYLES ===== */
+.btn-orientation-preset {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    color: var(--color-tx-m);
+    border-radius: 6px;
+    padding: 8px 4px;
+    font-size: 10px;
+    font-weight: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-orientation-preset:hover {
+    background: rgba(212, 168, 67, 0.15);
+    border-color: rgba(212, 168, 67, 0.4);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.btn-orientation-preset.active {
+    background: rgba(212, 168, 67, 0.2);
+    border-color: var(--color-acc);
+    color: var(--color-acc);
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(212, 168, 67, 0.25);
+}
+
+.btn-orientation-preset i {
+    font-size: 13px;
+    transition: transform 0.2s ease;
+}
+
+.btn-orientation-preset:hover i {
+    transform: scale(1.1);
 }

@@ -38,6 +38,20 @@ export function applyGourdTexture(gourdMesh, dataURL, scale = 1.0, rotation = 0)
     }
 }
 
+export function setModelOrientation(pitchDeg, yawDeg, rollDeg, gourdMesh, immediate = false) {
+    state.modelRotationX = pitchDeg;
+    state.modelRotationY = yawDeg;
+    state.modelRotationZ = rollDeg;
+    
+    if (window.animateModelRotation) {
+        window.animateModelRotation(pitchDeg, yawDeg, rollDeg, immediate);
+    } else if (gourdMesh) {
+        const deg2rad = Math.PI / 180;
+        gourdMesh.rotation.set(pitchDeg * deg2rad, yawDeg * deg2rad, rollDeg * deg2rad);
+    }
+}
+window.setModelOrientation = setModelOrientation;
+
 // Row template for ranges and number sync inputs
 function sliderRow(label, id, min, max, step, value, unit = '') {
     return `<div class="control-row">
@@ -86,8 +100,69 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
         const H = state.gourdHeight || 30.0;
         const defaultNeckHeight = (1.0 - neckPos) * H;
         const neckHVal = state.gourdNeckHeight !== undefined ? state.gourdNeckHeight : defaultNeckHeight;
+
+        const rotX = Math.round(state.modelRotationX || 0);
+        const rotY = Math.round(state.modelRotationY || 0);
+        const rotZ = Math.round(state.modelRotationZ || 0);
+        const isUpright = (rotX === 0 && rotZ === 0);
+        const isUpsideDown = (Math.abs(rotZ) === 180 || Math.abs(rotX) === 180);
+        const isLieRight = (rotZ === 90);
+        const isLieLeft = (rotZ === -90);
+        const isLieForward = (rotX === 90);
+        const isLieBack = (rotX === -90);
         
         return `
+            <div class="panel-section-title">Model Orientation & Tilt</div>
+            <div style="margin-bottom: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 12px;">
+                <div style="font-size: 10px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; letter-spacing: 0.5px;">
+                    <span>Quick Orientation Presets</span>
+                    <button id="btn-reset-orientation" class="btn-secondary" style="padding: 2px 7px; font-size: 9px; border-radius: 4px;" title="Reset model orientation to 0°">Reset 0°</button>
+                </div>
+                
+                <!-- Quick Preset Cards Grid -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px;">
+                    <button class="btn-orientation-preset ${isUpright ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="0" title="Default Vertical Upright">
+                        <i class="fas fa-arrow-up" style="font-size: 13px;"></i>
+                        <span>Upright</span>
+                    </button>
+                    <button class="btn-orientation-preset ${isUpsideDown ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="180" title="Invert 180° (Mouth facing down)">
+                        <i class="fas fa-arrow-down" style="font-size: 13px;"></i>
+                        <span>Upside Down</span>
+                    </button>
+                    <button class="btn-orientation-preset ${isLieRight ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="90" title="Lie Flat on Right Side (+90° Roll)">
+                        <i class="fas fa-arrow-right" style="font-size: 13px;"></i>
+                        <span>Lie Right</span>
+                    </button>
+                    <button class="btn-orientation-preset ${isLieLeft ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="-90" title="Lie Flat on Left Side (-90° Roll)">
+                        <i class="fas fa-arrow-left" style="font-size: 13px;"></i>
+                        <span>Lie Left</span>
+                    </button>
+                    <button class="btn-orientation-preset ${isLieForward ? 'active' : ''}" data-rot-x="90" data-rot-y="0" data-rot-z="0" title="Tilt Forward (+90° Pitch)">
+                        <i class="fas fa-level-down-alt" style="font-size: 13px;"></i>
+                        <span>Lie Forward</span>
+                    </button>
+                    <button class="btn-orientation-preset ${isLieBack ? 'active' : ''}" data-rot-x="-90" data-rot-y="0" data-rot-z="0" title="Tilt Backward (-90° Pitch)">
+                        <i class="fas fa-level-up-alt" style="font-size: 13px;"></i>
+                        <span>Lie Back</span>
+                    </button>
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div style="display: flex; gap: 6px;">
+                    <button id="btn-toggle-flip-180" class="btn-primary" style="flex: 1.2; padding: 6px 10px; font-size: 10px; justify-content: center; font-weight: 600;" title="Flip entire gourd upside down">
+                        <i class="fas fa-sync-alt"></i> Flip Upside Down
+                    </button>
+                    <button id="btn-spin-90-y" class="btn-secondary" style="flex: 1; padding: 6px 8px; font-size: 10px; justify-content: center;" title="Spin gourd 90° horizontally">
+                        <i class="fas fa-redo"></i> Spin 90°
+                    </button>
+                </div>
+            </div>
+
+            <!-- Precision 3-Axis Rotation Sliders -->
+            ${sliderRow('Pitch (Tilt X)', 'model-rot-x', -180, 180, 1, rotX, '°')}
+            ${sliderRow('Spin (Turn Y)', 'model-rot-y', -180, 180, 1, rotY, '°')}
+            ${sliderRow('Roll (Side Z)', 'model-rot-z', -180, 180, 1, rotZ, '°')}
+        
             <div class="panel-section-title">Photo Guide Scanner</div>
             <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: stretch; gap: 8px;">
                 <label class="btn-primary" style="display: block; text-align: center; cursor: pointer; padding: 6px 12px; margin-bottom: 0; font-size: 11px;">
@@ -1296,6 +1371,54 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
             pushUndoState(gourdMesh);
         });
     });
+
+    // Model Orientation Preset Buttons
+    document.querySelectorAll('.btn-orientation-preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            const rx = parseFloat(btn.dataset.rotX || 0);
+            const ry = parseFloat(btn.dataset.rotY || 0);
+            const rz = parseFloat(btn.dataset.rotZ || 0);
+            setModelOrientation(rx, ry, rz, gourdMesh);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast(`Oriented model to ${btn.querySelector('span')?.textContent.trim() || 'Preset'}`, 'info');
+        });
+    });
+
+    // Reset Orientation Button
+    document.querySelectorAll('#btn-reset-orientation').forEach(btn => {
+        btn.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            setModelOrientation(0, 0, 0, gourdMesh);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast('Model orientation reset to default (0°)', 'info');
+        });
+    });
+
+    // Toggle Flip Upside Down Button
+    document.querySelectorAll('#btn-toggle-flip-180').forEach(btn => {
+        btn.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            const currentZ = state.modelRotationZ || 0;
+            const newZ = (Math.abs(currentZ) === 180 || Math.abs(state.modelRotationX || 0) === 180) ? 0 : 180;
+            const newX = (Math.abs(state.modelRotationX || 0) === 180) ? 0 : (state.modelRotationX || 0);
+            setModelOrientation(newX, state.modelRotationY || 0, newZ, gourdMesh);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast(newZ === 180 ? 'Model flipped Upside Down (180°)' : 'Model restored Upright', 'info');
+        });
+    });
+
+    // Spin 90° Y Button
+    document.querySelectorAll('#btn-spin-90-y').forEach(btn => {
+        btn.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            let newY = (state.modelRotationY || 0) + 90;
+            if (newY > 180) newY -= 360;
+            setModelOrientation(state.modelRotationX || 0, newY, state.modelRotationZ || 0, gourdMesh);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast(`Model rotated to ${newY}°`, 'info');
+        });
+    });
     
     // 2. Pattern Options (Per-Layer Pattern Layout Toggle Buttons)
     document.querySelectorAll('.option-btn[data-pat-type]').forEach(btn => {
@@ -2372,10 +2495,22 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
         case 'pos-y': gourdMesh.position.y = valFloat; break;
         case 'pos-z': gourdMesh.position.z = valFloat; break;
         
-        // Rotation
-        case 'rot-x': gourdMesh.rotation.x = valFloat * deg2rad; break;
-        case 'rot-y': gourdMesh.rotation.y = valFloat * deg2rad; break;
-        case 'rot-z': gourdMesh.rotation.z = valFloat * deg2rad; break;
+        // Model Orientation & Tilt (Pitch, Spin/Yaw, Roll)
+        case 'model-rot-x':
+        case 'rot-x': 
+            state.modelRotationX = valFloat;
+            gourdMesh.rotation.x = valFloat * deg2rad; 
+            break;
+        case 'model-rot-y':
+        case 'rot-y': 
+            state.modelRotationY = valFloat;
+            gourdMesh.rotation.y = valFloat * deg2rad; 
+            break;
+        case 'model-rot-z':
+        case 'rot-z': 
+            state.modelRotationZ = valFloat;
+            gourdMesh.rotation.z = valFloat * deg2rad; 
+            break;
         
         // Scale
         case 'scale-u': 
@@ -2586,6 +2721,35 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         btn.addEventListener('click', () => {
             setCameraView(btn.dataset.view);
         });
+    });
+
+    // Viewport HUD Quick Model Flip & Rotate Buttons
+    document.getElementById('vp-btn-flip')?.addEventListener('click', () => {
+        pushUndoState(gourdMesh);
+        const currentZ = Math.round(state.modelRotationZ || 0);
+        const currentX = Math.round(state.modelRotationX || 0);
+        const isFlipped = (Math.abs(currentZ) === 180 || Math.abs(currentX) === 180);
+        const newZ = isFlipped ? 0 : 180;
+        const newX = isFlipped ? 0 : currentX;
+        setModelOrientation(newX, state.modelRotationY || 0, newZ, gourdMesh);
+        renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        showToast(newZ === 180 ? 'Gourd flipped Upside Down (180°)' : 'Gourd restored Upright (0°)', 'info');
+    });
+
+    document.getElementById('vp-btn-side')?.addEventListener('click', () => {
+        pushUndoState(gourdMesh);
+        const currentZ = Math.round(state.modelRotationZ || 0);
+        const newZ = (currentZ === 90) ? -90 : 90;
+        setModelOrientation(0, 0, newZ, gourdMesh);
+        renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        showToast(`Gourd lying on ${newZ === 90 ? 'Right' : 'Left'} Side (90°)`, 'info');
+    });
+
+    document.getElementById('vp-btn-upright')?.addEventListener('click', () => {
+        pushUndoState(gourdMesh);
+        setModelOrientation(0, 0, 0, gourdMesh);
+        renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        showToast('Gourd restored Upright (0°)', 'info');
     });
     
     // 3. Take Snapshot button
@@ -2896,6 +3060,31 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
                 const action = item.dataset.viewAction;
                 if (action.startsWith('camera-')) {
                     setCameraView(action.split('-')[1]);
+                } else if (action === 'orient-upright') {
+                    pushUndoState(gourdMesh);
+                    setModelOrientation(0, 0, 0, gourdMesh);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Model orientation set to Upright (0°)', 'info');
+                } else if (action === 'orient-upside-down') {
+                    pushUndoState(gourdMesh);
+                    setModelOrientation(0, 0, 180, gourdMesh);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Model orientation flipped Upside Down (180°)', 'info');
+                } else if (action === 'orient-side-right') {
+                    pushUndoState(gourdMesh);
+                    setModelOrientation(0, 0, 90, gourdMesh);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Model orientation set to Right Side (90°)', 'info');
+                } else if (action === 'orient-side-left') {
+                    pushUndoState(gourdMesh);
+                    setModelOrientation(0, 0, -90, gourdMesh);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Model orientation set to Left Side (-90°)', 'info');
+                } else if (action === 'orient-reset') {
+                    pushUndoState(gourdMesh);
+                    setModelOrientation(0, 0, 0, gourdMesh);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast('Model orientation reset to (0°, 0°, 0°)', 'info');
                 } else if (action === 'toggle-grid') {
                     state.gridVisible = !state.gridVisible;
                     gridHelper.visible = state.gridVisible;
@@ -4022,6 +4211,51 @@ export function openMobileAdjustments(section, gourdMesh, carveGroup, measureGro
             ${sliderRow('Bulb Height', 'gourd-bulbPosition', 0.1, 0.4, 0.01, state.gourdBulbPosition || 0.25)}
             ${sliderRow('Bulb Roundness', 'gourd-bulbRoundness', 0.5, 4.0, 0.05, state.gourdBulbRoundness || 1.0)}
         `;
+    } else if (section === 'orientation') {
+        title.innerText = 'Model Orientation & Tilt';
+        const rotX = Math.round(state.modelRotationX || 0);
+        const rotY = Math.round(state.modelRotationY || 0);
+        const rotZ = Math.round(state.modelRotationZ || 0);
+        const isUpright = (rotX === 0 && rotZ === 0);
+        const isUpsideDown = (Math.abs(rotZ) === 180 || Math.abs(rotX) === 180);
+        const isLieRight = (rotZ === 90);
+        const isLieLeft = (rotZ === -90);
+        const isLieForward = (rotX === 90);
+        const isLieBack = (rotX === -90);
+
+        html = `
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px;">
+                <button class="btn-orientation-preset ${isUpright ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="0">
+                    <i class="fas fa-arrow-up"></i> <span>Upright</span>
+                </button>
+                <button class="btn-orientation-preset ${isUpsideDown ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="180">
+                    <i class="fas fa-arrow-down"></i> <span>Upside Down</span>
+                </button>
+                <button class="btn-orientation-preset ${isLieRight ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="90">
+                    <i class="fas fa-arrow-right"></i> <span>Lie Right</span>
+                </button>
+                <button class="btn-orientation-preset ${isLieLeft ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="-90">
+                    <i class="fas fa-arrow-left"></i> <span>Lie Left</span>
+                </button>
+                <button class="btn-orientation-preset ${isLieForward ? 'active' : ''}" data-rot-x="90" data-rot-y="0" data-rot-z="0">
+                    <i class="fas fa-level-down-alt"></i> <span>Lie Forward</span>
+                </button>
+                <button class="btn-orientation-preset ${isLieBack ? 'active' : ''}" data-rot-x="-90" data-rot-y="0" data-rot-z="0">
+                    <i class="fas fa-level-up-alt"></i> <span>Lie Back</span>
+                </button>
+            </div>
+            <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+                <button id="btn-toggle-flip-180" class="btn-primary" style="flex: 1.2; padding: 6px 10px; font-size: 10px; justify-content: center; font-weight: 600;">
+                    <i class="fas fa-sync-alt"></i> Flip Upside Down
+                </button>
+                <button id="btn-spin-90-y" class="btn-secondary" style="flex: 1; padding: 6px 8px; font-size: 10px; justify-content: center;">
+                    <i class="fas fa-redo"></i> Spin 90°
+                </button>
+            </div>
+            ${sliderRow('Pitch (Tilt X)', 'model-rot-x', -180, 180, 1, rotX, '°')}
+            ${sliderRow('Spin (Turn Y)', 'model-rot-y', -180, 180, 1, rotY, '°')}
+            ${sliderRow('Roll (Side Z)', 'model-rot-z', -180, 180, 1, rotZ, '°')}
+        `;
     } else if (section === 'pattern') {
         title.innerText = 'Adjust Surface Patterns';
         html = getPanelHTML('pattern', gourdMesh, carveGroup, measureGroup);
@@ -4029,7 +4263,7 @@ export function openMobileAdjustments(section, gourdMesh, carveGroup, measureGro
 
     content.innerHTML = html;
 
-    if (section === 'pattern') {
+    if (section === 'pattern' || section === 'orientation') {
         // Wire full controls using shared wireFormControls logic
         wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
         

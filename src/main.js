@@ -268,6 +268,27 @@ function onResize() {
     renderer.setSize(viewport.clientWidth, viewport.clientHeight);
 }
 
+let modelTargetRot = null;
+
+// Smoothly animates model orientation to target pitch/yaw/roll degrees
+export function animateModelRotation(xDeg, yDeg, zDeg, immediate = false) {
+    if (!gourdMesh) return;
+    state.modelRotationX = xDeg;
+    state.modelRotationY = yDeg;
+    state.modelRotationZ = zDeg;
+    
+    const deg2rad = Math.PI / 180;
+    const targetEuler = new THREE.Euler(xDeg * deg2rad, yDeg * deg2rad, zDeg * deg2rad);
+    
+    if (immediate) {
+        gourdMesh.rotation.copy(targetEuler);
+        modelTargetRot = null;
+    } else {
+        modelTargetRot = targetEuler;
+    }
+}
+window.animateModelRotation = animateModelRotation;
+
 // Sets camera presets and sets target lerping
 function setCameraView(view) {
     cameraTargetPos = cameraPresets[view]?.clone();
@@ -321,6 +342,20 @@ function animate(timestamp) {
             cameraTargetPos = null;
         }
         controls.target.set(0, 0.1, 0);
+    }
+
+    // 2b. Smooth Model Rotation Lerping
+    if (modelTargetRot && gourdMesh) {
+        gourdMesh.rotation.x += (modelTargetRot.x - gourdMesh.rotation.x) * 0.16;
+        gourdMesh.rotation.y += (modelTargetRot.y - gourdMesh.rotation.y) * 0.16;
+        gourdMesh.rotation.z += (modelTargetRot.z - gourdMesh.rotation.z) * 0.16;
+        
+        if (Math.abs(modelTargetRot.x - gourdMesh.rotation.x) < 0.003 &&
+            Math.abs(modelTargetRot.y - gourdMesh.rotation.y) < 0.003 &&
+            Math.abs(modelTargetRot.z - gourdMesh.rotation.z) < 0.003) {
+            gourdMesh.rotation.copy(modelTargetRot);
+            modelTargetRot = null;
+        }
     }
 
     // 3. Idle rotation disabled to keep model still during design
