@@ -87,6 +87,92 @@ function setMeshColor(gourdMesh, hex) {
     }
 }
 
+// Generates polished 3D Orientation & Tilt Widget HTML
+function getOrientationWidgetHTML(rotX, rotY, rotZ) {
+    const isUpright = (rotX === 0 && rotZ === 0);
+    const isUpsideDown = (Math.abs(rotZ) === 180 || Math.abs(rotX) === 180);
+    const isLieRight = (rotZ === 90);
+    const isLieLeft = (rotZ === -90);
+    const isLieForward = (rotX === 90);
+    const isLieBack = (rotX === -90);
+
+    return `
+        <div class="orient-card-container">
+            <!-- Top Action Bar: Flip Upside Down & Spin Controls -->
+            <div class="orient-quick-actions">
+                <button id="btn-toggle-flip-180" class="btn-orient-action ${isUpsideDown ? 'active-flipped' : ''}" title="Flip entire gourd 180° upside down">
+                    <i class="fas fa-retweet"></i>
+                    <span class="action-label">${isUpsideDown ? 'Flipped (180°)' : 'Flip Upside Down'}</span>
+                </button>
+                <div class="orient-spin-group">
+                    <button id="btn-spin-ccw-90-y" class="btn-orient-spin" title="Spin 90° Counter-Clockwise (-90°)">
+                        <i class="fas fa-undo"></i>
+                        <span>-90°</span>
+                    </button>
+                    <button id="btn-spin-90-y" class="btn-orient-spin" title="Spin 90° Clockwise (+90°)">
+                        <i class="fas fa-redo"></i>
+                        <span>+90°</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Section Subhead with Reset Button -->
+            <div class="orient-section-subhead">
+                <span class="orient-subhead-title"><i class="fas fa-compass"></i> Spatial Presets</span>
+                <button id="btn-reset-orientation" class="btn-orient-reset-pill" title="Reset model orientation to default (0°)">
+                    <i class="fas fa-history"></i> Reset 0°
+                </button>
+            </div>
+
+            <!-- 6 Spatial Preset Grid -->
+            <div class="orient-presets-grid">
+                <button class="btn-orientation-preset ${isUpright ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="0" title="Default Vertical (0°)">
+                    <div class="preset-icon-wrap"><i class="fas fa-arrow-up"></i></div>
+                    <div class="preset-info">
+                        <span class="preset-name">Upright</span>
+                        <span class="preset-deg">0° Base</span>
+                    </div>
+                </button>
+                <button class="btn-orientation-preset ${isUpsideDown ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="180" title="Inverted (180°)">
+                    <div class="preset-icon-wrap"><i class="fas fa-arrow-down"></i></div>
+                    <div class="preset-info">
+                        <span class="preset-name">Inverted</span>
+                        <span class="preset-deg">180° Top</span>
+                    </div>
+                </button>
+                <button class="btn-orientation-preset ${isLieRight ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="90" title="Lie on Right Side (+90° Roll)">
+                    <div class="preset-icon-wrap"><i class="fas fa-arrow-right"></i></div>
+                    <div class="preset-info">
+                        <span class="preset-name">Lie Right</span>
+                        <span class="preset-deg">+90° Roll</span>
+                    </div>
+                </button>
+                <button class="btn-orientation-preset ${isLieLeft ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="-90" title="Lie on Left Side (-90° Roll)">
+                    <div class="preset-icon-wrap"><i class="fas fa-arrow-left"></i></div>
+                    <div class="preset-info">
+                        <span class="preset-name">Lie Left</span>
+                        <span class="preset-deg">-90° Roll</span>
+                    </div>
+                </button>
+                <button class="btn-orientation-preset ${isLieForward ? 'active' : ''}" data-rot-x="90" data-rot-y="0" data-rot-z="0" title="Lie Flat Forward (+90° Pitch)">
+                    <div class="preset-icon-wrap"><i class="fas fa-level-down-alt"></i></div>
+                    <div class="preset-info">
+                        <span class="preset-name">Lie Front</span>
+                        <span class="preset-deg">+90° Pitch</span>
+                    </div>
+                </button>
+                <button class="btn-orientation-preset ${isLieBack ? 'active' : ''}" data-rot-x="-90" data-rot-y="0" data-rot-z="0" title="Lie Flat Backward (-90° Pitch)">
+                    <div class="preset-icon-wrap"><i class="fas fa-level-up-alt"></i></div>
+                    <div class="preset-info">
+                        <span class="preset-name">Lie Back</span>
+                        <span class="preset-deg">-90° Pitch</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
 // Builds panel HTML content based on the active tab and current model state
 function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
     if (!gourdMesh) return '';
@@ -104,59 +190,10 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
         const rotX = Math.round(state.modelRotationX || 0);
         const rotY = Math.round(state.modelRotationY || 0);
         const rotZ = Math.round(state.modelRotationZ || 0);
-        const isUpright = (rotX === 0 && rotZ === 0);
-        const isUpsideDown = (Math.abs(rotZ) === 180 || Math.abs(rotX) === 180);
-        const isLieRight = (rotZ === 90);
-        const isLieLeft = (rotZ === -90);
-        const isLieForward = (rotX === 90);
-        const isLieBack = (rotX === -90);
         
         return `
             <div class="panel-section-title">Model Orientation & Tilt</div>
-            <div style="margin-bottom: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 12px;">
-                <div style="font-size: 10px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; letter-spacing: 0.5px;">
-                    <span>Quick Orientation Presets</span>
-                    <button id="btn-reset-orientation" class="btn-secondary" style="padding: 2px 7px; font-size: 9px; border-radius: 4px;" title="Reset model orientation to 0°">Reset 0°</button>
-                </div>
-                
-                <!-- Quick Preset Cards Grid -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px;">
-                    <button class="btn-orientation-preset ${isUpright ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="0" title="Default Vertical Upright">
-                        <i class="fas fa-arrow-up" style="font-size: 13px;"></i>
-                        <span>Upright</span>
-                    </button>
-                    <button class="btn-orientation-preset ${isUpsideDown ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="180" title="Invert 180° (Mouth facing down)">
-                        <i class="fas fa-arrow-down" style="font-size: 13px;"></i>
-                        <span>Upside Down</span>
-                    </button>
-                    <button class="btn-orientation-preset ${isLieRight ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="90" title="Lie Flat on Right Side (+90° Roll)">
-                        <i class="fas fa-arrow-right" style="font-size: 13px;"></i>
-                        <span>Lie Right</span>
-                    </button>
-                    <button class="btn-orientation-preset ${isLieLeft ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="-90" title="Lie Flat on Left Side (-90° Roll)">
-                        <i class="fas fa-arrow-left" style="font-size: 13px;"></i>
-                        <span>Lie Left</span>
-                    </button>
-                    <button class="btn-orientation-preset ${isLieForward ? 'active' : ''}" data-rot-x="90" data-rot-y="0" data-rot-z="0" title="Tilt Forward (+90° Pitch)">
-                        <i class="fas fa-level-down-alt" style="font-size: 13px;"></i>
-                        <span>Lie Forward</span>
-                    </button>
-                    <button class="btn-orientation-preset ${isLieBack ? 'active' : ''}" data-rot-x="-90" data-rot-y="0" data-rot-z="0" title="Tilt Backward (-90° Pitch)">
-                        <i class="fas fa-level-up-alt" style="font-size: 13px;"></i>
-                        <span>Lie Back</span>
-                    </button>
-                </div>
-
-                <!-- Quick Action Buttons -->
-                <div style="display: flex; gap: 6px;">
-                    <button id="btn-toggle-flip-180" class="btn-primary" style="flex: 1.2; padding: 6px 10px; font-size: 10px; justify-content: center; font-weight: 600;" title="Flip entire gourd upside down">
-                        <i class="fas fa-sync-alt"></i> Flip Upside Down
-                    </button>
-                    <button id="btn-spin-90-y" class="btn-secondary" style="flex: 1; padding: 6px 8px; font-size: 10px; justify-content: center;" title="Spin gourd 90° horizontally">
-                        <i class="fas fa-redo"></i> Spin 90°
-                    </button>
-                </div>
-            </div>
+            ${getOrientationWidgetHTML(rotX, rotY, rotZ)}
 
             <!-- Precision 3-Axis Rotation Sliders -->
             ${sliderRow('Pitch (Tilt X)', 'model-rot-x', -180, 180, 1, rotX, '°')}
@@ -1408,12 +1445,24 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
-    // Spin 90° Y Button
+    // Spin 90° Y Button (Clockwise)
     document.querySelectorAll('#btn-spin-90-y').forEach(btn => {
         btn.addEventListener('click', () => {
             pushUndoState(gourdMesh);
             let newY = (state.modelRotationY || 0) + 90;
             if (newY > 180) newY -= 360;
+            setModelOrientation(state.modelRotationX || 0, newY, state.modelRotationZ || 0, gourdMesh);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast(`Model rotated to ${newY}°`, 'info');
+        });
+    });
+
+    // Spin -90° Y Button (Counter-Clockwise)
+    document.querySelectorAll('#btn-spin-ccw-90-y').forEach(btn => {
+        btn.addEventListener('click', () => {
+            pushUndoState(gourdMesh);
+            let newY = (state.modelRotationY || 0) - 90;
+            if (newY < -180) newY += 360;
             setModelOrientation(state.modelRotationX || 0, newY, state.modelRotationZ || 0, gourdMesh);
             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
             showToast(`Model rotated to ${newY}°`, 'info');
@@ -4216,42 +4265,9 @@ export function openMobileAdjustments(section, gourdMesh, carveGroup, measureGro
         const rotX = Math.round(state.modelRotationX || 0);
         const rotY = Math.round(state.modelRotationY || 0);
         const rotZ = Math.round(state.modelRotationZ || 0);
-        const isUpright = (rotX === 0 && rotZ === 0);
-        const isUpsideDown = (Math.abs(rotZ) === 180 || Math.abs(rotX) === 180);
-        const isLieRight = (rotZ === 90);
-        const isLieLeft = (rotZ === -90);
-        const isLieForward = (rotX === 90);
-        const isLieBack = (rotX === -90);
 
         html = `
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px;">
-                <button class="btn-orientation-preset ${isUpright ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="0">
-                    <i class="fas fa-arrow-up"></i> <span>Upright</span>
-                </button>
-                <button class="btn-orientation-preset ${isUpsideDown ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="180">
-                    <i class="fas fa-arrow-down"></i> <span>Upside Down</span>
-                </button>
-                <button class="btn-orientation-preset ${isLieRight ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="90">
-                    <i class="fas fa-arrow-right"></i> <span>Lie Right</span>
-                </button>
-                <button class="btn-orientation-preset ${isLieLeft ? 'active' : ''}" data-rot-x="0" data-rot-y="0" data-rot-z="-90">
-                    <i class="fas fa-arrow-left"></i> <span>Lie Left</span>
-                </button>
-                <button class="btn-orientation-preset ${isLieForward ? 'active' : ''}" data-rot-x="90" data-rot-y="0" data-rot-z="0">
-                    <i class="fas fa-level-down-alt"></i> <span>Lie Forward</span>
-                </button>
-                <button class="btn-orientation-preset ${isLieBack ? 'active' : ''}" data-rot-x="-90" data-rot-y="0" data-rot-z="0">
-                    <i class="fas fa-level-up-alt"></i> <span>Lie Back</span>
-                </button>
-            </div>
-            <div style="display: flex; gap: 6px; margin-bottom: 12px;">
-                <button id="btn-toggle-flip-180" class="btn-primary" style="flex: 1.2; padding: 6px 10px; font-size: 10px; justify-content: center; font-weight: 600;">
-                    <i class="fas fa-sync-alt"></i> Flip Upside Down
-                </button>
-                <button id="btn-spin-90-y" class="btn-secondary" style="flex: 1; padding: 6px 8px; font-size: 10px; justify-content: center;">
-                    <i class="fas fa-redo"></i> Spin 90°
-                </button>
-            </div>
+            ${getOrientationWidgetHTML(rotX, rotY, rotZ)}
             ${sliderRow('Pitch (Tilt X)', 'model-rot-x', -180, 180, 1, rotX, '°')}
             ${sliderRow('Spin (Turn Y)', 'model-rot-y', -180, 180, 1, rotY, '°')}
             ${sliderRow('Roll (Side Z)', 'model-rot-z', -180, 180, 1, rotZ, '°')}
