@@ -719,11 +719,11 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                     <input type="checkbox" class="zone-clip-bg-checkbox" data-zone-id="${zone.id}" ${zone.clipBackground !== false ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
                                 </div>
                             ` : ''}
-                            ${(!['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame'].includes(zone.type) && zone.patternType !== 'swirls') ? `
+                            ${(!['full', 'hor-band', 'ver-strip', 'diagonal-stripe', 'diagonal-frame', 'circular-patch'].includes(zone.type) && zone.patternType !== 'swirls') ? `
                                 ${sliderRow('Repeating Count', `pat-zone-patchCount-${zone.id}`, 1, 12, 1, zone.patchCount || 1)}
                             ` : ''}
                             
-                            ${zone.patternType === 'swirls' ? `
+                            ${(zone.type !== 'circular-patch' && zone.patternType === 'swirls') ? `
                                 <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px;">
                                     <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 8px;">Swirl Configuration</div>
                                     
@@ -742,7 +742,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 </div>
                             ` : ''}
                             
-                            ${(zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'geo-triangle') ? `
+                            ${(zone.type !== 'circular-patch' && (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'geo-triangle')) ? `
                                 <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                     <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">
                                         ${zone.patternType === 'grid' ? 'Grid Layout Configuration' : (zone.patternType === 'geo-triangle' ? 'Geo-Triangle Configuration' : (zone.patternType === 'weave2' ? 'Diamond Weave Configuration' : 'Basket Weave Configuration'))}
@@ -866,7 +866,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 </div>
                             ` : ''}
                             
-                            ${zone.patternType === 'scatter' ? `
+                            ${(zone.type !== 'circular-patch' && zone.patternType === 'scatter') ? `
                                 <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                     <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Scatter Configuration (Stars)</div>
                                     ${sliderRow('Size Categories', `pat-zone-scatterSizeGroupsCount-${zone.id}`, 1, 5, 1, zone.scatterSizeGroupsCount || 3)}
@@ -876,7 +876,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 </div>
                             ` : ''}
                             
-                            ${zone.patternType === 'flow' ? `
+                            ${(zone.type !== 'circular-patch' && zone.patternType === 'flow') ? `
                                 <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                     <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Organic Flow Configuration</div>
                                     ${sliderRow('Flow Turbulence', `pat-zone-flowScale-${zone.id}`, 0.0, 5.0, 0.1, zone.flowScale !== undefined ? zone.flowScale : 2.0)}
@@ -925,7 +925,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 </div>
                             ` : ''}
                             
-                            ${zone.patternType === 'ribbons' ? `
+                            ${(zone.type !== 'circular-patch' && zone.patternType === 'ribbons') ? `
                                 <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                     <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">Noodle Ribbon Configuration</div>
                                     ${sliderRow('Ribbon Quantity', `pat-zone-ribbonCount-${zone.id}`, 2, 20, 1, zone.ribbonCount !== undefined ? zone.ribbonCount : 8)}
@@ -967,7 +967,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 </div>
                             ` : ''}
                             
-                            ${zone.patternType && zone.patternType.startsWith('doodle-') ? `
+                            ${(zone.type !== 'circular-patch' && zone.patternType && zone.patternType.startsWith('doodle-')) ? `
                                 <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                     <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">
                                         ${zone.patternType === 'doodle-flow' ? 'Org Flow Layout Configuration' :
@@ -988,7 +988,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                 </div>
                             ` : ''}
                             
-                            ${zone.patternType && zone.patternType.startsWith('pat-') ? `
+                            ${(zone.type !== 'circular-patch' && zone.patternType && zone.patternType.startsWith('pat-')) ? `
                                 <div style="border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; background: rgba(0,0,0,0.15); margin-bottom: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
                                     <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-tx-m); margin-bottom: 4px;">
                                         ${{
@@ -1022,7 +1022,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             ${orientationSelect}
                             ${boundsSliders}
                             
-                            ${!['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType) ? `
+                            ${(!['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType) || zone.type === 'circular-patch') ? `
                                 <div class="btn-grid-options" style="grid-template-columns: repeat(4, 1fr); margin-top: 10px; margin-bottom: 8px;">
                                     <button class="option-btn ${zone.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="lines">Lines</button>
                                     <button class="option-btn ${zone.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="holes">Holes</button>
