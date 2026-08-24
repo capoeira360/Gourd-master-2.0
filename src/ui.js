@@ -427,8 +427,8 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         <div style="font-size: 10px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; margin: 10px 0 4px 0; letter-spacing: 0.5px;">Concentric Outlines</div>
                         ${sliderRow('Ring Count', `pat-zone-concentricRings-${zone.id}`, 1, 16, 1, ringsVal, 'rings')}
 
-                        ${ringsVal > 1 ? `
-                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 10px 8px; margin-top: 8px; margin-bottom: 8px;">
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 10px 8px; margin-top: 8px; margin-bottom: 8px;">
+                            ${ringsVal > 1 ? `
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                     <div style="font-size: 10px; font-weight: 700; color: var(--color-tx-h); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 5px;">
                                         <span>Ring ${activeRingIdx + 1} of ${ringsVal}</span>
@@ -442,46 +442,51 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                                     </div>
                                 </div>
                                 ${ringTabsHTML}
-
                                 ${sliderRow('Radius / Closeness', `pat-zone-ring-radiusRatio-${zone.id}-${activeRingIdx}`, 5, 100, 1, ringRadiusPct, '%')}
-                                ${sliderRow('Rotation Offset', `pat-zone-ring-rotationOffset-${zone.id}-${activeRingIdx}`, -180, 180, 1, curRing.rotationOffset || 0, '°')}
+                            ` : ''}
 
-                                <div class="control-row" style="margin-top: 6px; margin-bottom: 6px;">
-                                    <label class="control-label" style="width: 35%;">Ring Style</label>
-                                    <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: repeat(5, 1fr);">
-                                        <button class="option-btn btn-ring-style-opt ${(curRing.style || 'inherit') === 'inherit' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="inherit" style="font-size: 8px; padding: 2px 3px;">Auto</button>
-                                        <button class="option-btn btn-ring-style-opt ${curRing.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="lines" style="font-size: 8px; padding: 2px 3px;">Lines</button>
-                                        <button class="option-btn btn-ring-style-opt ${curRing.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="holes" style="font-size: 8px; padding: 2px 3px;">Holes</button>
-                                        <button class="option-btn btn-ring-style-opt ${curRing.style === 'both' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="both" style="font-size: 8px; padding: 2px 3px;">Both</button>
-                                        <button class="option-btn btn-ring-style-opt ${curRing.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="off" style="font-size: 8px; padding: 2px 3px;">Off</button>
-                                    </div>
-                                </div>
+                            ${sliderRow('Spin / Rotation (Wheel)', `pat-zone-ring-spinAngle-${zone.id}-${activeRingIdx}`, 0, 360, 1, Math.round(((curRing.spinAngle !== undefined ? curRing.spinAngle : 0) % 360 + 360) % 360), '°')}
+                            <div style="display: flex; gap: 4px; margin-top: 4px; margin-bottom: 8px;">
+                                <button class="btn-ring-spin-step" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-step="-45" title="Spin Counter-Clockwise 45°" style="flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--color-tx-m); font-size: 9px; padding: 4px; border-radius: 4px; cursor: pointer;">↺ -45°</button>
+                                <button class="btn-ring-spin-step" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-step="45" title="Spin Clockwise 45°" style="flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--color-tx-m); font-size: 9px; padding: 4px; border-radius: 4px; cursor: pointer;">↻ +45°</button>
+                                <button class="btn-ring-spin-flip" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" title="Flip / Invert Ring 180°" style="flex: 1.2; background: rgba(212,168,67,0.15); border: 1px solid var(--color-acc); color: var(--color-acc); font-size: 9px; padding: 4px; border-radius: 4px; cursor: pointer; font-weight: 600;">⟲ Flip 180°</button>
+                            </div>
 
-                                ${(ringEffectiveStyle === 'lines' || ringEffectiveStyle === 'both') ? `
-                                    ${sliderRow('Dash Gap', `pat-zone-ring-dashSpacing-${zone.id}-${activeRingIdx}`, 0, 100, 1, ringDashPct, '%')}
-                                ` : ''}
-
-                                ${(ringEffectiveStyle === 'holes' || ringEffectiveStyle === 'both') ? `
-                                    <div class="control-row" style="margin-bottom: 6px;">
-                                        <label class="control-label" style="width: 35%;">Hole Design</label>
-                                        <select class="zone-ring-hole-shape-select" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" style="margin-bottom: 0; flex: 1; font-size: 10px;">
-                                            <option value="inherit" ${(curRing.holeShape || 'inherit') === 'inherit' ? 'selected' : ''}>Inherit (${zone.holeShape || 'round'})</option>
-                                            <option value="round" ${curRing.holeShape === 'round' ? 'selected' : ''}>Round Hole</option>
-                                            <option value="wobbly" ${curRing.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
-                                            <option value="star" ${curRing.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
-                                        </select>
-                                    </div>
-                                    ${sliderRow('Hole Size', `pat-zone-ring-holeSize-${zone.id}-${activeRingIdx}`, 0.01, 0.12, 0.005, curRing.holeSize !== undefined ? curRing.holeSize : (zone.holeSize || 0.03), 'cm')}
-                                    ${sliderRow('Holes on Ring', `pat-zone-ring-holeCount-${zone.id}-${activeRingIdx}`, 4, 120, 2, curRing.holeCount !== undefined ? curRing.holeCount : (zone.holeCount || 30))}
-                                ` : ''}
-
-                                <div class="control-row" style="margin-bottom: 4px; margin-top: 6px;">
-                                    <label class="control-label" style="width: 35%;">Ring Color</label>
-                                    <input type="color" class="zone-ring-color-input" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" value="${curRing.color || zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
-                                    <span class="color-hex-text">${(curRing.color || zone.color || '#D4A843').toUpperCase()}</span>
+                            <div class="control-row" style="margin-top: 6px; margin-bottom: 6px;">
+                                <label class="control-label" style="width: 35%;">Ring Style</label>
+                                <div class="btn-grid-options" style="flex: 1; margin-bottom: 0; grid-template-columns: repeat(${ringsVal > 1 ? 5 : 4}, 1fr);">
+                                    ${ringsVal > 1 ? `<button class="option-btn btn-ring-style-opt ${(curRing.style || 'inherit') === 'inherit' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="inherit" style="font-size: 8px; padding: 2px 3px;">Auto</button>` : ''}
+                                    <button class="option-btn btn-ring-style-opt ${(curRing.style === 'lines' || (ringsVal === 1 && (curRing.style || zone.style) === 'lines')) ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="lines" style="font-size: 8px; padding: 2px 3px;">Lines</button>
+                                    <button class="option-btn btn-ring-style-opt ${(curRing.style === 'holes' || (ringsVal === 1 && (curRing.style || zone.style) === 'holes')) ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="holes" style="font-size: 8px; padding: 2px 3px;">Holes</button>
+                                    <button class="option-btn btn-ring-style-opt ${(curRing.style === 'both' || (ringsVal === 1 && (curRing.style || zone.style) === 'both')) ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="both" style="font-size: 8px; padding: 2px 3px;">Both</button>
+                                    <button class="option-btn btn-ring-style-opt ${curRing.style === 'off' ? 'active' : ''}" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" data-ring-style="off" style="font-size: 8px; padding: 2px 3px;">Off</button>
                                 </div>
                             </div>
-                        ` : ''}
+
+                            ${(ringEffectiveStyle === 'lines' || ringEffectiveStyle === 'both') ? `
+                                ${sliderRow('Dash Gap', `pat-zone-ring-dashSpacing-${zone.id}-${activeRingIdx}`, 0, 100, 1, ringDashPct, '%')}
+                            ` : ''}
+
+                            ${(ringEffectiveStyle === 'holes' || ringEffectiveStyle === 'both') ? `
+                                <div class="control-row" style="margin-bottom: 6px;">
+                                    <label class="control-label" style="width: 35%;">Hole Design</label>
+                                    <select class="zone-ring-hole-shape-select" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" style="margin-bottom: 0; flex: 1; font-size: 10px;">
+                                        ${ringsVal > 1 ? `<option value="inherit" ${(curRing.holeShape || 'inherit') === 'inherit' ? 'selected' : ''}>Inherit (${zone.holeShape || 'round'})</option>` : ''}
+                                        <option value="round" ${curRing.holeShape === 'round' || (ringsVal === 1 && (curRing.holeShape || zone.holeShape) === 'round') ? 'selected' : ''}>Round Hole</option>
+                                        <option value="wobbly" ${curRing.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
+                                        <option value="star" ${curRing.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
+                                    </select>
+                                </div>
+                                ${sliderRow('Hole Size', `pat-zone-ring-holeSize-${zone.id}-${activeRingIdx}`, 0.01, 0.12, 0.005, curRing.holeSize !== undefined ? curRing.holeSize : (zone.holeSize || 0.03), 'cm')}
+                                ${sliderRow('Holes on Ring', `pat-zone-ring-holeCount-${zone.id}-${activeRingIdx}`, 4, 120, 2, curRing.holeCount !== undefined ? curRing.holeCount : (zone.holeCount || 30))}
+                            ` : ''}
+
+                            <div class="control-row" style="margin-bottom: 4px; margin-top: 6px;">
+                                <label class="control-label" style="width: 35%;">Ring Color</label>
+                                <input type="color" class="zone-ring-color-input" data-zone-id="${zone.id}" data-ring-index="${activeRingIdx}" value="${curRing.color || zone.color || '#D4A843'}" style="width: 40px; height: 20px; border: none; cursor: pointer; padding: 0;">
+                                <span class="color-hex-text">${(curRing.color || zone.color || '#D4A843').toUpperCase()}</span>
+                            </div>
+                        </div>
                     `;
                 } else if (zone.type === 'square-patch' || zone.type === 'square') {
                     boundsSliders = `
@@ -544,34 +549,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             const isDoodle = zone.patternType && (zone.patternType.startsWith('doodle-') || zone.patternType.startsWith('pat-'));
 
             if (zone.type === 'circular-patch') {
-                if (zone.style === 'lines') {
-                    styleControls = `
-                        ${sliderRow('Dash Gap', `pat-zone-dashSpacing-${zone.id}`, 0, 100, 1, dashProx, '%')}
-                        <div class="control-row" style="margin-bottom: 10px;">
-                            <label class="control-label">Line Color</label>
-                            <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
-                            <span class="color-hex-text">${zone.color.toUpperCase()}</span>
-                        </div>
-                    `;
-                } else if (zone.style === 'holes') {
-                    styleControls = `
-                        ${sliderRow('Hole Size', `pat-zone-holeSize-${zone.id}`, 0.01, 0.12, 0.005, zone.holeSize !== undefined ? zone.holeSize : 0.03, 'cm')}
-                        ${sliderRow('Holes per Ring', `pat-zone-holeCount-${zone.id}`, 6, 120, 2, zone.holeCount !== undefined ? zone.holeCount : 30)}
-                        <div class="control-row" style="margin-bottom: 8px;">
-                            <label class="control-label" style="width: 35%;">Hole Shape</label>
-                            <select class="zone-hole-shape-select" data-zone-id="${zone.id}" style="margin-bottom: 0; flex: 1;">
-                                <option value="round" ${(zone.holeShape || 'round') === 'round' ? 'selected' : ''}>Round Hole</option>
-                                <option value="wobbly" ${zone.holeShape === 'wobbly' ? 'selected' : ''}>Wobbly Shape</option>
-                                <option value="star" ${zone.holeShape === 'star' ? 'selected' : ''}>Star Shape</option>
-                            </select>
-                        </div>
-                        <div class="control-row" style="margin-bottom: 10px;">
-                            <label class="control-label">Hole Color</label>
-                            <input type="color" class="zone-color-input" data-zone-id="${zone.id}" value="${zone.color}">
-                            <span class="color-hex-text">${zone.color.toUpperCase()}</span>
-                        </div>
-                    `;
-                }
+                styleControls = '';
             } else if (zone.patternType === 'grid' || zone.patternType === 'weave' || zone.patternType === 'weave2' || zone.patternType === 'scatter' || zone.patternType === 'geo-triangle' || zone.patternType === 'flow' || zone.patternType === 'ribbons') {
                 styleControls = '';
             } else if (zone.style === 'lines') {
@@ -1119,7 +1097,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                             ${orientationSelect}
                             ${boundsSliders}
                             
-                            ${(!['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType) || zone.type === 'circular-patch') ? `
+                            ${(!['grid', 'weave', 'weave2', 'geo-triangle'].includes(zone.patternType) && zone.type !== 'circular-patch') ? `
                                 <div class="btn-grid-options" style="grid-template-columns: repeat(4, 1fr); margin-top: 10px; margin-bottom: 8px;">
                                     <button class="option-btn ${zone.style === 'lines' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="lines">Lines</button>
                                     <button class="option-btn ${zone.style === 'holes' ? 'active' : ''}" data-zone-id="${zone.id}" data-pat-zone-style="holes">Holes</button>
@@ -2217,6 +2195,44 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     });
 
+    document.querySelectorAll('.btn-ring-spin-step').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            const zoneId = btn.dataset.zoneId;
+            const ringIdx = parseInt(btn.dataset.ringIndex);
+            const step = parseFloat(btn.dataset.step);
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone && zone.ringConfigs && zone.ringConfigs[ringIdx]) {
+                const cur = zone.ringConfigs[ringIdx].spinAngle !== undefined ? zone.ringConfigs[ringIdx].spinAngle : 0;
+                zone.ringConfigs[ringIdx].spinAngle = ((cur + step) % 360 + 360) % 360;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-ring-spin-flip').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            pushUndoState(gourdMesh);
+            const zoneId = btn.dataset.zoneId;
+            const ringIdx = parseInt(btn.dataset.ringIndex);
+            const zone = state.patternZones.find(z => z.id === zoneId);
+            if (zone && zone.ringConfigs && zone.ringConfigs[ringIdx]) {
+                const cur = zone.ringConfigs[ringIdx].spinAngle !== undefined ? zone.ringConfigs[ringIdx].spinAngle : 0;
+                zone.ringConfigs[ringIdx].spinAngle = ((cur + 180) % 360 + 360) % 360;
+                updatePatternGroup(patternGroup, state);
+                if (onUpdatePattern) onUpdatePattern();
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                showToast("Flipped Ring 180°");
+            }
+        });
+    });
+
     document.querySelectorAll('.btn-ring-copy-all').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -2234,7 +2250,7 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                     rc.holeCount = src.holeCount;
                     rc.dashSpacing = src.dashSpacing;
                     rc.color = src.color;
-                    rc.rotationOffset = src.rotationOffset;
+                    rc.spinAngle = src.spinAngle !== undefined ? src.spinAngle : 0;
                 });
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
@@ -2255,7 +2271,7 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
                 const total = Math.max(1, zone.concentricRings || zone.ringConfigs.length);
                 zone.ringConfigs.forEach((rc, i) => {
                     rc.radiusRatio = Number((1.0 - (i / total)).toFixed(2));
-                    rc.rotationOffset = 0;
+                    rc.spinAngle = 0;
                 });
                 updatePatternGroup(patternGroup, state);
                 if (onUpdatePattern) onUpdatePattern();
@@ -2751,15 +2767,15 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
                     holeSize: zone.holeSize !== undefined ? zone.holeSize : 0.03,
                     holeCount: zone.holeCount !== undefined ? zone.holeCount : 30,
                     dashSpacing: zone.dashSpacing !== undefined ? zone.dashSpacing : 0,
-                    rotationOffset: 0,
+                    spinAngle: 0,
                     color: zone.color || '#D4A843'
                 });
             }
             const ring = zone.ringConfigs[ringIdx];
             if (param === 'radiusRatio') {
                 ring.radiusRatio = valFloat / 100.0;
-            } else if (param === 'rotationOffset') {
-                ring.rotationOffset = valFloat;
+            } else if (param === 'spinAngle' || param === 'rotationOffset') {
+                ring.spinAngle = ((valFloat % 360) + 360) % 360;
             } else if (param === 'dashSpacing') {
                 ring.dashSpacing = 0.30 - (valFloat / 100.0) * 0.30;
             } else if (param === 'holeCount') {
