@@ -591,3 +591,218 @@ export function moveCarveTextItemDown(id) {
     state.carveTextItems[idx] = state.carveTextItems[idx + 1];
     state.carveTextItems[idx + 1] = tmp;
 }
+
+// ===== SAVED DESIGN LIBRARY MANAGEMENT =====
+
+export function getSavedDesigns() {
+    try {
+        const stored = localStorage.getItem('kibuyu_saved_designs');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+                // Return only user's own saved designs (strip any preset placeholders)
+                return parsed.filter(d => !d.isPreset);
+            }
+        }
+    } catch (e) {
+        console.error("Error reading saved designs from localStorage", e);
+    }
+    return [];
+}
+
+function saveDesignsToStorage(designs) {
+    try {
+        const cleanList = Array.isArray(designs) ? designs.filter(d => !d.isPreset) : [];
+        localStorage.setItem('kibuyu_saved_designs', JSON.stringify(cleanList));
+    } catch (e) {
+        console.error("Error writing saved designs to localStorage", e);
+    }
+}
+
+export function extractCurrentDesignSnapshot(customName = null) {
+    const d = new Date();
+    const displayDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const name = (customName && customName.trim()) ? customName.trim() : (state.projectName || 'My Gourd Design');
+    
+    // Calculate approximate hole count
+    let holeCount = 0;
+    state.patternZones.forEach(z => {
+        if (z.visible !== false && (z.style === 'holes' || z.style === 'both')) {
+            if (z.type === 'circular-patch' && z.ringConfigs) {
+                z.ringConfigs.forEach(rc => {
+                    if (rc.style === 'holes' || rc.style === 'both') {
+                        holeCount += (rc.holeCount || 30) * (z.patchCount || 1);
+                    }
+                });
+            } else {
+                holeCount += (z.holeCount || 30) * (z.patchCount || 1);
+            }
+        }
+    });
+
+    const layerNames = state.patternZones.map(z => z.name).join(', ');
+
+    return {
+        id: 'design-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
+        name: name,
+        createdAt: d.toISOString(),
+        displayDate: displayDate,
+        isPreset: false,
+        summary: {
+            gourdHeight: Number((state.gourdHeight || 30.0).toFixed(1)),
+            layersCount: state.patternZones.length,
+            totalHoles: holeCount,
+            carveCount: state.carveTextItems.length,
+            materialColor: state.materialColor || '#D4A843',
+            layerSummary: layerNames || 'Custom Design'
+        },
+        snapshot: {
+            projectName: name,
+            gourdHeight: state.gourdHeight,
+            gourdBaseRadius: state.gourdBaseRadius,
+            gourdRimRadius: state.gourdRimRadius,
+            gourdBulbRadius: state.gourdBulbRadius,
+            gourdBulbPosition: state.gourdBulbPosition,
+            gourdBulbRoundness: state.gourdBulbRoundness,
+            gourdNeckRadius: state.gourdNeckRadius,
+            gourdNeckPosition: state.gourdNeckPosition,
+            gourdNeckHeight: state.gourdNeckHeight,
+            gourdNeckRoundness: state.gourdNeckRoundness,
+            gourdUpperNeckWidth: state.gourdUpperNeckWidth,
+            gourdUpperNeckPosition: state.gourdUpperNeckPosition,
+            gourdHasNeck: state.gourdHasNeck,
+            gourdBendX: state.gourdBendX,
+            gourdBendZ: state.gourdBendZ,
+            materialColor: state.materialColor,
+            materialRoughness: state.materialRoughness,
+            materialMetalness: state.materialMetalness,
+            textureDataURL: state.textureDataURL,
+            textureScale: state.textureScale,
+            textureRotation: state.textureRotation,
+            modelRotationX: state.modelRotationX,
+            modelRotationY: state.modelRotationY,
+            modelRotationZ: state.modelRotationZ,
+            patternZones: JSON.parse(JSON.stringify(state.patternZones)),
+            carveTextItems: JSON.parse(JSON.stringify(state.carveTextItems))
+        }
+    };
+}
+
+export function saveCurrentDesign(customName = null) {
+    const newDesign = extractCurrentDesignSnapshot(customName);
+    const designs = getSavedDesigns();
+    designs.unshift(newDesign);
+    saveDesignsToStorage(designs);
+    return newDesign;
+}
+
+export function updateSavedDesign(designId, newName = null) {
+    const designs = getSavedDesigns();
+    const idx = designs.findIndex(d => d.id === designId);
+    if (idx === -1) return null;
+
+    const currentSnapshot = extractCurrentDesignSnapshot(newName || designs[idx].name);
+    currentSnapshot.id = designId; // Preserve original ID
+    currentSnapshot.isPreset = false;
+    designs[idx] = currentSnapshot;
+    saveDesignsToStorage(designs);
+    return currentSnapshot;
+}
+
+export function deleteSavedDesign(designId) {
+    const designs = getSavedDesigns();
+    const filtered = designs.filter(d => d.id !== designId);
+    saveDesignsToStorage(filtered);
+    return filtered;
+}
+
+export function duplicateSavedDesign(designId) {
+    const designs = getSavedDesigns();
+    const target = designs.find(d => d.id === designId);
+    if (!target) return null;
+
+    const clone = JSON.parse(JSON.stringify(target));
+    clone.id = 'design-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+    clone.name = clone.name + ' (Copy)';
+    clone.isPreset = false;
+    clone.createdAt = new Date().toISOString();
+    clone.displayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    
+    designs.unshift(clone);
+    saveDesignsToStorage(designs);
+    return clone;
+}
+
+export function exportDesignJsonFile(designId) {
+    const designs = getSavedDesigns();
+    const design = designs.find(d => d.id === designId);
+    if (!design) return;
+
+    const blob = new Blob([JSON.stringify(design, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(design.name || 'gourd-design').toLowerCase().replace(/[^a-z0-9]/g, '-')}.kibuyu.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+export function exportAllDesignsJsonFile() {
+    const designs = getSavedDesigns();
+    const blob = new Blob([JSON.stringify({ type: 'kibuyu-design-library', version: '2.0', exportedAt: new Date().toISOString(), designs: designs }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kibuyu-all-designs-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+export function importDesignJsonString(jsonStr) {
+    const parsed = JSON.parse(jsonStr);
+    const designs = getSavedDesigns();
+    
+    if (parsed.type === 'kibuyu-design-library' && Array.isArray(parsed.designs)) {
+        parsed.designs.forEach(d => {
+            d.id = 'design-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+            designs.unshift(d);
+        });
+        saveDesignsToStorage(designs);
+        return { count: parsed.designs.length };
+    } else if (parsed.snapshot && parsed.name) {
+        parsed.id = 'design-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+        designs.unshift(parsed);
+        saveDesignsToStorage(designs);
+        return { count: 1, design: parsed };
+    } else if (parsed.type === 'kibuyu-project' || parsed.shape) {
+        // Legacy project format
+        const imported = {
+            id: 'design-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
+            name: parsed.name || 'Imported Project',
+            createdAt: new Date().toISOString(),
+            displayDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            isPreset: false,
+            summary: {
+                gourdHeight: parsed.shape?.gourdHeight || 30.0,
+                layersCount: (parsed.layers || []).length,
+                totalHoles: 0,
+                carveCount: 0,
+                materialColor: '#D4A843',
+                layerSummary: 'Imported Project'
+            },
+            snapshot: {
+                ...(parsed.shape || {}),
+                patternZones: parsed.layers || [],
+                carveTextItems: []
+            }
+        };
+        designs.unshift(imported);
+        saveDesignsToStorage(designs);
+        return { count: 1, design: imported };
+    }
+    throw new Error('Unrecognized design JSON format');
+}

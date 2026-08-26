@@ -1,4 +1,10 @@
-import { state, pushUndoState, performUndo, performRedo, addPatternZone, removePatternZone, duplicatePatternZone, movePatternZoneUp, movePatternZoneDown, addCarveTextItem, removeCarveTextItem, duplicateCarveTextItem, moveCarveTextItemUp, moveCarveTextItemDown } from './state.js';
+import { 
+    state, pushUndoState, performUndo, performRedo, 
+    addPatternZone, removePatternZone, duplicatePatternZone, movePatternZoneUp, movePatternZoneDown, 
+    addCarveTextItem, removeCarveTextItem, duplicateCarveTextItem, moveCarveTextItemUp, moveCarveTextItemDown,
+    getSavedDesigns, saveCurrentDesign, updateSavedDesign, deleteSavedDesign, duplicateSavedDesign,
+    exportDesignJsonFile, exportAllDesignsJsonFile, importDesignJsonString
+} from './state.js';
 import { calculateMeasurements, updateMeasureLines } from './measure.js';
 import { updatePatternGroup, updatePatternGroupImmediate, getSvgPaths, isPointInZone, DOODLE_PRESETS } from './pattern.js';
 import { updateCarveGroup } from './carve.js';
@@ -1423,6 +1429,137 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
             `}
             `;
     }
+
+    if (tab === 'designs') {
+        const savedDesigns = getSavedDesigns();
+        const searchQuery = (state.designSearchQuery || '').toLowerCase().trim();
+        const filteredDesigns = searchQuery 
+            ? savedDesigns.filter(d => (d.name || '').toLowerCase().includes(searchQuery) || (d.summary?.layerSummary || '').toLowerCase().includes(searchQuery))
+            : savedDesigns;
+
+        return `
+            <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Design Projects Library</span>
+                <span style="font-size: 9px; color: var(--color-acc); font-weight: 600;">${savedDesigns.length} Saved</span>
+            </div>
+
+            <!-- Quick Save Current Design Card -->
+            <div style="background: linear-gradient(135deg, rgba(212,168,67,0.12), rgba(0,0,0,0.3)); border: 1px solid var(--color-acc); border-radius: 8px; padding: 12px; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+                <div style="font-size: 11px; font-weight: 700; color: var(--color-acc); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-bookmark"></i> Save Active Gourd Design
+                </div>
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                    <input type="text" id="input-new-design-name" placeholder="Enter design title..." value="${state.projectName || 'My Gourd Project ' + (savedDesigns.length + 1)}" style="flex: 1; background: var(--color-bg); border: 1px solid var(--color-bdr); color: var(--color-tx); font-size: 11px; padding: 6px 8px; border-radius: 4px; outline: none;">
+                    <button id="btn-save-current-design" class="btn-primary" style="padding: 6px 12px; font-size: 11px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; color: var(--color-tx-m);">
+                    <span>Captures 3D Shape, Patterns, Carving & Materials</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="btn-import-design-json" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--color-tx-m); font-size: 9px; padding: 2px 6px; border-radius: 3px; cursor: pointer;" title="Import from .json file">
+                            <i class="fas fa-file-import"></i> Import
+                        </button>
+                        <button id="btn-export-all-designs" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--color-tx-m); font-size: 9px; padding: 2px 6px; border-radius: 3px; cursor: pointer;" title="Export all designs as backup">
+                            <i class="fas fa-download"></i> Backup All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filter Bar -->
+            <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
+                <div style="position: relative; flex: 1;">
+                    <i class="fas fa-search" style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--color-tx-d);"></i>
+                    <input type="text" id="input-design-search" placeholder="Search saved designs..." value="${state.designSearchQuery || ''}" style="width: 100%; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); color: var(--color-tx); font-size: 11px; padding: 5px 8px 5px 24px; border-radius: 4px; outline: none;">
+                </div>
+                ${searchQuery ? `
+                    <button id="btn-clear-design-search" style="background: none; border: none; color: var(--color-tx-d); font-size: 11px; cursor: pointer; padding: 4px;" title="Clear search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                ` : ''}
+            </div>
+
+            <!-- Designs List -->
+            <div class="designs-list-container" style="display: flex; flex-direction: column; gap: 10px;">
+                ${filteredDesigns.length === 0 ? `
+                    <div style="text-align: center; padding: 24px 12px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px; color: var(--color-tx-d);">
+                        <i class="fas fa-folder-open" style="font-size: 24px; margin-bottom: 8px; color: var(--color-acc); opacity: 0.5;"></i>
+                        <div style="font-size: 12px; font-weight: 600; color: var(--color-tx-m); margin-bottom: 4px;">No designs found</div>
+                        <div style="font-size: 10px;">Click "Save" above to save your current 3D gourd creation!</div>
+                    </div>
+                ` : filteredDesigns.map((design) => {
+                    const sm = design.summary || {};
+                    const color = sm.materialColor || '#D4A843';
+                    return `
+                        <div class="design-card" id="design-card-${design.id}" style="background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px; transition: all 0.2s ease;">
+                            <!-- Header / Title -->
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                    <div style="width: 14px; height: 14px; border-radius: 50%; background: ${color}; border: 1.5px solid rgba(255,255,255,0.25); flex-shrink: 0; box-shadow: 0 0 6px ${color}44;"></div>
+                                    <div style="font-size: 11.5px; font-weight: 700; color: var(--color-tx-h); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">
+                                        ${design.name}
+                                    </div>
+                                    ${design.isPreset ? `<span style="font-size: 8px; font-weight: 600; background: rgba(212,168,67,0.18); color: var(--color-acc); padding: 1px 4px; border-radius: 3px; text-transform: uppercase;">Preset</span>` : ''}
+                                </div>
+                                <div style="font-size: 9px; color: var(--color-tx-d); flex-shrink: 0;">
+                                    ${design.displayDate || 'Saved'}
+                                </div>
+                            </div>
+
+                            <!-- Metadata Badges Grid -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;">
+                                <span style="font-size: 9px; background: rgba(255,255,255,0.05); color: var(--color-tx-m); padding: 2px 6px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
+                                    📏 ${sm.gourdHeight || 30} cm
+                                </span>
+                                <span style="font-size: 9px; background: rgba(255,255,255,0.05); color: var(--color-tx-m); padding: 2px 6px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
+                                    🌀 ${sm.layersCount || 0} Layers
+                                </span>
+                                ${(sm.totalHoles && sm.totalHoles > 0) ? `
+                                    <span style="font-size: 9px; background: rgba(212,168,67,0.1); color: var(--color-acc); padding: 2px 6px; border-radius: 3px; border: 1px solid rgba(212,168,67,0.2);">
+                                        ⚙️ ${sm.totalHoles} Holes
+                                    </span>
+                                ` : ''}
+                                ${(sm.carveCount && sm.carveCount > 0) ? `
+                                    <span style="font-size: 9px; background: rgba(255,255,255,0.05); color: var(--color-tx-m); padding: 2px 6px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.05);">
+                                        ✍️ ${sm.carveCount} Carvings
+                                    </span>
+                                ` : ''}
+                            </div>
+
+                            ${sm.layerSummary ? `
+                                <div style="font-size: 9.5px; color: var(--color-tx-d); margin-bottom: 8px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${sm.layerSummary}
+                                </div>
+                            ` : ''}
+
+                            <!-- Action Buttons -->
+                            <div style="display: flex; gap: 4px; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                                <button class="btn-load-saved-design" data-design-id="${design.id}" style="flex: 1.4; background: var(--color-acc); color: #111; font-weight: 700; font-size: 9.5px; padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                    <i class="fas fa-folder-open"></i> Load
+                                </button>
+                                <button class="btn-overwrite-saved-design" data-design-id="${design.id}" title="Overwrite with current 3D gourd state" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--color-tx-m); font-size: 9.5px; padding: 4px 6px; border-radius: 4px; cursor: pointer;">
+                                    <i class="fas fa-sync-alt"></i> Update
+                                </button>
+                                <button class="btn-export-single-design" data-design-id="${design.id}" title="Download JSON file" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--color-tx-m); font-size: 9.5px; padding: 4px 6px; border-radius: 4px; cursor: pointer;">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="btn-duplicate-saved-design" data-design-id="${design.id}" title="Duplicate Design" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--color-tx-m); font-size: 9.5px; padding: 4px 6px; border-radius: 4px; cursor: pointer;">
+                                    <i class="fas fa-clone"></i>
+                                </button>
+                                <button class="btn-delete-saved-design" data-design-id="${design.id}" title="Delete Design" style="background: rgba(235,94,85,0.1); border: 1px solid rgba(235,94,85,0.25); color: #eb5e55; font-size: 9.5px; padding: 4px 6px; border-radius: 4px; cursor: pointer;">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <!-- Hidden input for file import -->
+            <input type="file" id="input-design-file-picker" accept=".json,.kibuyu" style="display: none;">
+        `;
+    }
     
     return '';
 }
@@ -2649,7 +2786,212 @@ function wireFormControls(gourdMesh, carveGroup, measureGroup, patternGroup, onU
         });
     }
 
+    // ===== DESIGN LIBRARY CONTROLLERS =====
+    const btnSaveDesign = document.getElementById('btn-save-current-design');
+    if (btnSaveDesign) {
+        btnSaveDesign.addEventListener('click', () => {
+            const inputName = document.getElementById('input-new-design-name');
+            const customName = inputName ? inputName.value.trim() : '';
+            const saved = saveCurrentDesign(customName || null);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast(`Saved design "${saved.name}"!`, "success");
+        });
+    }
 
+    const inputNewDesignName = document.getElementById('input-new-design-name');
+    if (inputNewDesignName) {
+        inputNewDesignName.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const customName = inputNewDesignName.value.trim();
+                const saved = saveCurrentDesign(customName || null);
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                showToast(`Saved design "${saved.name}"!`, "success");
+            }
+        });
+    }
+
+    const inputDesignSearch = document.getElementById('input-design-search');
+    if (inputDesignSearch) {
+        inputDesignSearch.addEventListener('input', () => {
+            state.designSearchQuery = inputDesignSearch.value;
+            const container = document.querySelector('.designs-list-container');
+            if (container) {
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                const reSearch = document.getElementById('input-design-search');
+                if (reSearch) {
+                    reSearch.focus();
+                    reSearch.setSelectionRange(reSearch.value.length, reSearch.value.length);
+                }
+            }
+        });
+    }
+
+    const btnClearSearch = document.getElementById('btn-clear-design-search');
+    if (btnClearSearch) {
+        btnClearSearch.addEventListener('click', () => {
+            state.designSearchQuery = '';
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+        });
+    }
+
+    document.querySelectorAll('.btn-load-saved-design').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const designId = btn.dataset.designId;
+            const designs = getSavedDesigns();
+            const target = designs.find(d => d.id === designId);
+            if (target) {
+                applyLoadedDesign(target, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-overwrite-saved-design').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const designId = btn.dataset.designId;
+            const updated = updateSavedDesign(designId);
+            if (updated) {
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                showToast(`Updated "${updated.name}" with current 3D gourd state!`, "success");
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-duplicate-saved-design').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const designId = btn.dataset.designId;
+            const cloned = duplicateSavedDesign(designId);
+            if (cloned) {
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                showToast(`Duplicated "${cloned.name}"`, "info");
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-export-single-design').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const designId = btn.dataset.designId;
+            exportDesignJsonFile(designId);
+            showToast("Design JSON downloaded", "info");
+        });
+    });
+
+    document.querySelectorAll('.btn-delete-saved-design').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const designId = btn.dataset.designId;
+            deleteSavedDesign(designId);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            showToast("Design deleted", "info");
+        });
+    });
+
+    const btnExportAll = document.getElementById('btn-export-all-designs');
+    if (btnExportAll) {
+        btnExportAll.addEventListener('click', () => {
+            exportAllDesignsJsonFile();
+            showToast("Exported all designs backup JSON", "success");
+        });
+    }
+
+    const btnImportDesign = document.getElementById('btn-import-design-json');
+    const inputDesignFilePicker = document.getElementById('input-design-file-picker');
+    if (btnImportDesign && inputDesignFilePicker) {
+        btnImportDesign.addEventListener('click', () => {
+            inputDesignFilePicker.click();
+        });
+        inputDesignFilePicker.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const res = importDesignJsonString(event.target.result);
+                    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                    showToast(`Successfully imported ${res.count} design(s)!`, "success");
+                } catch (err) {
+                    showToast("Failed to parse design file: " + err.message, "error");
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+    }
+}
+
+export function applyLoadedDesign(design, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure) {
+    if (!design || !design.snapshot) return;
+    pushUndoState(gourdMesh);
+
+    const snap = design.snapshot;
+    
+    // 1. Proportions & Shape
+    if (snap.gourdHeight !== undefined) state.gourdHeight = snap.gourdHeight;
+    if (snap.gourdBaseRadius !== undefined) state.gourdBaseRadius = snap.gourdBaseRadius;
+    if (snap.gourdRimRadius !== undefined) state.gourdRimRadius = snap.gourdRimRadius;
+    if (snap.gourdBulbRadius !== undefined) state.gourdBulbRadius = snap.gourdBulbRadius;
+    if (snap.gourdBulbPosition !== undefined) state.gourdBulbPosition = snap.gourdBulbPosition;
+    if (snap.gourdBulbRoundness !== undefined) state.gourdBulbRoundness = snap.gourdBulbRoundness;
+    if (snap.gourdNeckRadius !== undefined) state.gourdNeckRadius = snap.gourdNeckRadius;
+    if (snap.gourdNeckPosition !== undefined) state.gourdNeckPosition = snap.gourdNeckPosition;
+    if (snap.gourdNeckHeight !== undefined) state.gourdNeckHeight = snap.gourdNeckHeight;
+    if (snap.gourdNeckRoundness !== undefined) state.gourdNeckRoundness = snap.gourdNeckRoundness;
+    if (snap.gourdUpperNeckWidth !== undefined) state.gourdUpperNeckWidth = snap.gourdUpperNeckWidth;
+    if (snap.gourdUpperNeckPosition !== undefined) state.gourdUpperNeckPosition = snap.gourdUpperNeckPosition;
+    if (snap.gourdHasNeck !== undefined) state.gourdHasNeck = snap.gourdHasNeck;
+    if (snap.gourdBendX !== undefined) state.gourdBendX = snap.gourdBendX;
+    if (snap.gourdBendZ !== undefined) state.gourdBendZ = snap.gourdBendZ;
+
+    // 2. Material & Color
+    if (snap.materialColor) {
+        state.materialColor = snap.materialColor;
+        setMeshColor(gourdMesh, snap.materialColor);
+    }
+    if (snap.materialRoughness !== undefined) state.materialRoughness = snap.materialRoughness;
+    if (snap.materialMetalness !== undefined) state.materialMetalness = snap.materialMetalness;
+    
+    // 3. Texture
+    if (snap.textureDataURL !== undefined) {
+        state.textureDataURL = snap.textureDataURL;
+        state.textureScale = snap.textureScale || 1.0;
+        state.textureRotation = snap.textureRotation || 0;
+        applyGourdTexture(gourdMesh, state.textureDataURL, state.textureScale, state.textureRotation);
+    }
+
+    // 4. Orientation
+    if (snap.modelRotationX !== undefined || snap.modelRotationY !== undefined || snap.modelRotationZ !== undefined) {
+        setModelOrientation(snap.modelRotationX || 0, snap.modelRotationY || 0, snap.modelRotationZ || 0, gourdMesh, true);
+    }
+
+    // 5. Pattern Layers
+    if (Array.isArray(snap.patternZones)) {
+        state.patternZones = JSON.parse(JSON.stringify(snap.patternZones));
+        state.activeZoneId = state.patternZones[0] ? state.patternZones[0].id : null;
+    }
+
+    // 6. Carve Text
+    if (Array.isArray(snap.carveTextItems)) {
+        state.carveTextItems = JSON.parse(JSON.stringify(snap.carveTextItems));
+        state.activeCarveTextId = state.carveTextItems[0] ? state.carveTextItems[0].id : null;
+    }
+
+    if (design.name) {
+        state.projectName = design.name;
+        const pInput = document.getElementById('project-name-input');
+        if (pInput) pInput.value = design.name;
+    }
+
+    updateGourdGeometryImmediate(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
+    updateCarveGroup(carveGroup, state);
+    updatePatternGroup(patternGroup, state);
+    if (onUpdatePattern) onUpdatePattern();
+    if (onUpdateMeasure) onUpdateMeasure();
+    renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+    showToast(`Loaded design: "${design.name}"`, "success");
 }
 
 // Processes interactive form settings in real-time
