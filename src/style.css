@@ -517,8 +517,11 @@ h1, h2, h3, h4, .font-display {
 .control-label {
     font-size: 11px;
     color: var(--color-tx-m);
-    width: 60px;
+    width: 78px;
     flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Custom Sliders */
@@ -583,8 +586,9 @@ input[type="number"]:focus {
 .control-unit {
     font-size: 10px;
     color: var(--color-tx-m);
-    width: 16px;
+    min-width: 14px;
     text-align: left;
+    white-space: nowrap;
 }
 
 /* Checkbox Toggle Switch */

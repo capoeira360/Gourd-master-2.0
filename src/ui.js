@@ -4219,7 +4219,15 @@ function setupExport3DModal(gourdMesh, carveGroup, patternGroup) {
     let selectedFormat = 'glb';
 
     function updatePreview() {
-        const stats = getModelStats(gourdMesh, carveGroup, patternGroup);
+        const incBody = document.getElementById('export-inc-body')?.checked ?? true;
+        const incPatterns = document.getElementById('export-inc-patterns')?.checked ?? true;
+        const incCarvings = document.getElementById('export-inc-carvings')?.checked ?? true;
+
+        const stats = getModelStats(gourdMesh, carveGroup, patternGroup, {
+            includeGourd: incBody,
+            includePatterns: incPatterns,
+            includeCarvings: incCarvings
+        });
         if (statVerts) statVerts.textContent = stats.vertices.toLocaleString();
         if (statFaces) statFaces.textContent = stats.faces.toLocaleString();
         if (statDims) statDims.textContent = `${stats.heightCm} × ${stats.widthCm} cm`;
@@ -4244,6 +4252,10 @@ function setupExport3DModal(gourdMesh, carveGroup, patternGroup) {
     menuExportBtn?.addEventListener('click', openModal);
     closeBtn?.addEventListener('click', closeModal);
     cancelBtn?.addEventListener('click', closeModal);
+
+    document.getElementById('export-inc-body')?.addEventListener('change', updatePreview);
+    document.getElementById('export-inc-patterns')?.addEventListener('change', updatePreview);
+    document.getElementById('export-inc-carvings')?.addEventListener('change', updatePreview);
 
     modal?.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();

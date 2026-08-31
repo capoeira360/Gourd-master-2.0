@@ -4,6 +4,7 @@ import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import { USDZExporter } from 'three/examples/jsm/exporters/USDZExporter.js';
 import { PLYExporter } from 'three/examples/jsm/exporters/PLYExporter.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { state } from './state.js';
 import { getGourdHeight } from './gourd.js';
 
@@ -34,6 +35,98 @@ function downloadText(text, filename, mimeType = 'text/plain') {
 }
 
 /**
+ * Converts an InstancedMesh (e.g. drill holes / decorative pattern dots) into
+ * a solid, manifold 3D merged mesh with depth so that it renders identically
+ * and without clipping/z-fighting across all 3D formats (GLB, OBJ, STL, USDZ, PLY).
+ */
+function convertInstancedMeshToSolidMesh(instancedMesh) {
+    if (!instancedMesh || !instancedMesh.geometry || instancedMesh.count === 0) return null;
+
+    const count = instancedMesh.count;
+    const baseGeom = instancedMesh.geometry;
+
+    let solidTemplateGeom;
+
+    if (baseGeom.type === 'CircleGeometry' || (baseGeom.parameters && baseGeom.parameters.radius !== undefined)) {
+        const radius = baseGeom.parameters?.radius || 1.0;
+        const segments = Math.max(14, Math.min(24, baseGeom.parameters?.segments || 16));
+        
+        // Depth is scaled proportionally
+        const depth = radius > 0.5 ? 0.35 : Math.max(0.012, radius * 0.5);
+        
+        // Three.js CylinderGeometry has height along Y; rotate by 90deg on X so normal aligns with +Z
+        solidTemplateGeom = new THREE.CylinderGeometry(radius, radius, depth, segments);
+        solidTemplateGeom.rotateX(Math.PI / 2);
+        
+        // Shift outward so top cap sits clean and elevated above surface (+0.003 units)
+        // and base penetrates into shell to prevent any gap or clipping
+        solidTemplateGeom.translate(0, 0, depth * 0.35);
+        solidTemplateGeom.computeVertexNormals();
+    } else if (baseGeom.parameters && baseGeom.parameters.shapes) {
+        try {
+            solidTemplateGeom = new THREE.ExtrudeGeometry(baseGeom.parameters.shapes, {
+                depth: 0.015,
+                bevelEnabled: false,
+                curveSegments: 16
+            });
+            solidTemplateGeom.translate(0, 0, 0.004);
+            solidTemplateGeom.computeVertexNormals();
+        } catch (e) {
+            solidTemplateGeom = baseGeom.clone();
+        }
+    } else {
+        solidTemplateGeom = baseGeom.clone();
+    }
+
+    if (!solidTemplateGeom.attributes.normal) {
+        solidTemplateGeom.computeVertexNormals();
+    }
+
+    const geometries = [];
+    const matrix = new THREE.Matrix4();
+
+    for (let i = 0; i < count; i++) {
+        instancedMesh.getMatrixAt(i, matrix);
+        const geomCopy = solidTemplateGeom.clone();
+        geomCopy.applyMatrix4(matrix);
+        geometries.push(geomCopy);
+    }
+
+    solidTemplateGeom.dispose();
+
+    if (geometries.length === 0) return null;
+
+    let mergedGeom = null;
+    try {
+        mergedGeom = mergeGeometries(geometries, false);
+    } catch (e) {
+        console.error('Error merging hole geometries for export:', e);
+    }
+
+    // Free instance geometries
+    geometries.forEach(g => g.dispose());
+
+    if (!mergedGeom) return null;
+
+    const baseColor = (instancedMesh.material && instancedMesh.material.color)
+        ? instancedMesh.material.color.clone()
+        : new THREE.Color(0xD4A843);
+
+    const mat = new THREE.MeshStandardMaterial({
+        color: baseColor,
+        roughness: 0.35,
+        metalness: 0.25,
+        side: THREE.DoubleSide,
+        depthWrite: true,
+        transparent: false
+    });
+
+    const mesh = new THREE.Mesh(mergedGeom, mat);
+    mesh.name = instancedMesh.name || 'Hole_Pattern_Mesh';
+    return mesh;
+}
+
+/**
  * Builds a clean export scene containing the gourd, patterns, and carvings
  */
 export function buildExportScene(gourdMesh, carveGroup, patternGroup, options = {}) {
@@ -42,7 +135,7 @@ export function buildExportScene(gourdMesh, carveGroup, patternGroup, options = 
         includePatterns = true,
         includeCarvings = true,
         scaleUnit = 'cm', // 'cm', 'mm', 'm'
-        triangulateLines = false
+        triangulateLines = true
     } = options;
 
     const exportRoot = new THREE.Group();
@@ -58,36 +151,66 @@ export function buildExportScene(gourdMesh, carveGroup, patternGroup, options = 
     else if (scaleUnit === 'm') scaleMultiplier = 0.1;
     else if (scaleUnit === 'raw') scaleMultiplier = 1.0;
 
-    // 1. Gourd Body Mesh
+    // 1. Gourd Body Mesh (Clean single mesh, no nested children)
     if (includeGourd && gourdMesh) {
-        const bodyClone = gourdMesh.clone();
-        bodyClone.name = 'Gourd_Body';
-        // Ensure materials and maps are preserved
-        if (gourdMesh.material) {
-            bodyClone.material = gourdMesh.material.clone();
-            if (gourdMesh.material.map) {
-                bodyClone.material.map = gourdMesh.material.map;
-            }
+        const bodyMat = gourdMesh.material
+            ? gourdMesh.material.clone()
+            : new THREE.MeshStandardMaterial({ color: 0xc89658, roughness: 0.6 });
+
+        if (bodyMat.map && gourdMesh.material && gourdMesh.material.map) {
+            bodyMat.map = gourdMesh.material.map;
         }
-        exportRoot.add(bodyClone);
+        bodyMat.side = THREE.DoubleSide;
+
+        const bodyMesh = new THREE.Mesh(gourdMesh.geometry.clone(), bodyMat);
+        bodyMesh.name = 'Gourd_Body';
+        bodyMesh.position.copy(gourdMesh.position);
+        bodyMesh.rotation.copy(gourdMesh.rotation);
+        bodyMesh.scale.copy(gourdMesh.scale);
+        exportRoot.add(bodyMesh);
     }
 
     // 2. 3D Carved Typography
     if (includeCarvings && carveGroup && carveGroup.children.length > 0) {
-        const carveClone = carveGroup.clone(true);
+        const carveClone = new THREE.Group();
         carveClone.name = 'Carved_Lettering';
+        carveClone.position.copy(carveGroup.position);
+        carveClone.rotation.copy(carveGroup.rotation);
+        carveClone.scale.copy(carveGroup.scale);
+
+        carveGroup.children.forEach(child => {
+            if (child.isMesh) {
+                const meshClone = child.clone(true);
+                if (meshClone.material) {
+                    meshClone.material = meshClone.material.clone();
+                    meshClone.material.depthWrite = true;
+                    meshClone.material.side = THREE.DoubleSide;
+                }
+                carveClone.add(meshClone);
+            } else {
+                carveClone.add(child.clone(true));
+            }
+        });
         exportRoot.add(carveClone);
     }
 
-    // 3. Decorative Patterns & Drill Holes
+    // 3. Decorative Patterns & Drill Holes (Baked to solid 3D manifold meshes)
     if (includePatterns && patternGroup && patternGroup.children.length > 0) {
         const patternClone = new THREE.Group();
         patternClone.name = 'Surface_Patterns';
+        patternClone.position.copy(patternGroup.position);
+        patternClone.rotation.copy(patternGroup.rotation);
+        patternClone.scale.copy(patternGroup.scale);
 
         patternGroup.children.forEach((child, idx) => {
-            if (child.isLine || child.isLineSegments || child.isLineLoop) {
+            if (child.isInstancedMesh) {
+                const solidMesh = convertInstancedMeshToSolidMesh(child);
+                if (solidMesh) {
+                    solidMesh.name = `Pattern_Holes_${idx}`;
+                    patternClone.add(solidMesh);
+                }
+            } else if (child.isLine || child.isLineSegments || child.isLineLoop) {
                 if (triangulateLines && child.geometry) {
-                    // Convert line to thin tube/ribbon mesh for formats like STL that only support triangles
                     try {
                         const pos = child.geometry.attributes.position;
                         if (pos && pos.count >= 2) {
@@ -97,11 +220,13 @@ export function buildExportScene(gourdMesh, carveGroup, patternGroup, options = 
                             }
                             if (points.length >= 2) {
                                 const curve = new THREE.CatmullRomCurve3(points);
-                                const tubeGeom = new THREE.TubeGeometry(curve, Math.min(64, points.length * 2), 0.008, 4, false);
+                                const tubeGeom = new THREE.TubeGeometry(curve, Math.min(128, points.length * 2), 0.006, 6, false);
+                                const color = (child.material && child.material.color) ? child.material.color.clone() : new THREE.Color(0xD4A843);
                                 const tubeMat = new THREE.MeshStandardMaterial({
-                                    color: child.material.color || 0xD4A843,
-                                    roughness: 0.3,
-                                    metalness: 0.6
+                                    color: color,
+                                    roughness: 0.35,
+                                    metalness: 0.3,
+                                    side: THREE.DoubleSide
                                 });
                                 const tubeMesh = new THREE.Mesh(tubeGeom, tubeMat);
                                 tubeMesh.name = `Pattern_Tube_${idx}`;
@@ -114,9 +239,14 @@ export function buildExportScene(gourdMesh, carveGroup, patternGroup, options = 
                 } else {
                     patternClone.add(child.clone());
                 }
-            } else {
-                // Meshes (dots, rings, polygons, images)
-                patternClone.add(child.clone(true));
+            } else if (child.isMesh) {
+                const meshClone = child.clone(true);
+                if (meshClone.material) {
+                    meshClone.material = meshClone.material.clone();
+                    meshClone.material.depthWrite = true;
+                    meshClone.material.side = THREE.DoubleSide;
+                }
+                patternClone.add(meshClone);
             }
         });
 
@@ -137,7 +267,7 @@ export function buildExportScene(gourdMesh, carveGroup, patternGroup, options = 
  */
 export function exportToGLB(gourdMesh, carveGroup, patternGroup, options = {}) {
     const filename = (state.projectName || 'artisan-gourd') + '.glb';
-    const scene = buildExportScene(gourdMesh, carveGroup, patternGroup, { ...options, triangulateLines: false });
+    const scene = buildExportScene(gourdMesh, carveGroup, patternGroup, { ...options, triangulateLines: true });
     
     const exporter = new GLTFExporter();
     const exportOptions = {
@@ -208,7 +338,7 @@ export function exportToSTL(gourdMesh, carveGroup, patternGroup, options = {}) {
  */
 export async function exportToUSDZ(gourdMesh, carveGroup, patternGroup, options = {}) {
     const filename = (state.projectName || 'artisan-gourd') + '.usdz';
-    const scene = buildExportScene(gourdMesh, carveGroup, patternGroup, { ...options, scaleUnit: 'm', triangulateLines: false });
+    const scene = buildExportScene(gourdMesh, carveGroup, patternGroup, { ...options, scaleUnit: 'm', triangulateLines: true });
     
     const exporter = new USDZExporter();
     const arrayBuffer = await exporter.parse(scene);
@@ -238,28 +368,44 @@ export function exportToPLY(gourdMesh, carveGroup, patternGroup, options = {}) {
 }
 
 /**
- * Calculates current mesh statistics
+ * Calculates current mesh statistics matching the exported 3D model
  */
-export function getModelStats(gourdMesh, carveGroup, patternGroup) {
+export function getModelStats(gourdMesh, carveGroup, patternGroup, options = {}) {
     let totalVertices = 0;
     let totalFaces = 0;
 
-    function countMesh(mesh) {
-        if (!mesh || !mesh.geometry) return;
-        const geom = mesh.geometry;
-        if (geom.attributes.position) {
-            totalVertices += geom.attributes.position.count;
-            if (geom.index) {
-                totalFaces += geom.index.count / 3;
-            } else {
-                totalFaces += geom.attributes.position.count / 3;
-            }
-        }
-    }
+    try {
+        const scene = buildExportScene(gourdMesh, carveGroup, patternGroup, {
+            includeGourd: options.includeGourd ?? true,
+            includePatterns: options.includePatterns ?? true,
+            includeCarvings: options.includeCarvings ?? true,
+            scaleUnit: 'raw',
+            triangulateLines: true
+        });
 
-    if (gourdMesh) countMesh(gourdMesh);
-    if (carveGroup) carveGroup.traverse(c => { if (c.isMesh) countMesh(c); });
-    if (patternGroup) patternGroup.traverse(c => { if (c.isMesh) countMesh(c); });
+        scene.traverse((child) => {
+            if (child.isMesh && child.geometry) {
+                const geom = child.geometry;
+                if (geom.attributes && geom.attributes.position) {
+                    totalVertices += geom.attributes.position.count;
+                    if (geom.index) {
+                        totalFaces += geom.index.count / 3;
+                    } else {
+                        totalFaces += geom.attributes.position.count / 3;
+                    }
+                }
+            }
+        });
+
+        // Dispose temporary geometries to release memory
+        scene.traverse((child) => {
+            if (child.isMesh && child.geometry) {
+                child.geometry.dispose();
+            }
+        });
+    } catch (e) {
+        console.error('Error calculating model stats:', e);
+    }
 
     const gourdH_cm = state.gourdHeight || 30.0;
     const bulbW_cm = ((state.gourdBulbRadius || 9.0) * 2.0);
@@ -273,3 +419,4 @@ export function getModelStats(gourdMesh, carveGroup, patternGroup) {
         neckWidthCm: neckW_cm.toFixed(1)
     };
 }
+
