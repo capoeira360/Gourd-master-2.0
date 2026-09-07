@@ -1,4 +1,4 @@
-/* Kibuyu Design Studio - Premium Design System */
+/* Kibuyu Pro Design - Premium Design System */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
@@ -101,19 +101,24 @@ h1, h2, h3, h4, .font-display {
 }
 
 .brand-icon {
-    width: 22px;
-    height: 22px;
-    background: var(--color-acc);
+    width: 26px;
+    height: 26px;
+    background: linear-gradient(135deg, rgba(212, 168, 67, 0.2), rgba(212, 168, 67, 0.05));
+    border: 1px solid rgba(212, 168, 67, 0.4);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 2px;
     box-shadow: 0 0 10px var(--color-acc-glow);
+    flex-shrink: 0;
 }
 
-.brand-icon i {
-    color: var(--color-bg);
-    font-size: 11px;
+.brand-icon img, .brand-icon svg, .brand-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
 }
 
 .brand-name {
@@ -719,6 +724,111 @@ input[type="color"]::-webkit-color-swatch {
     border-color: var(--color-tx-m);
 }
 
+/* Modal Footer & Action Buttons */
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.modal-footer .modal-btn-row,
+.modal-footer .modal-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-footer .btn-primary,
+.modal-footer .btn-secondary,
+.modal-btn-primary,
+.modal-btn-secondary {
+    height: 36px !important;
+    padding: 0 18px !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.2px !important;
+    cursor: pointer;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    white-space: nowrap !important;
+    width: auto !important;
+    margin: 0 !important;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    user-select: none;
+    box-sizing: border-box;
+}
+
+.modal-footer .btn-primary,
+.modal-btn-primary {
+    background: linear-gradient(135deg, #E6A820 0%, #D49015 100%) !important;
+    color: #111115 !important;
+    border: none !important;
+    box-shadow: 0 2px 10px rgba(212, 168, 67, 0.28) !important;
+}
+
+.modal-footer .btn-primary:hover,
+.modal-btn-primary:hover {
+    background: linear-gradient(135deg, #F2BA32 0%, #E2A018 100%) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 16px rgba(212, 168, 67, 0.45) !important;
+}
+
+.modal-footer .btn-primary:active,
+.modal-btn-primary:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 6px rgba(212, 168, 67, 0.25) !important;
+}
+
+.modal-footer .btn-secondary,
+.modal-btn-secondary {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #e0e0e6 !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+.modal-footer .btn-secondary:hover,
+.modal-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.26) !important;
+    transform: translateY(-1px) !important;
+}
+
+.modal-footer .btn-secondary:active,
+.modal-btn-secondary:active {
+    transform: translateY(0) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.modal-file-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0 12px;
+    height: 36px;
+    box-sizing: border-box;
+}
+
+.modal-file-pill i {
+    color: var(--color-acc);
+    font-size: 12px;
+}
+
+.modal-file-pill span {
+    font-size: 11.5px;
+    color: #b0b0b8;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-weight: 500;
+}
+
 /* Measure Stats List */
 .stats-list {
     display: flex;
@@ -837,10 +947,18 @@ input[type="color"]::-webkit-color-swatch {
     pointer-events: none;
 }
 
+.loader-logo {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 0 16px var(--color-acc-glow));
+    animation: pulse 2s ease-in-out infinite alternate;
+}
+
 .loader-ring {
-    width: 44px;
-    height: 44px;
-    border: 3px solid var(--color-panel-hi);
+    width: 36px;
+    height: 36px;
+    border: 2.5px solid var(--color-panel-hi);
     border-top-color: var(--color-acc);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -1557,6 +1675,62 @@ input[type="color"]::-webkit-color-swatch {
     font-size: 10px;
     color: #fff;
     box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Control info icon & section guide trigger buttons */
+.control-info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    font-size: 9.5px;
+    color: var(--color-tx-d);
+    cursor: help;
+    transition: color 0.15s ease, opacity 0.15s ease;
+    opacity: 0.6;
+}
+.control-info-icon:hover {
+    color: var(--color-acc);
+    opacity: 1;
+}
+
+.section-guide-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(212, 168, 67, 0.08);
+    border: 1px solid rgba(212, 168, 67, 0.25);
+    border-radius: 4px;
+    color: var(--color-acc);
+    font-size: 9.5px;
+    font-weight: 600;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.section-guide-btn:hover {
+    background: var(--color-acc);
+    color: #121216;
+}
+
+.guide-spec-box {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    font-size: 11px;
+}
+.guide-spec-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.guide-spec-row:last-child {
+    border-bottom: none;
 }
 
 @media (max-width: 768px) {

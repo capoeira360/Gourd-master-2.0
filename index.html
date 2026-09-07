@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kibuyu Design Studio</title>
+    <title>Kibuyu Pro Design</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- Google Fonts for Lettering & Craft Typography -->
@@ -34,8 +36,9 @@
 
     <!-- Loading Overlay -->
     <div id="loading-overlay">
+        <img src="/favicon.svg" class="loader-logo" alt="Kibuyu Pro Design Logo" />
         <div class="loader-ring"></div>
-        <p class="loader-text">KIBUYU DESIGN STUDIO</p>
+        <p class="loader-text">KIBUYU PRO DESIGN</p>
     </div>
 
     <!-- Toast Notification Container -->
@@ -107,11 +110,11 @@
             <!-- Brand -->
             <div class="brand">
                 <div class="brand-icon">
-                    <i class="fas fa-seedling"></i>
+                    <img src="/favicon.svg" class="brand-logo-img" alt="Kibuyu Pro Design Logo" />
                 </div>
-                <div class="brand-text">
-                    <h1>KIBUYU</h1>
-                    <span class="badge">PRO 2.0</span>
+                <div class="brand-name" style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-weight: 700; letter-spacing: 0.5px; color: var(--color-tx-h);">KIBUYU</span>
+                    <span style="font-size: 10px; font-weight: 600; color: var(--color-acc); background: rgba(212,168,67,0.15); border: 1px solid rgba(212,168,67,0.3); padding: 1px 5px; border-radius: 4px; letter-spacing: 0.5px;">PRO DESIGN</span>
                 </div>
             </div>
 
@@ -370,7 +373,12 @@
                         <p style="margin: 0; font-size: 11px; color: var(--color-tx-d);">Universal export for Blender, Maya, Unreal, 3D Printers, and Apple AR</p>
                     </div>
                 </div>
-                <button id="btn-close-export-3d" class="zone-action-btn" style="padding: 6px 12px; font-size: 12px;"><i class="fas fa-times"></i></button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('export3d')" title="Open 3D Export & Manufacturing Guide">
+                        <i class="fas fa-question-circle"></i> Guide
+                    </button>
+                    <button id="btn-close-export-3d" class="zone-action-btn" style="padding: 6px 12px; font-size: 12px;"><i class="fas fa-times"></i></button>
+                </div>
             </div>
 
             <!-- Modal Body -->
@@ -462,12 +470,16 @@
             </div>
 
             <!-- Modal Footer -->
-            <div class="modal-footer" style="padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; background: #1f1f28;">
-                <span id="export-filename-preview" style="font-size: 11px; color: var(--color-tx-d); font-family: monospace;">my-artisan-gourd.glb</span>
-                <div style="display: flex; gap: 10px;">
-                    <button id="btn-cancel-export-3d" class="btn-secondary" style="padding: 8px 16px; font-size: 11px;">Cancel</button>
-                    <button id="btn-execute-export-3d" class="btn-primary" style="padding: 8px 20px; font-size: 11px;">
-                        <i class="fas fa-download"></i> Download 3D Model
+            <div class="modal-footer" style="padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; background: #1a1a22;">
+                <div class="modal-file-pill">
+                    <i class="fa-solid fa-cube"></i>
+                    <span id="export-filename-preview">my-artisan-gourd.glb</span>
+                </div>
+                <div class="modal-btn-row">
+                    <button id="btn-cancel-export-3d" class="btn-secondary">Cancel</button>
+                    <button id="btn-execute-export-3d" class="btn-primary">
+                        <i class="fas fa-download"></i>
+                        <span>Download 3D Model</span>
                     </button>
                 </div>
             </div>
@@ -493,12 +505,14 @@
                     <textarea id="screenshot-notes-input" style="width: 100%; height: 70px; font-size: 12px; padding: 8px; border: 1px solid #2a2a30; background: #22222b; color: #ffffff; border-radius: 4px; resize: none; font-family: inherit; line-height: 1.4; outline: none; border-color: rgba(255,255,255,0.15);" placeholder="Add description notes about your design here..."></textarea>
                 </div>
             </div>
-            <div class="modal-footer" style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-end; gap: 12px; background: #1e1e24;">
+            <div class="modal-footer" style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-end; gap: 12px; background: #1a1a22;">
                 <button id="btn-copy-screenshot" class="btn-secondary">
-                    <i class="fas fa-copy"></i> Copy to Clipboard
+                    <i class="fas fa-copy"></i>
+                    <span>Copy to Clipboard</span>
                 </button>
                 <button id="btn-download-screenshot" class="btn-primary">
-                    <i class="fas fa-download"></i> Save PNG
+                    <i class="fas fa-download"></i>
+                    <span>Save PNG</span>
                 </button>
             </div>
         </div>
@@ -535,13 +549,16 @@
                     <button class="guide-topic-btn active" data-topic="nav"><i class="fas fa-compass"></i> Navigation & Controls</button>
                     <button class="guide-topic-btn" data-topic="shortcuts"><i class="fas fa-keyboard"></i> Keyboard Shortcuts</button>
                     
-                    <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--color-tx-d); letter-spacing: 0.8px; padding: 8px 8px 4px 8px; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 4px;">TASK WALKTHROUGHS</div>
+                    <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--color-tx-d); letter-spacing: 0.8px; padding: 8px 8px 4px 8px; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 4px;">STUDIO WORKFLOWS</div>
                     <button class="guide-topic-btn" data-topic="shape"><i class="fas fa-shapes"></i> 1. Sculpt Shape & Photo</button>
-                    <button class="guide-topic-btn" data-topic="pattern"><i class="fas fa-circle-nodes"></i> 2. Patterns & Hole Layouts</button>
-                    <button class="guide-topic-btn" data-topic="carve"><i class="fas fa-pen-nib"></i> 3. Carving & Lettering</button>
-                    <button class="guide-topic-btn" data-topic="material"><i class="fas fa-fill-drip"></i> 4. Clay & Glaze Finishes</button>
-                    <button class="guide-topic-btn" data-topic="measure"><i class="fas fa-ruler-combined"></i> 5. Capacity & Dimensions</button>
-                    <button class="guide-topic-btn" data-topic="export"><i class="fas fa-download"></i> 6. Save, Export & Snapshot</button>
+                    <button class="guide-topic-btn" data-topic="orientation"><i class="fas fa-arrows-spin"></i> 2. 3D Orientation & Tilt</button>
+                    <button class="guide-topic-btn" data-topic="pattern"><i class="fas fa-circle-nodes"></i> 3. Patterns & Hole Layouts</button>
+                    <button class="guide-topic-btn" data-topic="carve"><i class="fas fa-pen-nib"></i> 4. Carving & Lettering</button>
+                    <button class="guide-topic-btn" data-topic="material"><i class="fas fa-fill-drip"></i> 5. Clay & Glaze Finishes</button>
+                    <button class="guide-topic-btn" data-topic="measure"><i class="fas fa-ruler-combined"></i> 6. Capacity & Dimensions</button>
+                    <button class="guide-topic-btn" data-topic="export3d"><i class="fas fa-cube"></i> 7. 3D Export & Slicing</button>
+                    <button class="guide-topic-btn" data-topic="snapshot"><i class="fas fa-camera"></i> 8. Snapshots & Notes</button>
+                    <button class="guide-topic-btn" data-topic="projects"><i class="fas fa-folder-open"></i> 9. Projects & Design Library</button>
                 </div>
                 
                 <!-- Guide Content Panel -->

@@ -58,12 +58,14 @@ export function setModelOrientation(pitchDeg, yawDeg, rollDeg, gourdMesh, immedi
 }
 window.setModelOrientation = setModelOrientation;
 
-// Row template for ranges and number sync inputs
-function sliderRow(label, id, min, max, step, value, unit = '') {
-    return `<div class="control-row">
-        <label class="control-label" for="${id}">${id.startsWith('rot') ? label + ' Axis' : label}</label>
-        <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}">
-        <input type="number" id="${id}-num" min="${min}" max="${max}" step="${step}" value="${parseFloat(value).toFixed(2)}">
+// Row template for ranges and number sync inputs with descriptive tooltips
+function sliderRow(label, id, min, max, step, value, unit = '', tooltip = '') {
+    const titleAttr = tooltip ? `title="${tooltip}"` : '';
+    const infoIcon = tooltip ? `<span class="control-info-icon" title="${tooltip}"><i class="fas fa-info-circle"></i></span>` : '';
+    return `<div class="control-row" ${titleAttr}>
+        <label class="control-label" for="${id}">${id.startsWith('rot') ? label + ' Axis' : label}${infoIcon}</label>
+        <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}" ${titleAttr}>
+        <input type="number" id="${id}-num" min="${min}" max="${max}" step="${step}" value="${parseFloat(value).toFixed(2)}" ${titleAttr}>
         <span class="control-unit">${unit}</span>
     </div>`;
 }
@@ -198,65 +200,81 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
         const rotZ = Math.round(state.modelRotationZ || 0);
         
         return `
-            <div class="panel-section-title">Model Orientation & Tilt</div>
+            <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Model Orientation & Tilt</span>
+                <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('orientation')" title="Open 3D Orientation & Tilt Guide">
+                    <i class="fas fa-question-circle"></i> Guide
+                </button>
+            </div>
             ${getOrientationWidgetHTML(rotX, rotY, rotZ)}
 
             <!-- Precision 3-Axis Rotation Sliders -->
-            ${sliderRow('Pitch (Tilt X)', 'model-rot-x', -180, 180, 1, rotX, '°')}
-            ${sliderRow('Spin (Turn Y)', 'model-rot-y', -180, 180, 1, rotY, '°')}
-            ${sliderRow('Roll (Side Z)', 'model-rot-z', -180, 180, 1, rotZ, '°')}
+            ${sliderRow('Pitch (Tilt X)', 'model-rot-x', -180, 180, 1, rotX, '°', 'Tilt model forward or backward along X axis (-180° to 180°)')}
+            ${sliderRow('Spin (Turn Y)', 'model-rot-y', -180, 180, 1, rotY, '°', 'Rotate model horizontally around vertical Y axis (-180° to 180°)')}
+            ${sliderRow('Roll (Side Z)', 'model-rot-z', -180, 180, 1, rotZ, '°', 'Roll model sideways along Z axis (-180° to 180°)')}
         
-            <div class="panel-section-title">Photo Guide Scanner</div>
+            <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Photo Guide Scanner</span>
+                <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('shape')" title="Open Sculpt Shape & Photo Guide">
+                    <i class="fas fa-question-circle"></i> Guide
+                </button>
+            </div>
             <div class="control-row" style="margin-bottom: 8px; flex-direction: column; align-items: stretch; gap: 8px;">
-                <label class="btn-primary" style="display: block; text-align: center; cursor: pointer; padding: 6px 12px; margin-bottom: 0; font-size: 11px;">
+                <label class="btn-primary" style="display: block; text-align: center; cursor: pointer; padding: 6px 12px; margin-bottom: 0; font-size: 11px;" title="Upload reference photo of physical artisan gourd to match shape">
                     <i class="fas fa-camera"></i> Upload Gourd Photo
                     <input type="file" id="gourd-photo-upload" accept="image/*" style="display: none;">
                 </label>
                 ${isPhotoSet ? `
-                    <button id="btn-remove-photo-guide" class="btn-secondary" style="border-color: rgba(235, 94, 85, 0.4); color: #eb5e55; font-size: 11px; padding: 6px 12px;">
+                    <button id="btn-remove-photo-guide" class="btn-secondary" style="border-color: rgba(235, 94, 85, 0.4); color: #eb5e55; font-size: 11px; padding: 6px 12px;" title="Clear background reference photo">
                         <i class="fas fa-trash-alt"></i> Remove Photo Guide
                     </button>
                 ` : ''}
             </div>
             
             ${isPhotoSet ? `
-                ${sliderRow('Photo Opacity', 'gourd-photoOpacity', 0, 100, 1, photoOpacityProx, '%')}
-                ${sliderRow('Photo Scale', 'gourd-photoScale', 0.5, 2.5, 0.05, state.gourdPhotoScale || 1.0)}
-                ${sliderRow('Photo X Offset', 'gourd-photoX', -200, 200, 1, state.gourdPhotoX || 0, 'px')}
-                ${sliderRow('Photo Y Offset', 'gourd-photoY', -200, 200, 1, state.gourdPhotoY || 0, 'px')}
+                ${sliderRow('Photo Opacity', 'gourd-photoOpacity', 0, 100, 1, photoOpacityProx, '%', 'Transparency of background reference photo overlay')}
+                ${sliderRow('Photo Scale', 'gourd-photoScale', 0.5, 2.5, 0.05, state.gourdPhotoScale || 1.0, '', 'Scale reference photo to match 3D gourd silhouette')}
+                ${sliderRow('Photo X Offset', 'gourd-photoX', -200, 200, 1, state.gourdPhotoX || 0, 'px', 'Horizontal position offset of reference image')}
+                ${sliderRow('Photo Y Offset', 'gourd-photoY', -200, 200, 1, state.gourdPhotoY || 0, 'px', 'Vertical position offset of reference image')}
                 <p style="font-size: 10px; color: var(--color-tx-m); line-height: 1.4; margin-top: 6px; font-style: italic;">
-                    💡 Switch to the <b>Front View</b> using the viewport options to align the 3D outline with your physical gourd's photo!
+                    💡 Switch to the <b>Front View (1)</b> using viewport HUD to align the 3D outline with your physical gourd's photo!
                 </p>
             ` : ''}
-                      <div class="panel-section-title">Main Dimensions</div>
-            <div class="control-row" style="margin-bottom: 10px;">
-                <label class="control-label" style="width: 50%;">Has Middle Neck?</label>
+            
+            <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Main Dimensions</span>
+                <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('shape')" title="Open Gourd Dimensions Guide">
+                    <i class="fas fa-question-circle"></i> Guide
+                </button>
+            </div>
+            <div class="control-row" style="margin-bottom: 10px;" title="Enable bottle gourd waist indentation vs single spherical bulb">
+                <label class="control-label" style="width: 50%;">Has Middle Neck? <span class="control-info-icon" title="Toggle waist indentation for double-bulb bottle gourds"><i class="fas fa-info-circle"></i></span></label>
                 <input type="checkbox" id="gourd-hasNeck" ${hasNeck ? 'checked' : ''} style="cursor: pointer; width: auto; flex: none;">
             </div>
-            ${sliderRow('Gourd Height', 'gourd-height', 10.0, 60.0, 0.5, state.gourdHeight || 30.0, 'cm')}
-            ${sliderRow('Base Width', 'gourd-baseRadius', 1.0, 10.0, 0.1, state.gourdBaseRadius || 3.5, 'cm')}
-            ${sliderRow('Rim Width', 'gourd-rimRadius', 1.0, 10.0, 0.1, state.gourdRimRadius || 2.7, 'cm')}
+            ${sliderRow('Gourd Height', 'gourd-height', 10.0, 60.0, 0.5, state.gourdHeight || 30.0, 'cm', 'Total physical height from bottom base to top opening in centimeters')}
+            ${sliderRow('Base Width', 'gourd-baseRadius', 1.0, 10.0, 0.1, state.gourdBaseRadius || 3.5, 'cm', 'Radius of the ground contact base in cm')}
+            ${sliderRow('Rim Width', 'gourd-rimRadius', 1.0, 10.0, 0.1, state.gourdRimRadius || 2.7, 'cm', 'Radius of the top mouth opening rim in cm')}
             
             <div class="panel-section-title">Bulb Curvature</div>
-            ${sliderRow('Bulb Width', 'gourd-bulbRadius', 3.0, 20.0, 0.1, state.gourdBulbRadius || 9.0, 'cm')}
-            ${sliderRow('Bulb Height', 'gourd-bulbPosition', 0.1, 0.4, 0.01, state.gourdBulbPosition || 0.25)}
-            ${sliderRow('Bulb Roundness', 'gourd-bulbRoundness', 0.5, 4.0, 0.05, state.gourdBulbRoundness || 1.0)}
+            ${sliderRow('Bulb Width', 'gourd-bulbRadius', 3.0, 20.0, 0.1, state.gourdBulbRadius || 9.0, 'cm', 'Maximum radius of lower bulb sphere in cm')}
+            ${sliderRow('Bulb Height', 'gourd-bulbPosition', 0.1, 0.4, 0.01, state.gourdBulbPosition || 0.25, '', 'Vertical height ratio where lower bulb reaches maximum fullness')}
+            ${sliderRow('Bulb Roundness', 'gourd-bulbRoundness', 0.5, 4.0, 0.05, state.gourdBulbRoundness || 1.0, '', 'Curvature exponent (higher = flatter bottom and rounder fullness)')}
 
             ${hasNeck ? `
                 <div class="panel-section-title">Neck Curvature</div>
-                ${sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm')}
-                ${sliderRow('Neck Junction', 'gourd-neckPosition', 0.4, 0.75, 0.01, state.gourdNeckPosition || 0.55)}
-                ${sliderRow('Neck Height', 'gourd-neckHeight', 2.0, 40.0, 0.1, neckHVal, 'cm')}
-                ${sliderRow('Neck Roundness', 'gourd-neckRoundness', 0.5, 3.0, 0.05, state.gourdNeckRoundness || 1.0)}
+                ${sliderRow('Neck Width', 'gourd-neckRadius', 1.0, 10.0, 0.1, state.gourdNeckRadius || 3.8, 'cm', 'Radius of narrowest waist junction in cm')}
+                ${sliderRow('Neck Junction', 'gourd-neckPosition', 0.4, 0.75, 0.01, state.gourdNeckPosition || 0.55, '', 'Vertical height ratio where lower bulb transitions into neck')}
+                ${sliderRow('Neck Height', 'gourd-neckHeight', 2.0, 40.0, 0.1, neckHVal, 'cm', 'Vertical height length of the middle neck')}
+                ${sliderRow('Neck Roundness', 'gourd-neckRoundness', 0.5, 3.0, 0.05, state.gourdNeckRoundness || 1.0, '', 'Curvature profile sharpness of waist indentation')}
 
                 <div class="panel-section-title">Upper Neck Curvature</div>
-                ${sliderRow('Upper Neck Width', 'gourd-upperNeckWidth', 1.0, 12.0, 0.1, state.gourdUpperNeckWidth || 3.24, 'cm')}
-                ${sliderRow('Upper Neck Height', 'gourd-upperNeckPosition', 0.6, 0.95, 0.01, state.gourdUpperNeckPosition || 0.78)}
+                ${sliderRow('Upper Neck Width', 'gourd-upperNeckWidth', 1.0, 12.0, 0.1, state.gourdUpperNeckWidth || 3.24, 'cm', 'Radius of upper flare near mouth rim in cm')}
+                ${sliderRow('Upper Neck Height', 'gourd-upperNeckPosition', 0.6, 0.95, 0.01, state.gourdUpperNeckPosition || 0.78, '', 'Vertical position of upper neck segment')}
             ` : ''}
 
             <div class="panel-section-title">Uneven Shape (Bending)</div>
-            ${sliderRow('Lateral Bend (X)', 'gourd-bendX', -5.0, 5.0, 0.1, state.gourdBendX || 0.0, 'cm')}
-            ${sliderRow('Lateral Bend (Z)', 'gourd-bendZ', -5.0, 5.0, 0.1, state.gourdBendZ || 0.0, 'cm')}
+            ${sliderRow('Lateral Bend (X)', 'gourd-bendX', -5.0, 5.0, 0.1, state.gourdBendX || 0.0, 'cm', 'Organic asymmetric curved deflection along X axis')}
+            ${sliderRow('Lateral Bend (Z)', 'gourd-bendZ', -5.0, 5.0, 0.1, state.gourdBendZ || 0.0, 'cm', 'Organic asymmetric curved deflection along Z axis')}
         `;
     }
     
@@ -1168,19 +1186,29 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
     if (tab === 'material') {
         const colorHex = '#' + gourdMesh.material.color.getHexString();
         return `
-            <div class="panel-section-title">surface finish</div>
-            <div class="control-row">
-                <label class="control-label">Base Color</label>
+            <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Surface Finish & Glaze</span>
+                <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('material')" title="Open Material & Glaze Guide">
+                    <i class="fas fa-question-circle"></i> Guide
+                </button>
+            </div>
+            <div class="control-row" title="Base clay tone / ceramic color">
+                <label class="control-label">Base Color <span class="control-info-icon" title="Base clay or glaze tone"><i class="fas fa-info-circle"></i></span></label>
                 <input type="color" id="mat-color" value="${colorHex}">
                 <span class="color-hex-text">${colorHex.toUpperCase()}</span>
             </div>
-            ${sliderRow('Roughness', 'mat-rough', 0, 1, 0.01, gourdMesh.material.roughness)}
-            ${sliderRow('Metalness', 'mat-metal', 0, 1, 0.01, gourdMesh.material.metalness)}
-            ${sliderRow('Opacity', 'mat-opacity', 0.1, 1, 0.05, gourdMesh.material.opacity)}
+            ${sliderRow('Roughness', 'mat-rough', 0, 1, 0.01, gourdMesh.material.roughness, '', 'Surface gloss vs matte (0 = high-gloss ceramic glaze, 1 = raw matte earthen clay)')}
+            ${sliderRow('Metalness', 'mat-metal', 0, 1, 0.01, gourdMesh.material.metalness, '', 'Metallic powder luster or mineral sheen intensity')}
+            ${sliderRow('Opacity', 'mat-opacity', 0.1, 1, 0.05, gourdMesh.material.opacity, '', 'Overall material transparency level')}
             
-            <div class="panel-section-title">surface texture pattern</div>
+            <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Surface Texture Pattern</span>
+                <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('material')" title="Open Texture Guide">
+                    <i class="fas fa-question-circle"></i> Guide
+                </button>
+            </div>
             <div class="control-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                <label class="control-label" style="margin-bottom: 2px;">Upload Pattern Image</label>
+                <label class="control-label" style="margin-bottom: 2px;">Upload Texture Image <span class="control-info-icon" title="Wrap woodgrain, cracked clay, or fabric image map"><i class="fas fa-info-circle"></i></span></label>
                 <input type="file" id="mat-texture-file" accept="image/*" style="font-size: 11px; padding: 2px 0; width: 100%;">
                 ${state.textureDataURL ? `
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; width: 100%;">
@@ -1190,33 +1218,38 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 ` : ''}
             </div>
             ${state.textureDataURL ? `
-                ${sliderRow('Texture Scale', 'mat-texture-scale', 0.1, 8.0, 0.1, state.textureScale || 1.0)}
-                ${sliderRow('Texture Rotation', 'mat-texture-rotation', 0, 360, 1, state.textureRotation || 0, '°')}
+                ${sliderRow('Texture Scale', 'mat-texture-scale', 0.1, 8.0, 0.1, state.textureScale || 1.0, '', 'Repetition frequency scale for texture map')}
+                ${sliderRow('Texture Rotation', 'mat-texture-rotation', 0, 360, 1, state.textureRotation || 0, '°', 'Orientation rotation angle of texture map')}
             ` : ''}
 
-            <div class="panel-section-title">rendering modes</div>
-            <div class="control-row" style="justify-content: space-between;">
-                <label class="control-label">Wireframe Mesh</label>
+            <div class="panel-section-title">Rendering Modes</div>
+            <div class="control-row" style="justify-content: space-between;" title="Inspect underlying 3D polygon wireframe mesh">
+                <label class="control-label">Wireframe Mesh <span class="control-info-icon" title="Display polygon wireframe structure"><i class="fas fa-info-circle"></i></span></label>
                 <label class="toggle">
                     <input type="checkbox" id="mat-wire" ${gourdMesh.material.wireframe ? 'checked' : ''}>
                     <span class="slider"></span>
                 </label>
             </div>
-            <div class="control-row" style="justify-content: space-between;">
-                <label class="control-label">Flat Shading</label>
+            <div class="control-row" style="justify-content: space-between;" title="Toggle flat faceted polygon faces vs smooth normals">
+                <label class="control-label">Flat Shading <span class="control-info-icon" title="Toggle faceted low-poly face shading"><i class="fas fa-info-circle"></i></span></label>
                 <label class="toggle">
                     <input type="checkbox" id="mat-flat" ${gourdMesh.material.flatShading ? 'checked' : ''}>
                     <span class="slider"></span>
                 </label>
             </div>
-            <button id="btn-reset-material" class="btn-secondary">Reset Material</button>
+            <button id="btn-reset-material" class="btn-secondary" title="Reset clay and glaze to default studio settings">Reset Material</button>
         `;
     }
     
     if (tab === 'measure') {
         const measurements = calculateMeasurements(gourdMesh.scale.x, gourdMesh.scale.y);
         return `
-            <div class="panel-section-title">gourd dimensions</div>
+            <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Gourd Dimensions</span>
+                <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('measure')" title="Open Dimensions & Volume Guide">
+                    <i class="fas fa-question-circle"></i> Guide
+                </button>
+            </div>
             <div class="stats-list">
                 <div class="stat-item"><span class="stat-item-label">Total Height</span><span class="stat-item-val">${measurements.height.toFixed(2)} cm</span></div>
                 <div class="stat-item"><span class="stat-item-label">Max Diameter</span><span class="stat-item-val">${measurements.maxDiameter.toFixed(2)} cm</span></div>
@@ -1224,14 +1257,19 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                 <div class="stat-item"><span class="stat-item-label">Neck Diameter</span><span class="stat-item-val">${measurements.neckDiameter.toFixed(2)} cm</span></div>
                 <div class="stat-item"><span class="stat-item-label">Base Diameter</span><span class="stat-item-val">${measurements.baseDiameter.toFixed(2)} cm</span></div>
             </div>
-            <div class="panel-section-title">calculated volume</div>
+            <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Calculated Volume & Area</span>
+                <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('measure')" title="Open Volume Integration Guide">
+                    <i class="fas fa-question-circle"></i> Guide
+                </button>
+            </div>
             <div class="stats-list">
-                <div class="stat-item"><span class="stat-item-label">Fluid Volume</span><span class="stat-item-val highlight">${measurements.volume.toFixed(2)} cm³</span></div>
+                <div class="stat-item"><span class="stat-item-label">Fluid Capacity</span><span class="stat-item-val highlight">${measurements.volume.toFixed(2)} cm³ (${(measurements.volume / 1000).toFixed(2)} L)</span></div>
                 <div class="stat-item"><span class="stat-item-label">Surface Area</span><span class="stat-item-val highlight">${measurements.surfaceArea.toFixed(2)} cm²</span></div>
             </div>
-            <div class="panel-section-title">visualization helpers</div>
-            <div class="control-row" style="justify-content: space-between;">
-                <label class="control-label" style="width: 150px;">Show Dimension Lines</label>
+            <div class="panel-section-title">Visualization Helpers</div>
+            <div class="control-row" style="justify-content: space-between;" title="Overlay labeled measurement lines and dimensional arrows on 3D model">
+                <label class="control-label" style="width: 150px;">Show Dimension Lines <span class="control-info-icon" title="Display 3D measurement arrows and labels"><i class="fas fa-info-circle"></i></span></label>
                 <label class="toggle">
                     <input type="checkbox" id="measure-lines-vis" ${measureGroup.visible ? 'checked' : ''}>
                     <span class="slider"></span>
@@ -1279,8 +1317,13 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
         return `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <div class="panel-section-title" style="margin: 0;">Lettering & Words (${textItems.length})</div>
-                <button id="btn-add-carve-text" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-color: var(--color-acc-d); color: var(--color-tx-h);">
+                <div class="panel-section-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>Lettering & Words (${textItems.length})</span>
+                    <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('carve')" title="Open Freehand Carving & Typography Guide">
+                        <i class="fas fa-question-circle"></i> Guide
+                    </button>
+                </div>
+                <button id="btn-add-carve-text" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-color: var(--color-acc-d); color: var(--color-tx-h);" title="Add new custom carved text block">
                     <i class="fas fa-plus" style="margin-right: 4px;"></i> Add Word
                 </button>
             </div>
@@ -1439,7 +1482,12 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
 
         return `
             <div class="panel-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Design Projects Library</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>Design Projects Library</span>
+                    <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('projects')" title="Open Projects & Design Library Guide">
+                        <i class="fas fa-question-circle"></i> Guide
+                    </button>
+                </div>
                 <span style="font-size: 9px; color: var(--color-acc); font-weight: 600;">${savedDesigns.length} Saved</span>
             </div>
 
@@ -3365,14 +3413,28 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
 }
 
 // Sets the active tool state and manages styling indicators
-const toolToTab = { select: null, measure: 'measure', pattern: 'pattern', position: 'pattern', transform: 'shape', shape: 'shape', carve: 'carve', camera: null };
+const toolToTab = { 
+    select: null, 
+    neck: 'shape',
+    bend: 'shape',
+    body: 'shape',
+    shape: 'shape', 
+    transform: 'shape', 
+    pattern: 'pattern', 
+    position: 'pattern', 
+    carve: 'carve', 
+    measure: 'measure', 
+    material: 'material', 
+    camera: null 
+};
 
 export function selectTool(tool, gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, controls) {
     state.currentTool = tool;
     
-    // Highlight sidebar icon
-    document.querySelectorAll('.tool-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tool === tool);
+    // Highlight sidebar / mobile nav / dropdown item icons
+    document.querySelectorAll('.tool-btn, .mobile-nav-btn, [data-tool-action]').forEach(btn => {
+        const isMatch = (btn.dataset.tool === tool || btn.dataset.toolAction === tool);
+        btn.classList.toggle('active', isMatch);
     });
     
     // Auto switch tabs
@@ -3391,27 +3453,72 @@ export function selectTool(tool, gourdMesh, carveGroup, measureGroup, patternGro
     if (measureVisCheckbox) measureVisCheckbox.checked = measureGroup.visible;
     
     const canvasEl = document.getElementById('viewport-canvas');
-    if (tool === 'carve') {
-        showToast('Lettering Carve Mode active — Customize words & typography on gourd', 'info');
-        gourdMesh.material.emissive.set(0x2a1a08);
-        gourdMesh.material.emissiveIntensity = 0.25;
-        if (controls) controls.enabled = true;
-        if (canvasEl) canvasEl.style.cursor = 'default';
-    } else if (tool === 'position') {
-        if (controls) controls.enabled = true;
-        if (canvasEl) canvasEl.style.cursor = 'default';
-        showToast('Position Mode active — Left click and drag on gourd to place active shape', 'warn');
-        gourdMesh.material.emissive.set(0x0a1020);
-        gourdMesh.material.emissiveIntensity = 0.15;
-    } else {
-        if (controls) controls.enabled = true;
-        if (canvasEl) canvasEl.style.cursor = 'default';
-        gourdMesh.material.emissive.set(0x000000);
-        gourdMesh.material.emissiveIntensity = 0;
-    }
-    
-    if (tool === 'camera') {
-        showToast('Camera Preset Mode active — Select view directions from top left');
+    if (controls) controls.enabled = true;
+    if (canvasEl) canvasEl.style.cursor = 'default';
+
+    switch (tool) {
+        case 'select':
+            gourdMesh.material.emissive.set(0x000000);
+            gourdMesh.material.emissiveIntensity = 0;
+            showToast('Select Tool active (V)', 'info');
+            break;
+        case 'neck':
+            gourdMesh.material.emissive.set(0x000000);
+            gourdMesh.material.emissiveIntensity = 0;
+            showToast('Sculpt Neck Tool active (N) — Adjust neck contour & junctions', 'info');
+            setTimeout(() => {
+                const neckEl = document.getElementById('slider-neck-width') || document.querySelector('[data-section="neck"]');
+                neckEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 60);
+            break;
+        case 'bend':
+            gourdMesh.material.emissive.set(0x000000);
+            gourdMesh.material.emissiveIntensity = 0;
+            showToast('Bend Curve Tool active (B) — Adjust natural curvature & lateral bend', 'info');
+            setTimeout(() => {
+                const bendEl = document.getElementById('slider-bend-x') || document.querySelector('[data-section="bend"]');
+                bendEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 60);
+            break;
+        case 'body':
+            gourdMesh.material.emissive.set(0x000000);
+            gourdMesh.material.emissiveIntensity = 0;
+            showToast('Body Proportions Tool active (G) — Adjust heights, base bulb & widths', 'info');
+            setTimeout(() => {
+                const bodyEl = document.getElementById('slider-height') || document.querySelector('[data-section="body"]');
+                bodyEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 60);
+            break;
+        case 'pattern':
+            gourdMesh.material.emissive.set(0x000000);
+            gourdMesh.material.emissiveIntensity = 0;
+            showToast('Pattern Designer active (P) — Layer motifs, shapes & rows', 'info');
+            break;
+        case 'carve':
+            gourdMesh.material.emissive.set(0x2a1a08);
+            gourdMesh.material.emissiveIntensity = 0.25;
+            showToast('Typography Carving active (C) — Customize lettering & typography', 'info');
+            break;
+        case 'measure':
+            gourdMesh.material.emissive.set(0x000000);
+            gourdMesh.material.emissiveIntensity = 0;
+            showToast('Technical Measure active (M) — Inspect dimensions & wall thickness', 'info');
+            break;
+        case 'material':
+            gourdMesh.material.emissive.set(0x000000);
+            gourdMesh.material.emissiveIntensity = 0;
+            showToast('Clay & Glaze Finish active (T) — Configure surface texture, sheen & clay colors', 'info');
+            break;
+        case 'position':
+            gourdMesh.material.emissive.set(0x0a1020);
+            gourdMesh.material.emissiveIntensity = 0.15;
+            showToast('Position Mode active — Left click and drag on gourd to place shape', 'warn');
+            break;
+        case 'camera':
+            gourdMesh.material.emissive.set(0x000000);
+            gourdMesh.material.emissiveIntensity = 0;
+            showToast('Camera Preset Mode active — Select view presets from top left', 'info');
+            break;
     }
 }
 
@@ -3529,7 +3636,7 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
             // 4. Draw Branding logo
             ctx.fillStyle = "#D4A843";
             ctx.font = "bold 18px 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-            ctx.fillText("KIBUYU DESIGN STUDIO", 30, h + 35);
+            ctx.fillText("KIBUYU PRO DESIGN", 30, h + 35);
             
             // 5. Draw Note details (wrapped)
             ctx.fillStyle = "#e0e0e5";
@@ -4128,38 +4235,131 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         });
     }
 
-    // Keyboard shortcuts
+    // Comprehensive Studio Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        // Ignore typing in inputs, textareas, selects, or editable fields
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.isContentEditable) return;
         
-        switch (e.key.toLowerCase()) {
+        const key = e.key.toLowerCase();
+        const code = e.code;
+        const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+        // 1. Undo / Redo
+        if (isCtrlOrCmd && key === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                performRedo(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            } else {
+                performUndo(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
+                renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            }
+            return;
+        }
+
+        if (isCtrlOrCmd && key === 'y') {
+            e.preventDefault();
+            performRedo(gourdMesh, patternGroup, measureGroup, onUpdatePattern, onUpdateMeasure, carveGroup);
+            renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+            return;
+        }
+
+        // 2. Project Save (Ctrl+S / Cmd+S)
+        if (isCtrlOrCmd && key === 's') {
+            e.preventDefault();
+            document.getElementById('menu-save-project')?.click();
+            return;
+        }
+
+        // 3. Export 3D Modal (Ctrl+E / Cmd+E)
+        if (isCtrlOrCmd && key === 'e') {
+            e.preventDefault();
+            document.getElementById('btn-export-3d')?.click();
+            return;
+        }
+
+        // Don't process single-key hotkeys if Ctrl/Cmd/Alt is pressed
+        if (isCtrlOrCmd || e.altKey) return;
+
+        // 4. Escape: Close modals, dropdowns, and mobile panels
+        if (key === 'escape') {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => menu.style.display = 'none');
+            document.getElementById('modal-export-3d')?.classList.remove('open');
+            document.getElementById('modal-guide')?.classList.remove('open');
+            document.getElementById('modal-snapshot')?.classList.remove('open');
+            document.getElementById('btn-close-adjustments')?.click();
+            return;
+        }
+
+        // 5. Help Modal / Shortcuts Guide (? or /)
+        if (key === '?' || (e.shiftKey && key === '/')) {
+            document.getElementById('menu-help-btn')?.click();
+            return;
+        }
+
+        // 6. Camera View Presets (1: Front, 3: Side, 7: Top, 5: Perspective)
+        if (key === '1' || code === 'Numpad1') {
+            if (setCameraView) setCameraView('front');
+            showToast('Front Camera View (1)', 'info');
+            return;
+        }
+        if (key === '2') {
+            if (setCameraView) setCameraView('side');
+            showToast('Side Camera View (2)', 'info');
+            return;
+        }
+        if (key === '3' || code === 'Numpad3') {
+            if (setCameraView) setCameraView('side');
+            showToast('Side Camera View (3)', 'info');
+            return;
+        }
+        if (key === '4') {
+            if (setCameraView) setCameraView('persp');
+            showToast('Perspective Camera View (4)', 'info');
+            return;
+        }
+        if (key === '5' || code === 'Numpad5') {
+            if (setCameraView) setCameraView('persp');
+            showToast('Perspective Camera View (5)', 'info');
+            return;
+        }
+        if (key === '7' || code === 'Numpad7') {
+            if (setCameraView) setCameraView('top');
+            showToast('Top Camera View (7)', 'info');
+            return;
+        }
+
+        // 7. Tools Switcher matching Menu Dropdown
+        switch (key) {
             case 'v': 
                 selectTool('select', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
                 break;
-            case 'm': 
-                selectTool('measure', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
+            case 'n': 
+                selectTool('neck', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
+                break;
+            case 'b': 
+                selectTool('bend', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
+                break;
+            case 'g': 
+                selectTool('body', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
                 break;
             case 'p': 
                 selectTool('pattern', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
                 break;
-            case 't': 
-                selectTool('shape', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
-                break;
             case 'c': 
                 selectTool('carve', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
                 break;
+            case 'm': 
+                selectTool('measure', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
+                break;
+            case 't': 
+                selectTool('material', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
+                break;
+            case 'l': 
+                selectTool('position', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
+                break;
             case 'k': 
                 selectTool('camera', gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure, window.appControls);
-                break;
-            case 'z': 
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    if (e.shiftKey) {
-                        document.getElementById('btn-redo')?.click();
-                    } else {
-                        document.getElementById('btn-undo')?.click();
-                    }
-                }
                 break;
         }
     });
@@ -4385,7 +4585,7 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
     const GUIDE_TOPICS = {
         nav: {
             title: 'Studio Navigation & 3D Controls',
-            subtitle: 'Master viewport navigation, view angles, and mobile gestures',
+            subtitle: 'Master viewport navigation, orthogonal view angles, and mobile gestures',
             html: `
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">1</span> 360° Orbit & Rotation</div>
@@ -4398,7 +4598,7 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">2</span> Panning & Translating Camera</div>
                     <div class="guide-step-desc">
-                        <b>Desktop:</b> Hold right-click (or Shift + Left Click) and drag to slide the viewport.<br>
+                        <b>Desktop:</b> Hold right-click (or Shift + Left Click) and drag to slide the viewport position.<br>
                         <b>Mobile / Touch:</b> Drag with two fingers simultaneously.
                     </div>
                 </div>
@@ -4406,17 +4606,17 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">3</span> Zooming & Scale</div>
                     <div class="guide-step-desc">
-                        <b>Desktop:</b> Scroll the mouse wheel up/down.<br>
+                        <b>Desktop:</b> Scroll the mouse wheel up or down.<br>
                         <b>Mobile / Touch:</b> Pinch open or closed with two fingers.
                     </div>
                 </div>
 
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">4</span> Viewport Angle HUD & Presets</div>
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Viewport Angle HUD & Orthogonal Projections</div>
                     <div class="guide-step-desc">
-                        Use the bottom-left viewport overlay HUD buttons (<b>Front</b>, <b>Side</b>, <b>Top</b>, <b>Persp</b>) to instantly lock camera orthogonal projections.
+                        Use the bottom-left viewport overlay HUD buttons (<b>Front</b>, <b>Side</b>, <b>Top</b>, <b>Persp</b>) to instantly lock camera orthogonal projections for precise artisan alignment.
                     </div>
-                    <div style="display: flex; gap: 6px; margin-top: 6px;">
+                    <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
                         <button class="guide-action-btn" data-guide-act="view-front"><i class="fas fa-eye"></i> Front View (1)</button>
                         <button class="guide-action-btn" data-guide-act="view-side"><i class="fas fa-eye"></i> Side View (2)</button>
                         <button class="guide-action-btn" data-guide-act="view-top"><i class="fas fa-eye"></i> Top View (3)</button>
@@ -4427,12 +4627,12 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">5</span> Mobile Hotspot Sliders</div>
                     <div class="guide-step-desc">
-                        On mobile devices, tap the interactive floating badges on the right side of the screen (<b>Neck</b>, <b>Bend</b>, <b>Body</b>, <b>Pattern</b>) to open slide-up adjustment bars without cluttering the 3D viewport.
+                        On mobile devices, tap the interactive floating badges on the right side of the screen (<b>Neck</b>, <b>Bend</b>, <b>Body</b>, <b>Rotate</b>, <b>Pattern</b>) to open slide-up adjustment bars without cluttering the 3D viewport.
                     </div>
                 </div>
 
                 <div class="guide-pro-tip">
-                    <b>💡 Pro Tip:</b> Pressing keys <b>1</b>, <b>2</b>, <b>3</b>, or <b>4</b> on your keyboard lets you toggle camera views without moving your mouse cursor!
+                    <b>💡 Pro Tip:</b> Pressing numeric keys <b>1</b>, <b>2</b>, <b>3</b>, or <b>4</b> on your keyboard toggles camera views instantly without moving your cursor.
                 </div>
             `
         },
@@ -4450,31 +4650,35 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                     </thead>
                     <tbody>
                         <tr><td><kbd>V</kbd></td><td><b>Select Tool</b></td><td>Default orbit and shape selection</td></tr>
-                        <tr><td><kbd>M</kbd></td><td><b>Measure Tool</b></td><td>Dimensions and fluid volume calculation</td></tr>
-                        <tr><td><kbd>P</kbd></td><td><b>Pattern Tool</b></td><td>Pattern layering, shapes and layouts</td></tr>
-                        <tr><td><kbd>L</kbd></td><td><b>Position Tool</b></td><td>Click & drag on gourd surface to place shapes</td></tr>
-                        <tr><td><kbd>T</kbd></td><td><b>Shape Tool</b></td><td>Gourd curvature, heights & dimensions</td></tr>
+                        <tr><td><kbd>N</kbd></td><td><b>Sculpt Neck</b></td><td>Neck contour, waist & junctions</td></tr>
+                        <tr><td><kbd>B</kbd></td><td><b>Bend Curve</b></td><td>Organic curvature & lateral bend</td></tr>
+                        <tr><td><kbd>G</kbd></td><td><b>Body Proportions</b></td><td>Gourd height, bulb & base fullness</td></tr>
+                        <tr><td><kbd>P</kbd></td><td><b>Pattern Tool</b></td><td>Pattern layering, shapes and rows</td></tr>
                         <tr><td><kbd>C</kbd></td><td><b>Carve Tool</b></td><td>Freehand lettering & typography carving</td></tr>
-                        <tr><td><kbd>K</kbd></td><td><b>Camera Tool</b></td><td>Camera view angle presets</td></tr>
+                        <tr><td><kbd>M</kbd></td><td><b>Measure Tool</b></td><td>Dimensions and fluid volume calculation</td></tr>
+                        <tr><td><kbd>T</kbd></td><td><b>Clay & Glaze</b></td><td>Clay texture, sheen & ceramic glazes</td></tr>
                         <tr><td><kbd>1</kbd></td><td><b>Front View</b></td><td>Align camera to exact front plane</td></tr>
-                        <tr><td><kbd>2</kbd></td><td><b>Side View</b></td><td>Align camera to lateral profile</td></tr>
-                        <tr><td><kbd>3</kbd></td><td><b>Top View</b></td><td>Top-down aerial rim view</td></tr>
-                        <tr><td><kbd>4</kbd></td><td><b>Perspective</b></td><td>Natural 3D perspective mode</td></tr>
+                        <tr><td><kbd>3</kbd> (or <kbd>2</kbd>)</td><td><b>Side View</b></td><td>Align camera to lateral profile</td></tr>
+                        <tr><td><kbd>7</kbd></td><td><b>Top View</b></td><td>Top-down aerial rim view</td></tr>
+                        <tr><td><kbd>5</kbd> (or <kbd>4</kbd>)</td><td><b>Perspective</b></td><td>Natural 3D perspective mode</td></tr>
                         <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td><b>Undo</b></td><td>Step back to previous modification</td></tr>
                         <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td><td><b>Redo</b></td><td>Restore previously undone modification</td></tr>
-                        <tr><td><kbd>Esc</kbd></td><td><b>Close Modal</b></td><td>Dismiss guide and snapshot modals</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td><b>Save Project</b></td><td>Export project JSON file</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>E</kbd></td><td><b>Export 3D</b></td><td>Open universal 3D model export studio</td></tr>
+                        <tr><td><kbd>?</kbd></td><td><b>Help & Guide</b></td><td>Open interactive studio walkthrough modal</td></tr>
+                        <tr><td><kbd>Esc</kbd></td><td><b>Close Modal</b></td><td>Dismiss guide, export, and snapshot modals</td></tr>
                     </tbody>
                 </table>
             `
         },
         shape: {
             title: 'Task 1: Sculpt Gourd Shape & Match Photo Guide',
-            subtitle: 'Recreate physical calabashes with exact curves, junctions, and photo overlays',
+            subtitle: 'Recreate physical calabashes with exact curves, waist junctions, and photo overlays',
             html: `
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">1</span> Upload & Align a Photo Guide</div>
                     <div class="guide-step-desc">
-                        Take a photo of your physical artisan gourd against a neutral background and upload it under the <b>Shape</b> tab. Switch to <b>Front View (1)</b> to see the semi-transparent photo guide behind the 3D model. Adjust Photo Scale and X/Y Offsets to align the reference image.
+                        Take a photo of your physical artisan gourd against a neutral background and upload it under the <b>Shape</b> tab. Switch to <b>Front View (1)</b> to see the semi-transparent photo guide behind the 3D model. Adjust Photo Scale, Opacity, and X/Y Offsets to match the reference outline.
                     </div>
                     <button class="guide-action-btn" data-guide-act="tab-shape"><i class="fas fa-shapes"></i> Open Shape Tab</button>
                 </div>
@@ -4489,7 +4693,7 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">3</span> Configure Middle Neck & Waist</div>
                     <div class="guide-step-desc">
-                        Toggle <b>Has Middle Neck?</b> to enable waist indentation. Fine-tune <b>Neck Width</b>, <b>Neck Junction</b> (where the bulb meets the neck), and <b>Neck Roundness</b> to match single-bulb vs double-bulb bottle gourds.
+                        Toggle <b>Has Middle Neck?</b> to enable waist indentation. Fine-tune <b>Neck Width</b>, <b>Neck Junction</b> (where bulb transitions into neck), and <b>Neck Roundness</b> to match single-bulb vs double-bulb bottle gourds.
                     </div>
                 </div>
 
@@ -4505,9 +4709,40 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 </div>
             `
         },
+        orientation: {
+            title: 'Task 2: 3D Model Orientation & Spatial Tilt',
+            subtitle: 'Rotate, pitch, spin, and invert the gourd to inspect base carving and drill holes',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> 3-Axis Precision Rotation Sliders</div>
+                    <div class="guide-step-desc">
+                        Under the <b>Shape</b> tab, use precision degree sliders to adjust <b>Pitch (Tilt X)</b>, <b>Spin (Turn Y)</b>, and <b>Roll (Side Z)</b> from -180° to +180°.
+                    </div>
+                    <button class="guide-action-btn" data-guide-act="tab-shape"><i class="fas fa-shapes"></i> Open Shape Tab</button>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> 180° Upside Down Flip & 90° Quick Spins</div>
+                    <div class="guide-step-desc">
+                        Click <b>Flip Upside Down</b> to inspect the bottom base carving, or use <b>-90° / +90°</b> spin buttons to quickly inspect the reverse side of the vessel.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> 6 Quick Spatial Presets</div>
+                    <div class="guide-step-desc">
+                        Instantly click preset cards: <b>Upright (0°)</b>, <b>Inverted (180°)</b>, <b>Lie Right (+90°)</b>, <b>Lie Left (-90°)</b>, <b>Lie Front (+90°)</b>, or <b>Lie Back (-90°)</b>.
+                    </div>
+                </div>
+
+                <div class="guide-pro-tip">
+                    <b>💡 Pro Tip:</b> Use the <b>Reset 0°</b> button anytime to restore the upright studio modeling orientation.
+                </div>
+            `
+        },
         pattern: {
-            title: 'Task 2: Applying & Layering Pattern Layouts',
-            subtitle: 'Compose ceramic patterns, organic doodles, geometric weaves, and hole drilling',
+            title: 'Task 3: Patterns, Hole Drilling & Surface Layouts',
+            subtitle: 'Compose ceramic patterns, organic doodles, geometric weaves, and drilled hole grids',
             html: `
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">1</span> Add Multiple Overlapping Layers</div>
@@ -4518,7 +4753,7 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 </div>
 
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">2</span> Select Layer Shape from Dropdown</div>
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Select Layer Boundary Format</div>
                     <div class="guide-step-desc">
                         Choose the boundary format:
                         <ul style="margin: 4px 0 6px 18px; padding: 0;">
@@ -4531,9 +4766,9 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 </div>
 
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">3</span> Pick from 35+ Categorized Pattern Layouts</div>
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> 35+ Categorized Pattern Layouts</div>
                     <div class="guide-step-desc">
-                        Click the <b>Pattern Layout</b> dropdown to choose:
+                        Pick from three rich libraries:
                         <ul style="margin: 4px 0 6px 18px; padding: 0;">
                             <li><b>Ceramic Studio:</b> Seigaiha Waves, Triangles, Diamonds, Cathedral Arches, Halftones, Leopard, Zebra.</li>
                             <li><b>Geometric & Weave:</b> Basket Weave, Diamond Weave, Geo-Triangle, Box Grid, Flow, Spiral, Ribbons.</li>
@@ -4543,9 +4778,9 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 </div>
 
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">4</span> Hole Drilling vs Carving Lines</div>
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Solid 3D Hole Drilling & Draughts Checkerboard</div>
                     <div class="guide-step-desc">
-                        Switch between <b>Lines</b>, <b>Holes</b>, or <b>Both</b>. When Holes are selected, adjust the drill bit diameter, hole count or distance spacing, and hole shapes (Round, Wobbly, Star). Enable <b>Draughts (Checkerboard)</b> for alternating woven holes!
+                        Switch between <b>Lines</b>, <b>Holes</b>, or <b>Both</b>. When Holes are selected, adjust the drill bit diameter (0.1mm–12mm), hole count or spacing, and hole shapes (Round, Wobbly, Star). Enable <b>Draughts (Checkerboard)</b> for alternating woven holes!
                     </div>
                 </div>
 
@@ -4555,19 +4790,19 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
             `
         },
         carve: {
-            title: 'Task 3: Freehand Carving & Typography Lettering',
+            title: 'Task 4: Freehand Carving & Typography Lettering',
             subtitle: 'Engrave custom names, Swahili proverbs, and dates with artisanal burnt finishes',
             html: `
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">1</span> Activate Lettering Studio</div>
                     <div class="guide-step-desc">
-                        Open the <b>Carve</b> tab (or press <kbd>C</kbd>) and click <b>+ Add Lettering Text</b> to create a new typography block.
+                        Open the <b>Carve</b> tab (or press <kbd>C</kbd>) and click <b>+ Add Word</b> to create a new typography block.
                     </div>
                     <button class="guide-action-btn" data-guide-act="tab-carve"><i class="fas fa-pen-nib"></i> Open Carve Studio</button>
                 </div>
 
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">2</span> Choose Craft Font & Lettering Style</div>
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> 13 Craft Typography Fonts</div>
                     <div class="guide-step-desc">
                         Type your desired phrase and pick from 13 craft typography styles, including <b>Cinzel Decorative</b> (Classical Ornate), <b>Playfair Display</b> (Editorial Serif), <b>UnifrakturCook</b> (Fraktur Blackletter), <b>MedievalSharp</b> (Gothic), <b>Great Vibes</b> (Calligraphy Script), and <b>Rye</b> (Vintage Woodcut).
                     </div>
@@ -4576,26 +4811,26 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">3</span> Burnt Finish Tones & Curvature</div>
                     <div class="guide-step-desc">
-                        Select an authentic woodburn / pyrographed finish color: <b>Dark Walnut</b>, <b>Ebony Char</b>, <b>Burnt Umber</b>, or <b>Terracotta</b>. Adjust <b>Arc Curvature</b> to bend the text gracefully along the gourd's circumference.
+                        Select an authentic woodburn / pyrographed finish color: <b>Dark Walnut</b>, <b>Ebony Char</b>, <b>Burnt Umber</b>, or <b>Terracotta</b>. Adjust <b>Arch Bend Angle</b> to curve the text along the gourd's circumference.
                     </div>
                 </div>
 
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">4</span> Placement & Carve Depth</div>
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Placement & Carve Depth Offset</div>
                     <div class="guide-step-desc">
-                        Use <b>Height Offset</b> and <b>Rotation Angle</b> sliders to position the text onto the bulb or neck, and adjust <b>Carve Offset Depth</b> to simulate deeply engraved vs shallow pyrography.
+                        Use <b>Height (t)</b> and <b>Rotation Angle</b> sliders to position text onto the bulb or neck, and adjust <b>Depth Offset</b> to simulate deeply engraved vs shallow pyrography.
                     </div>
                 </div>
             `
         },
         material: {
-            title: 'Task 4: Clay, Glaze & Material Finishes',
+            title: 'Task 5: Clay, Glaze & Material Finishes',
             subtitle: 'Customize surface tones, ceramic reflectivity, and custom texture wrapping',
             html: `
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">1</span> Base Color & Clay Tone</div>
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Base Clay & Ceramic Glaze Color</div>
                     <div class="guide-step-desc">
-                        Open the <b>Material</b> tab to pick the base tone of your vessel (e.g. Ochre, Terracotta, Raw Clay, Porcelain, Sandstone).
+                        Open the <b>Material</b> tab to pick the base color of your vessel (e.g. Ochre, Terracotta, Raw Clay, Porcelain, Sandstone).
                     </div>
                     <button class="guide-action-btn" data-guide-act="tab-material"><i class="fas fa-fill-drip"></i> Open Material Tab</button>
                 </div>
@@ -4613,14 +4848,21 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                         Upload custom woodgrain, fabric, or cracked clay images to wrap seamlessly around the 3D gourd with customizable <b>Texture Scale</b> and <b>Rotation</b>.
                     </div>
                 </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Diagnostic Wireframe & Flat Shading</div>
+                    <div class="guide-step-desc">
+                        Toggle <b>Wireframe Mesh</b> to inspect polygon distribution or <b>Flat Shading</b> for low-poly faceted appearance.
+                    </div>
+                </div>
             `
         },
         measure: {
-            title: 'Task 5: Dimensions, Surface Area & Fluid Capacity',
+            title: 'Task 6: Dimensions, Surface Area & Fluid Capacity',
             subtitle: 'Inspect real-world physical dimensions and volumetric liquid capacity',
             html: `
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">1</span> Physical Height & Diameters</div>
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Calibrated Physical Dimensions</div>
                     <div class="guide-step-desc">
                         Open the <b>Measure</b> tab (<kbd>M</kbd>) to view exact calibrated dimensions: <b>Total Height</b>, <b>Max Bulb Diameter</b>, <b>Neck Diameter</b>, and <b>Base Diameter</b> in centimeters.
                     </div>
@@ -4628,9 +4870,9 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 </div>
 
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">2</span> Fluid Volume (cm³ / mL) Integration</div>
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Fluid Volume (cm³ / mL / Liters) Physics</div>
                     <div class="guide-step-desc">
-                        The app uses real-time disk volume numerical integration along the calabash profile to calculate true internal liquid capacity in <b>cm³ (milliliters)</b> and total <b>Surface Area (cm²)</b>.
+                        The app uses real-time disk volume numerical integration along the calabash profile curve to calculate true internal liquid capacity in <b>cm³ (milliliters)</b> and <b>Liters</b>, alongside total outer <b>Surface Area (cm²)</b>.
                     </div>
                 </div>
 
@@ -4642,29 +4884,101 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 </div>
             `
         },
-        export: {
-            title: 'Task 6: Save, Export & Snapshot Studio',
-            subtitle: 'Capture presentation snapshots, save project JSON files, and copy layouts',
+        export3d: {
+            title: 'Task 7: 3D Model Export & 3D Printing Slicing',
+            subtitle: 'Universal 3D exports with solid manifold hole geometry baking for slicers and AR',
             html: `
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">1</span> Take Snapshot with Design Notes</div>
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> 5 Universal 3D Formats</div>
                     <div class="guide-step-desc">
-                        Click <b>Take Snapshot</b> in the top right header. The studio renders a high-res capture of your current 3D view with studio lighting. You can type custom artisan design notes and download a high-quality PNG or copy the image directly to your clipboard.
+                        Click <b>Export 3D</b> in the top header to select your desired format:
+                        <ul style="margin: 4px 0 6px 18px; padding: 0;">
+                            <li><b>GLTF / GLB (Recommended):</b> Full PBR materials and textures for Blender, Maya, Unreal Engine, and Unity.</li>
+                            <li><b>Wavefront OBJ:</b> Universal polygon mesh geometry for all CAD and 3D modeling packages.</li>
+                            <li><b>STL (3D Printing):</b> Direct manifold solid slicing for Ultimaker Cura, PrusaSlicer, Bambu Studio, and OrcaSlicer.</li>
+                            <li><b>Apple USDZ:</b> Native Augmented Reality QuickLook on iPhone, iPad, and Mac.</li>
+                            <li><b>Stanford PLY:</b> High-precision polygon point cloud and mesh data.</li>
+                        </ul>
+                    </div>
+                    <button class="guide-action-btn" data-guide-act="open-export-3d"><i class="fas fa-cube"></i> Open 3D Export Modal</button>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Solid 3D Manifold Hole Baking for Slicers</div>
+                    <div class="guide-step-desc">
+                        All decorative holes and drilled patterns are baked into true solid 3D manifold cylindrical geometry with depth and outward normals, ensuring 3D printers and slicers render clean, physical perforations without flat artifact slits.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> Target Scale Units & Component Checkboxes</div>
+                    <div class="guide-step-desc">
+                        Select <b>Millimeters (mm)</b> for 3D printing and CAD slicing, <b>Centimeters (cm)</b> for standard DCC tools, or <b>Meters (m)</b> for game engines and AR. Choose which components to include (Sculpted Body, Pattern Layers, Carved Typography, Clay Materials).
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Live Synchronized Mesh Statistics</div>
+                    <div class="guide-step-desc">
+                        The export modal calculates live polygon statistics (Vertices, Triangles, Dimensions, and Estimated File Size) synchronized directly with the exported geometry.
+                    </div>
+                </div>
+
+                <div class="guide-pro-tip">
+                    <b>💡 Pro Tip:</b> For 3D printing, choose <b>STL</b> with scale set to <b>Millimeters (mm)</b>. Import directly into Bambu Studio or PrusaSlicer with 0.2mm layer height and tree supports!
+                </div>
+            `
+        },
+        snapshot: {
+            title: 'Task 8: Viewport Snapshots & Artisan Design Notes',
+            subtitle: 'Capture presentation-ready snapshots with custom artisan notes and clipboard copy',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Studio Viewport Snapshot</div>
+                    <div class="guide-step-desc">
+                        Click <b>Take Snapshot</b> in the top right header (or camera icon). The studio renders a high-res capture with professional studio lighting and clean background.
                     </div>
                     <button class="guide-action-btn" data-guide-act="take-snapshot"><i class="fas fa-camera"></i> Take Snapshot Now</button>
                 </div>
 
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">2</span> Save & Load Full Projects (.json)</div>
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> Artisan Design Notes & Specs</div>
                     <div class="guide-step-desc">
-                        Under the <b>File</b> menu in the top bar, click <b>Save Full Project</b> to download a complete <code>.json</code> file containing your 3D shape, material settings, and all pattern layers. Use <b>Load Full Project...</b> anytime to restore your work.
+                        Type custom design notes (client order details, glaze recipes, carving dates) to save alongside the visual render.
+                    </div>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">3</span> Direct Clipboard Copy & Lossless Download</div>
+                    <div class="guide-step-desc">
+                        Click <b>Copy to Clipboard</b> to paste the screenshot directly into emails, chats, or documentation, or click <b>Download PNG</b> to save a high-res image file.
+                    </div>
+                </div>
+            `
+        },
+        projects: {
+            title: 'Task 9: Projects Management & Design Library',
+            subtitle: 'Save full project JSON files, browse saved designs, and copy pattern layouts',
+            html: `
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">1</span> Save & Load Full Project (.json)</div>
+                    <div class="guide-step-desc">
+                        Under the <b>File</b> menu in the top bar, click <b>Save Full Project (.json)</b> to download a complete file storing your 3D shape, orientation, material finishes, all pattern layers, and carved lettering. Restore anytime via <b>Load Full Project...</b>.
+                    </div>
+                    <button class="guide-action-btn" data-guide-act="tab-designs"><i class="fas fa-folder-open"></i> Open Design Library</button>
+                </div>
+
+                <div class="guide-step-card">
+                    <div class="guide-step-title"><span class="guide-step-num">2</span> In-App Design Library & Quick Search</div>
+                    <div class="guide-step-desc">
+                        The <b>Designs</b> tab maintains a local library of your saved gourds with instant search filtering, one-click load, and bulk JSON backup export.
                     </div>
                 </div>
 
                 <div class="guide-step-card">
                     <div class="guide-step-title"><span class="guide-step-num">3</span> Copy & Paste Pattern Layouts</div>
                     <div class="guide-step-desc">
-                        Designed a pattern layout you love? Use <b>File > Copy Pattern Layout</b> to copy the entire layer arrangement to your system clipboard. You can paste it onto any other gourd shape instantly!
+                        Use <b>File > Copy Pattern Layout</b> to copy all pattern layers to your system clipboard. You can paste them onto any new gourd shape seamlessly!
                     </div>
                 </div>
             `
@@ -4702,12 +5016,22 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                     document.querySelectorAll('.panel-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                     showToast(`Opened ${tabName.toUpperCase()} tab`, 'info');
+                } else if (act === 'open-export-3d') {
+                    document.getElementById('btn-export-3d')?.click();
                 } else if (act === 'take-snapshot') {
-                    document.getElementById('btn-export')?.click();
+                    document.getElementById('btn-snapshot')?.click() || document.getElementById('btn-export')?.click();
                 }
             });
         });
     }
+
+    // Expose global helper to open guide directly to a topic
+    window.openGuideTopic = function(topicKey) {
+        if (guideModal) {
+            guideModal.style.display = 'flex';
+            renderTopic(topicKey || 'nav');
+        }
+    };
 
     // Initial render
     renderTopic('nav');
@@ -4756,7 +5080,7 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                     <div style="text-align: center; padding: 40px 20px; color: var(--color-tx-d);">
                         <i class="fas fa-search" style="font-size: 24px; margin-bottom: 10px; display: block; opacity: 0.5;"></i>
                         <p style="font-size: 13px; margin: 0;">No guides found matching "<b>${query}</b>"</p>
-                        <p style="font-size: 11px; margin-top: 6px;">Try searching for <i>carve</i>, <i>pattern</i>, <i>shape</i>, <i>photo</i>, or <i>volume</i>.</p>
+                        <p style="font-size: 11px; margin-top: 6px;">Try searching for <i>export</i>, <i>stl</i>, <i>holes</i>, <i>carve</i>, <i>orientation</i>, <i>pattern</i>, <i>shape</i>, or <i>volume</i>.</p>
                     </div>
                 `;
             } else {
@@ -4787,8 +5111,10 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                             state.activeTab = tabName;
                             document.querySelectorAll('.panel-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
                             renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
+                        } else if (act === 'open-export-3d') {
+                            document.getElementById('btn-export-3d')?.click();
                         } else if (act === 'take-snapshot') {
-                            document.getElementById('btn-export')?.click();
+                            document.getElementById('btn-snapshot')?.click() || document.getElementById('btn-export')?.click();
                         }
                     });
                 });
