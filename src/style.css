@@ -1374,13 +1374,13 @@ input[type="color"]::-webkit-color-swatch {
 /* Responsive Media Queries */
 @media (max-width: 900px) {
     .brand {
-        margin-right: 12px;
+        margin-right: 8px;
     }
-    .project-name-container {
-        margin-left: 8px !important;
+    .project-title-container {
+        margin-left: 6px !important;
     }
     #project-name-input {
-        width: 110px !important;
+        width: 95px !important;
     }
 }
 
@@ -1394,14 +1394,22 @@ input[type="color"]::-webkit-color-swatch {
     #mobile-hotspots-overlay {
         display: flex !important;
         flex-direction: column !important;
-        gap: 18px !important;
+        gap: 14px !important;
+        right: 8px !important;
+        top: 10px !important;
     }
     .app-main {
-        height: calc(100% - 40px); /* Header: 40px, Sidebar hidden, viewport takes full remaining height */
+        height: calc(100% - 42px); /* Header: 42px, Sidebar hidden, viewport takes full remaining height */
     }
     .app-header {
+        height: 42px;
         padding: 0 8px;
-        gap: 6px;
+        gap: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        white-space: nowrap;
+        flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
@@ -1410,68 +1418,92 @@ input[type="color"]::-webkit-color-swatch {
         display: none;
     }
     .brand {
-        margin-right: 4px;
+        margin-right: 2px;
         gap: 6px;
         flex-shrink: 0;
     }
     .brand-icon {
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
     }
     .brand-name {
         font-size: 12px;
     }
-    .project-name-container {
-        margin-left: 0 !important;
-        padding: 2px 6px !important;
-        flex-shrink: 1;
-        min-width: 0;
-    }
-    #project-name-input {
-        width: 75px !important;
-        font-size: 10px !important;
-    }
-    .menu-nav {
+    .main-nav {
         display: flex !important;
+        align-items: center;
         gap: 2px;
         flex-shrink: 0;
+        flex-wrap: nowrap;
+        white-space: nowrap;
     }
     .menu-btn {
         padding: 3px 6px;
         font-size: 11px;
         white-space: nowrap;
+        flex-shrink: 0;
+        border-radius: 4px;
     }
     .header-actions {
         flex-shrink: 0;
-        gap: 4px;
+        display: flex;
+        align-items: center;
+        gap: 3px;
     }
     .action-icon-btn {
         width: 26px;
         height: 26px;
+        font-size: 10.5px;
     }
     .btn-primary {
-        height: 24px;
+        height: 26px;
         padding: 0 8px;
         font-size: 10px;
     }
+    .viewport-overlay-left {
+        top: 8px;
+        left: 8px;
+        max-width: calc(100vw - 64px);
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        gap: 3px;
+        padding-bottom: 2px;
+    }
+    .vp-preset-btn {
+        padding: 3px 7px;
+        font-size: 9.5px;
+    }
+    .vp-orient-btn {
+        padding: 3px 7px;
+        font-size: 9.5px;
+    }
 }
 
-@media (max-width: 520px) {
-    .brand-name {
-        display: none;
+@media (max-width: 480px) {
+    .app-header {
+        padding: 0 6px;
+        gap: 2px;
     }
-    .project-name-container label {
-        display: none;
-    }
-    #project-name-input {
-        width: 65px !important;
-    }
-    .divider-v {
-        display: none;
+    .brand {
+        gap: 4px;
     }
     .menu-btn {
         padding: 2px 4px;
         font-size: 10px;
+    }
+    .menu-btn i {
+        display: none;
+    }
+    .action-icon-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+    }
+    .divider-v {
+        display: none;
     }
 }
 @media (prefers-reduced-motion: reduce) {

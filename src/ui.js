@@ -1316,15 +1316,16 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
         ];
 
         return `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <div class="panel-section-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
-                    <span>Lettering & Words (${textItems.length})</span>
-                    <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('carve')" title="Open Freehand Carving & Typography Guide">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--color-bdr); margin-bottom: 12px; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                    <span style="font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--color-tx-h); white-space: nowrap;">Carved Words</span>
+                    <span style="font-size: 10px; color: var(--color-acc); background: rgba(212,168,67,0.12); border: 1px solid rgba(212,168,67,0.25); padding: 0 6px; border-radius: 10px; font-weight: 600;">${textItems.length}</span>
+                    <button class="section-guide-btn" onclick="if(window.openGuideTopic) window.openGuideTopic('carve')" title="Open Freehand Carving & Typography Guide" style="padding: 2px 6px; font-size: 9.5px;">
                         <i class="fas fa-question-circle"></i> Guide
                     </button>
                 </div>
-                <button id="btn-add-carve-text" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; border-color: var(--color-acc-d); color: var(--color-tx-h);" title="Add new custom carved text block">
-                    <i class="fas fa-plus" style="margin-right: 4px;"></i> Add Word
+                <button id="btn-add-carve-text" class="zone-action-btn" style="border-color: var(--color-acc); color: var(--color-acc); background: rgba(212, 168, 67, 0.08); padding: 4px 10px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; flex-shrink: 0;" title="Add new custom carved text block">
+                    <i class="fas fa-plus"></i> Add Word
                 </button>
             </div>
 
@@ -1410,6 +1411,7 @@ function getPanelHTML(tab, gourdMesh, carveGroup, measureGroup) {
                         ${sliderRow('Height (t)', `carve-text-centerT-${activeTextItem.id}`, 0.05, 0.95, 0.01, activeTextItem.centerT !== undefined ? activeTextItem.centerT : 0.5)}
                         ${sliderRow('Rotation (Around)', `carve-text-centerTheta-${activeTextItem.id}`, -180, 180, 1, Math.round((activeTextItem.centerTheta || (Math.PI / 2)) * 180 / Math.PI), '°')}
                         ${sliderRow('Tilt Angle', `carve-text-rotation-${activeTextItem.id}`, -180, 180, 1, activeTextItem.rotation || 0, '°')}
+                        ${sliderRow('Repeating Count', `carve-text-repeatCount-${activeTextItem.id}`, 1, 16, 1, activeTextItem.repeatCount || 1, 'x', 'Repeat and evenly distribute the word around the circumference of the gourd')}
 
                         <div class="panel-section-title" style="margin-top: 6px;">Curvature & Gourd Fitting</div>
                         <div class="control-row" style="margin-bottom: 4px;">
@@ -3116,6 +3118,8 @@ function applyInputChanges(id, value, gourdMesh, carveGroup, measureGroup, patte
         if (item) {
             if (param === 'centerTheta') {
                 item.centerTheta = valFloat * Math.PI / 180;
+            } else if (param === 'repeatCount') {
+                item.repeatCount = Math.max(1, Math.min(32, Math.round(valFloat)));
             } else if (param === 'rotation' || param === 'archAngle' || param === 'slantAngle' || param === 'hatchAngle') {
                 item[param] = valFloat;
             } else {
@@ -4876,9 +4880,9 @@ function setupGuideModal(gourdMesh, carveGroup, measureGroup, patternGroup, onUp
                 </div>
 
                 <div class="guide-step-card">
-                    <div class="guide-step-title"><span class="guide-step-num">4</span> Placement & Carve Depth Offset</div>
+                    <div class="guide-step-title"><span class="guide-step-num">4</span> Placement, Repeating Count & Depth Offset</div>
                     <div class="guide-step-desc">
-                        Use <b>Height (t)</b> and <b>Rotation Angle</b> sliders to position text onto the bulb or neck, and adjust <b>Depth Offset</b> to simulate deeply engraved vs shallow pyrography.
+                        Use <b>Height (t)</b> and <b>Rotation Angle</b> sliders to position text on the bulb or neck. Use <b>Repeating Count</b> (1x to 16x) to automatically replicate and evenly distribute your carved phrase around the entire 360° circumference. Adjust <b>Depth Offset</b> to simulate deeply engraved vs shallow pyrography.
                     </div>
                 </div>
             `

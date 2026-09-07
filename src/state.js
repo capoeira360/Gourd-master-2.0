@@ -545,6 +545,7 @@ export function addCarveTextItem() {
         carveStyle: 'solid', // 'solid', 'outline', 'gold', 'hatch', 'dots'
         carveColor: '#3A1E08',
         carveDepth: 0.005,
+        repeatCount: 1, // Number of repeating instances around the circumference (1 to 16)
         strokeWidth: 1.5,
         hatchDensity: 12,
         hatchAngle: 45,

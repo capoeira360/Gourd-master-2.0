@@ -178,6 +178,7 @@ export function generateTextCarveObjects(item, state) {
     const fontHeightUnits = fontSizeScale * 2.2;
     const pxToUnits = fontHeightUnits / Math.max(1, cropH);
     const fontWidthUnits = cropW * pxToUnits * aspectWidth;
+    const repeatCount = Math.max(1, Math.min(32, parseInt(item.repeatCount || 1, 10)));
 
     const renderObjects = [];
 
@@ -198,60 +199,65 @@ export function generateTextCarveObjects(item, state) {
             polygonOffsetUnits: -4
         });
 
-        for (let y = minY; y <= maxY; y += dotSpacingPx) {
-            for (let x = minX; x <= maxX; x += dotSpacingPx) {
-                const ix = Math.floor(x);
-                const iy = Math.floor(y);
-                const alpha = data[(iy * cWidth + ix) * 4 + 3];
-                if (alpha > 120) {
-                    let u = (x - (minX + maxX) / 2) * pxToUnits * aspectWidth;
-                    let v = -(y - (minY + maxY) / 2) * pxToUnits;
+        for (let k = 0; k < repeatCount; k++) {
+            const thetaOffset = (k * 2 * Math.PI) / repeatCount;
+            const instCenterTheta = centerTheta + thetaOffset;
 
-                    // Apply Slant
-                    if (Math.abs(slantAngle) > 0.001) {
-                        u += v * Math.tan(slantAngle);
+            for (let y = minY; y <= maxY; y += dotSpacingPx) {
+                for (let x = minX; x <= maxX; x += dotSpacingPx) {
+                    const ix = Math.floor(x);
+                    const iy = Math.floor(y);
+                    const alpha = data[(iy * cWidth + ix) * 4 + 3];
+                    if (alpha > 120) {
+                        let u = (x - (minX + maxX) / 2) * pxToUnits * aspectWidth;
+                        let v = -(y - (minY + maxY) / 2) * pxToUnits;
+
+                        // Apply Slant
+                        if (Math.abs(slantAngle) > 0.001) {
+                            u += v * Math.tan(slantAngle);
+                        }
+
+                        // Apply Taper
+                        if (Math.abs(taper) > 0.001) {
+                            const taperScale = 1.0 + (v / fontHeightUnits) * taper;
+                            u *= Math.max(0.2, taperScale);
+                        }
+
+                        // Apply Arch
+                        if (Math.abs(archAngle) > 0.001) {
+                            const bendRadius = (fontWidthUnits * 0.5) / Math.max(0.01, Math.abs(archAngle));
+                            const bendSign = Math.sign(archAngle);
+                            const thetaBend = (u / fontWidthUnits) * archAngle;
+                            const rOffset = (bendRadius - Math.cos(thetaBend) * bendRadius) * bendSign;
+                            v -= rOffset;
+                            u = Math.sin(thetaBend) * bendRadius;
+                        }
+
+                        let rx = u, ry = v;
+                        if (Math.abs(userRotation) > 0.001) {
+                            rx = u * Math.cos(userRotation) - v * Math.sin(userRotation);
+                            ry = u * Math.sin(userRotation) + v * Math.cos(userRotation);
+                        }
+
+                        let tPt, thetaPt;
+                        if (wrapMode === 'vertical') {
+                            tPt = centerT - rx / H_three;
+                            thetaPt = instCenterTheta - ry / r_local;
+                        } else {
+                            tPt = centerT + ry / H_three;
+                            thetaPt = instCenterTheta - rx / r_local;
+                        }
+                        tPt = Math.max(0.005, Math.min(0.995, tPt));
+                        thetaPt = normalizeAngle(thetaPt);
+
+                        const pos = getSurfacePoint(tPt, thetaPt, carveDepth);
+                        const norm = getSurfaceNormal(tPt, thetaPt);
+                        const dotMesh = new THREE.Mesh(dotGeom, dotMat);
+                        dotMesh.position.copy(pos);
+                        dotMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), norm);
+                        dotMesh.renderOrder = 998;
+                        renderObjects.push(dotMesh);
                     }
-
-                    // Apply Taper
-                    if (Math.abs(taper) > 0.001) {
-                        const taperScale = 1.0 + (v / fontHeightUnits) * taper;
-                        u *= Math.max(0.2, taperScale);
-                    }
-
-                    // Apply Arch
-                    if (Math.abs(archAngle) > 0.001) {
-                        const bendRadius = (fontWidthUnits * 0.5) / Math.max(0.01, Math.abs(archAngle));
-                        const bendSign = Math.sign(archAngle);
-                        const thetaBend = (u / fontWidthUnits) * archAngle;
-                        const rOffset = (bendRadius - Math.cos(thetaBend) * bendRadius) * bendSign;
-                        v -= rOffset;
-                        u = Math.sin(thetaBend) * bendRadius;
-                    }
-
-                    let rx = u, ry = v;
-                    if (Math.abs(userRotation) > 0.001) {
-                        rx = u * Math.cos(userRotation) - v * Math.sin(userRotation);
-                        ry = u * Math.sin(userRotation) + v * Math.cos(userRotation);
-                    }
-
-                    let tPt, thetaPt;
-                    if (wrapMode === 'vertical') {
-                        tPt = centerT - rx / H_three;
-                        thetaPt = centerTheta - ry / r_local;
-                    } else {
-                        tPt = centerT + ry / H_three;
-                        thetaPt = centerTheta - rx / r_local;
-                    }
-                    tPt = Math.max(0.005, Math.min(0.995, tPt));
-                    thetaPt = normalizeAngle(thetaPt);
-
-                    const pos = getSurfacePoint(tPt, thetaPt, carveDepth);
-                    const norm = getSurfaceNormal(tPt, thetaPt);
-                    const dotMesh = new THREE.Mesh(dotGeom, dotMat);
-                    dotMesh.position.copy(pos);
-                    dotMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), norm);
-                    dotMesh.renderOrder = 998;
-                    renderObjects.push(dotMesh);
                 }
             }
         }
@@ -259,65 +265,6 @@ export function generateTextCarveObjects(item, state) {
         // Conformal Curved Surface Mesh Decal for Crisp, Anti-Aliased Lettering
         const uSegs = 48;
         const vSegs = 24;
-        const geom = new THREE.PlaneGeometry(1, 1, uSegs, vSegs);
-        const posAttr = geom.attributes.position;
-        const uvAttr = geom.attributes.uv;
-
-        for (let i = 0; i < posAttr.count; i++) {
-            // UV coordinates [0, 1] relative to center [-0.5, 0.5]
-            const uNorm = uvAttr.getX(i) - 0.5;
-            const vNorm = uvAttr.getY(i) - 0.5;
-
-            // World units offset
-            let localU = uNorm * fontWidthUnits;
-            let localV = vNorm * fontHeightUnits;
-
-            // Apply Slant (Shear)
-            if (Math.abs(slantAngle) > 0.001) {
-                localU += localV * Math.tan(slantAngle);
-            }
-
-            // Apply Perspective Taper
-            if (Math.abs(taper) > 0.001) {
-                const taperScale = 1.0 + vNorm * taper;
-                localU *= Math.max(0.2, taperScale);
-            }
-
-            // Apply Arch baseline bend
-            if (Math.abs(archAngle) > 0.001) {
-                const bendRadius = (fontWidthUnits * 0.5) / Math.max(0.01, Math.abs(archAngle));
-                const bendSign = Math.sign(archAngle);
-                const thetaBend = (localU / fontWidthUnits) * archAngle;
-                const rOffset = (bendRadius - Math.cos(thetaBend) * bendRadius) * bendSign;
-                localV -= rOffset;
-                localU = Math.sin(thetaBend) * bendRadius;
-            }
-
-            // Apply user orientation rotation
-            let rx = localU, ry = localV;
-            if (Math.abs(userRotation) > 0.001) {
-                rx = localU * Math.cos(userRotation) - localV * Math.sin(userRotation);
-                ry = localU * Math.sin(userRotation) + localV * Math.cos(userRotation);
-            }
-
-            // Map to gourd surface: left-to-right reading correctly
-            let tPt, thetaPt;
-            if (wrapMode === 'vertical') {
-                tPt = centerT - rx / H_three;
-                thetaPt = centerTheta - ry / r_local;
-            } else {
-                tPt = centerT + ry / H_three;
-                thetaPt = centerTheta - rx / r_local;
-            }
-
-            tPt = Math.max(0.005, Math.min(0.995, tPt));
-            thetaPt = normalizeAngle(thetaPt);
-
-            const surfacePt = getSurfacePoint(tPt, thetaPt, carveDepth);
-            posAttr.setXYZ(i, surfacePt.x, surfacePt.y, surfacePt.z);
-        }
-
-        geom.computeVertexNormals();
 
         const texture = new THREE.CanvasTexture(cropCanvas);
         texture.anisotropy = 8;
@@ -354,9 +301,74 @@ export function generateTextCarveObjects(item, state) {
             });
         }
 
-        const mesh = new THREE.Mesh(geom, mat);
-        mesh.renderOrder = 998;
-        renderObjects.push(mesh);
+        for (let k = 0; k < repeatCount; k++) {
+            const thetaOffset = (k * 2 * Math.PI) / repeatCount;
+            const instCenterTheta = centerTheta + thetaOffset;
+
+            const geom = new THREE.PlaneGeometry(1, 1, uSegs, vSegs);
+            const posAttr = geom.attributes.position;
+            const uvAttr = geom.attributes.uv;
+
+            for (let i = 0; i < posAttr.count; i++) {
+                // UV coordinates [0, 1] relative to center [-0.5, 0.5]
+                const uNorm = uvAttr.getX(i) - 0.5;
+                const vNorm = uvAttr.getY(i) - 0.5;
+
+                // World units offset
+                let localU = uNorm * fontWidthUnits;
+                let localV = vNorm * fontHeightUnits;
+
+                // Apply Slant (Shear)
+                if (Math.abs(slantAngle) > 0.001) {
+                    localU += localV * Math.tan(slantAngle);
+                }
+
+                // Apply Perspective Taper
+                if (Math.abs(taper) > 0.001) {
+                    const taperScale = 1.0 + vNorm * taper;
+                    localU *= Math.max(0.2, taperScale);
+                }
+
+                // Apply Arch baseline bend
+                if (Math.abs(archAngle) > 0.001) {
+                    const bendRadius = (fontWidthUnits * 0.5) / Math.max(0.01, Math.abs(archAngle));
+                    const bendSign = Math.sign(archAngle);
+                    const thetaBend = (localU / fontWidthUnits) * archAngle;
+                    const rOffset = (bendRadius - Math.cos(thetaBend) * bendRadius) * bendSign;
+                    localV -= rOffset;
+                    localU = Math.sin(thetaBend) * bendRadius;
+                }
+
+                // Apply user orientation rotation
+                let rx = localU, ry = localV;
+                if (Math.abs(userRotation) > 0.001) {
+                    rx = localU * Math.cos(userRotation) - localV * Math.sin(userRotation);
+                    ry = localU * Math.sin(userRotation) + localV * Math.cos(userRotation);
+                }
+
+                // Map to gourd surface: left-to-right reading correctly around circumference
+                let tPt, thetaPt;
+                if (wrapMode === 'vertical') {
+                    tPt = centerT - rx / H_three;
+                    thetaPt = instCenterTheta - ry / r_local;
+                } else {
+                    tPt = centerT + ry / H_three;
+                    thetaPt = instCenterTheta - rx / r_local;
+                }
+
+                tPt = Math.max(0.005, Math.min(0.995, tPt));
+                thetaPt = normalizeAngle(thetaPt);
+
+                const surfacePt = getSurfacePoint(tPt, thetaPt, carveDepth);
+                posAttr.setXYZ(i, surfacePt.x, surfacePt.y, surfacePt.z);
+            }
+
+            geom.computeVertexNormals();
+
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.renderOrder = 998;
+            renderObjects.push(mesh);
+        }
     }
 
     return renderObjects;
@@ -366,19 +378,19 @@ export function generateTextCarveObjects(item, state) {
 export function updateCarveGroup(group, state) {
     if (!group) return 0;
 
+    const disposedMaterials = new Set();
     while (group.children.length > 0) {
         const child = group.children[0];
         if (child.geometry) child.geometry.dispose();
         if (child.material) {
-            if (Array.isArray(child.material)) {
-                child.material.forEach(m => {
+            const mats = Array.isArray(child.material) ? child.material : [child.material];
+            mats.forEach(m => {
+                if (!disposedMaterials.has(m)) {
+                    disposedMaterials.add(m);
                     if (m.map) m.map.dispose();
                     m.dispose();
-                });
-            } else {
-                if (child.material.map) child.material.map.dispose();
-                child.material.dispose();
-            }
+                }
+            });
         }
         group.remove(child);
     }
