@@ -291,6 +291,7 @@ window.animateModelRotation = animateModelRotation;
 
 // Sets camera presets and sets target lerping
 function setCameraView(view) {
+    state.activeCameraView = view;
     cameraTargetPos = cameraPresets[view]?.clone();
     document.querySelectorAll('.vp-preset-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === view);

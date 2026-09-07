@@ -3861,13 +3861,55 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
         }
     });
 
-    // 6. View Header Dropdown Menu wireframe
+    // Helper to dynamically synchronize View dropdown items with live application state
+    function syncViewDropdownState() {
+        if (!viewDropdown) return;
+
+        // 1. Camera active state
+        const currentCam = state.activeCameraView || 'persp';
+        viewDropdown.querySelectorAll('[data-view-action^="camera-"]').forEach(item => {
+            const camView = item.dataset.viewAction.replace('camera-', '');
+            item.classList.toggle('active', camView === currentCam);
+        });
+
+        // 2. Model orientation active state
+        const rx = Math.round(state.modelRotationX || 0);
+        const rz = Math.round(state.modelRotationZ || 0);
+        
+        const isUpright = (rx === 0 && rz === 0);
+        const isUpsideDown = (Math.abs(rz) === 180 || Math.abs(rx) === 180);
+        const isLieRight = (rz === 90 || rz === -270);
+        const isLieLeft = (rz === -90 || rz === 270);
+
+        const uprightItem = viewDropdown.querySelector('[data-view-action="orient-upright"]');
+        const upsideDownItem = viewDropdown.querySelector('[data-view-action="orient-upside-down"]');
+        const sideRightItem = viewDropdown.querySelector('[data-view-action="orient-side-right"]');
+        const sideLeftItem = viewDropdown.querySelector('[data-view-action="orient-side-left"]');
+
+        uprightItem?.classList.toggle('active', isUpright);
+        upsideDownItem?.classList.toggle('active', isUpsideDown);
+        sideRightItem?.classList.toggle('active', isLieRight);
+        sideLeftItem?.classList.toggle('active', isLieLeft);
+
+        // 3. Grid and Pattern toggle checkmarks
+        const gridItem = viewDropdown.querySelector('[data-view-action="toggle-grid"]');
+        const patternItem = viewDropdown.querySelector('[data-view-action="toggle-patterns"]');
+
+        const isGridOn = (state.gridVisible !== false);
+        const isPatternOn = (state.patternVisible !== false);
+
+        gridItem?.classList.toggle('checked', isGridOn);
+        patternItem?.classList.toggle('checked', isPatternOn);
+    }
+
+    // 6. View Header Dropdown Menu logic
     const viewMenuBtn = document.getElementById('menu-view-btn');
     const viewDropdown = document.getElementById('view-dropdown');
     
     if (viewMenuBtn && viewDropdown) {
         viewMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            syncViewDropdownState();
             toggleHeaderDropdown(viewMenuBtn, viewDropdown);
         });
         
@@ -3876,45 +3918,63 @@ export function registerGlobalUIEvents(gourdMesh, carveGroup, measureGroup, patt
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const action = item.dataset.viewAction;
+                if (!action) return;
+
                 if (action.startsWith('camera-')) {
-                    setCameraView(action.split('-')[1]);
+                    const cam = action.split('-')[1];
+                    state.activeCameraView = cam;
+                    if (setCameraView) setCameraView(cam);
+                    showToast(`${cam.charAt(0).toUpperCase() + cam.slice(1)} Camera View`, 'info');
+                    syncViewDropdownState();
+                    viewDropdown.style.display = 'none';
                 } else if (action === 'orient-upright') {
                     pushUndoState(gourdMesh);
                     setModelOrientation(0, 0, 0, gourdMesh);
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                     showToast('Model orientation set to Upright (0°)', 'info');
+                    syncViewDropdownState();
+                    viewDropdown.style.display = 'none';
                 } else if (action === 'orient-upside-down') {
                     pushUndoState(gourdMesh);
                     setModelOrientation(0, 0, 180, gourdMesh);
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                     showToast('Model orientation flipped Upside Down (180°)', 'info');
+                    syncViewDropdownState();
+                    viewDropdown.style.display = 'none';
                 } else if (action === 'orient-side-right') {
                     pushUndoState(gourdMesh);
                     setModelOrientation(0, 0, 90, gourdMesh);
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                     showToast('Model orientation set to Right Side (90°)', 'info');
+                    syncViewDropdownState();
+                    viewDropdown.style.display = 'none';
                 } else if (action === 'orient-side-left') {
                     pushUndoState(gourdMesh);
                     setModelOrientation(0, 0, -90, gourdMesh);
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                     showToast('Model orientation set to Left Side (-90°)', 'info');
+                    syncViewDropdownState();
+                    viewDropdown.style.display = 'none';
                 } else if (action === 'orient-reset') {
                     pushUndoState(gourdMesh);
                     setModelOrientation(0, 0, 0, gourdMesh);
                     renderPropertiesPanel(gourdMesh, carveGroup, measureGroup, patternGroup, onUpdatePattern, onUpdateMeasure);
                     showToast('Model orientation reset to (0°, 0°, 0°)', 'info');
+                    syncViewDropdownState();
+                    viewDropdown.style.display = 'none';
                 } else if (action === 'toggle-grid') {
                     state.gridVisible = !state.gridVisible;
-                    gridHelper.visible = state.gridVisible;
+                    if (gridHelper) gridHelper.visible = state.gridVisible;
                     item.classList.toggle('checked', state.gridVisible);
-                    showToast(state.gridVisible ? 'Grid enabled' : 'Grid hidden');
+                    showToast(state.gridVisible ? 'Ground Grid visible' : 'Ground Grid hidden', 'info');
+                    syncViewDropdownState();
                 } else if (action === 'toggle-patterns') {
                     state.patternVisible = !state.patternVisible;
-                    patternGroup.visible = state.patternVisible;
+                    if (patternGroup) patternGroup.visible = state.patternVisible;
                     item.classList.toggle('checked', state.patternVisible);
-                    showToast(state.patternVisible ? 'Patterns visible' : 'Patterns hidden');
+                    showToast(state.patternVisible ? 'Patterns visible' : 'Patterns hidden', 'info');
+                    syncViewDropdownState();
                 }
-                viewDropdown.style.display = 'none';
             });
         });
     }

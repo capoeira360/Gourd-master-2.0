@@ -894,39 +894,95 @@ input[type="color"]::-webkit-color-swatch {
     position: absolute;
     top: 40px;
     left: 100px;
-    background: var(--color-panel-up);
-    border: 1px solid var(--color-bdr);
+    background: rgba(22, 22, 28, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    padding: 4px;
-    min-width: 140px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 255, 255, 0.15);
+    padding: 6px;
+    min-width: 160px;
     z-index: 200;
     display: none;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 4px 0;
 }
 
 .dropdown-item {
-    padding: 6px 12px;
+    padding: 6px 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: 11.5px;
     color: var(--color-tx-m);
     cursor: pointer;
     border-radius: var(--radius-sm);
-    transition: var(--transition-fast);
+    transition: all 0.15s ease;
+    user-select: none;
 }
 
 .dropdown-item:hover {
-    background: var(--color-panel-hi);
-    color: var(--color-tx);
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
 }
 
-.dropdown-item i {
-    font-size: 9px;
+.dropdown-item.active {
+    color: var(--color-acc) !important;
+    font-weight: 600;
+    background: rgba(212, 168, 67, 0.12);
 }
 
-.dropdown-item.checked i {
+.dropdown-item.active i, .dropdown-item.active .dropdown-item-label i {
+    color: var(--color-acc) !important;
+}
+
+.dropdown-item-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dropdown-item-label i, .dropdown-item > i:first-child {
+    width: 14px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--color-tx-d);
+    transition: color 0.15s ease;
+}
+
+.dropdown-item:hover .dropdown-item-label i, .dropdown-item:hover > i:first-child {
     color: var(--color-acc);
+}
+
+.dropdown-shortcut {
+    font-size: 9.5px;
+    color: var(--color-tx-d);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--font-mono, monospace);
+}
+
+.dropdown-item.active .dropdown-shortcut {
+    border-color: rgba(212, 168, 67, 0.3);
+    color: var(--color-acc);
+}
+
+.view-check-icon {
+    font-size: 10px !important;
+    color: var(--color-acc) !important;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    margin-left: 8px;
+}
+
+.dropdown-item.checked .view-check-icon {
+    opacity: 1;
 }
 
 /* Loading Overlay */
